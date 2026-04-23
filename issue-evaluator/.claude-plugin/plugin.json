@@ -1,0 +1,7 @@
+{
+  "name": "issue-evaluator",
+  "description": "Evaluate GitHub issues against the current repo: diagnose, check fix status, analyze code style, provide reproduction and fix plans, review pull requests, scan for high-value issues, and run adversarial review via Codex after fixing.",
+  "author": {
+    "name": "linghao"
+  }
+}

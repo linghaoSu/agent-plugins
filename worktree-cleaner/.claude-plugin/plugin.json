@@ -1,0 +1,7 @@
+{
+  "name": "worktree-cleaner",
+  "description": "Clean up git worktrees whose branches have merged/closed PRs, with optional removal of no-PR worktrees.",
+  "author": {
+    "name": "linghao"
+  }
+}

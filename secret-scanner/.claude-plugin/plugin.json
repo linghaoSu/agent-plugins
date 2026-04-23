@@ -1,0 +1,7 @@
+{
+  "name": "secret-scanner",
+  "description": "Scan staged/uncommitted/recent changes for leaked secrets and credentials - API keys (AWS, GitHub, Stripe, OpenAI, Anthropic, Slack, Google, Twilio, SendGrid), private keys, JWTs, DB connection strings, and generic password/token assignments. Deterministic Python scanner + LLM-assisted false-positive triage. Read-only by default.",
+  "author": {
+    "name": "linghao"
+  }
+}

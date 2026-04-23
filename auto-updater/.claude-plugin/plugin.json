@@ -1,0 +1,9 @@
+{
+  "name": "auto-updater",
+  "version": "0.1.0",
+  "description": "SessionStart hook that auto-updates plugins installed from local directory marketplaces when the source repo has a newer commit.",
+  "author": {
+    "name": "linghao"
+  },
+  "hooks": "./hooks/hooks.json"
+}

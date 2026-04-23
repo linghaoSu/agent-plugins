@@ -1,0 +1,43 @@
+{
+  "name": "agent-plugins-linghao",
+  "owner": {
+    "name": "linghao"
+  },
+  "plugins": [
+    {
+      "name": "issue-evaluator",
+      "description": "Evaluate GitHub issues against the current repo: diagnose, check fix status, analyze code style, provide reproduction and fix plans, review pull requests, scan for high-value issues, and run adversarial review via Codex after fixing.",
+      "source": "./issue-evaluator"
+    },
+    {
+      "name": "worktree-cleaner",
+      "description": "Clean up git worktrees whose branches have merged/closed PRs, with optional removal of no-PR worktrees.",
+      "source": "./worktree-cleaner"
+    },
+    {
+      "name": "harness-engineering",
+      "description": "Design, audit, and harden the scaffolding around autonomous agents — the harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Commands: /harness-design, /harness-audit, /sprint-contract, /resilience-plan.",
+      "source": "./harness-engineering"
+    },
+    {
+      "name": "idea-to-ship",
+      "description": "End-to-end flow from a vague idea to shipped code: Socratic requirement mining, architecture design, adversarial design review, staged implementation, adversarial code review, and test strategy. Each stage lands a markdown artifact under .idea-to-ship/<slug>/ so stages compose and can resume.",
+      "source": "./idea-to-ship"
+    },
+    {
+      "name": "auto-updater",
+      "description": "SessionStart hook that auto-updates plugins installed from local directory marketplaces when the source repo has a newer commit.",
+      "source": "./auto-updater"
+    },
+    {
+      "name": "agent-playbook",
+      "description": "Operator-facing distillation of the best-practice literature (Cursor, Claude Code, Codex, Anthropic engineering, Peter Steinberger). Commands: /bootstrap-project-memory, /context-audit, /tool-review.",
+      "source": "./agent-playbook"
+    },
+    {
+      "name": "secret-scanner",
+      "description": "Scan staged/uncommitted/recent changes for leaked secrets - cloud keys (AWS, Google), VCS tokens (GitHub, GitLab), AI API keys (OpenAI, Anthropic), payment keys (Stripe), Slack/Twilio/SendGrid tokens, JWTs, private keys, DB connection strings, and generic password/token assignments. Deterministic Python scanner plus LLM-assisted false-positive triage. Read-only.",
+      "source": "./secret-scanner"
+    }
+  ]
+}
