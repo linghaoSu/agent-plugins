@@ -153,9 +153,23 @@ Do not chase a coverage percentage — chase meaningful behavior coverage. A 100
 
 3. Suggest: "Review the diff, then commit when ready."
 
+## Anti-Patterns
+
+- **Testing implementation details.** Asserting that a specific private helper was called, or that an internal data structure has a particular shape. Test observable behavior: inputs → outputs, side effects, error signals. If refactoring the internals breaks the test but not the behavior, the test was wrong.
+- **Mock everything.** Mocking internal collaborators hides integration bugs. Mock at system boundaries (external APIs, third-party services) — not at the boundary between your own modules. If you're mocking 5 things in one test, the test is too isolated to catch real bugs.
+- **One giant test per feature.** A test that checks 8 behaviors will tell you "something broke" but not what. One behavior per test. A failing test should point to one specific broken thing.
+- **Chasing coverage numbers.** 100% line coverage with weak assertions is worse than 70% with strong assertions. Coverage tells you what code ran, not what was verified. The right question is: "does each test assert the behavior it claims to test?"
+- **Testing framework behavior.** Don't test that React renders a component, that Express routes requests, or that SQLAlchemy saves objects. Test what *your code* does differently from the framework's defaults.
+
+## Phase Gates
+
+- **⛔ GATE after Step 2 (Derive Test Cases):** You must have at least one test case per functional requirement. If a requirement has no corresponding test case, either the requirement is untestable (flag it) or you missed something (go back).
+- **⛔ GATE after Step 5 (Implement):** All new tests must run and pass before proceeding to Step 6. Do not write 20 tests and then debug them all at once — write a few, run, fix, repeat.
+
 ## Notes
 
 - Do **not** commit or push.
 - If no `architecture.md` exists, derive scope from the diff + `git log` of the changed files. Note in `test-plan.md` that the plan was reverse-engineered.
 - Flaky tests are bugs. If a test is intermittent, fix the root cause or don't write it.
 - If adding tests reveals a production bug, that's a win, not a problem — fix the bug, note it clearly in the results block.
+- **Read `../../LANGUAGE.md`** — use "seam" when discussing test boundaries, "vertical slice" when scoping test coverage.

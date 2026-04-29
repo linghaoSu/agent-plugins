@@ -23,13 +23,13 @@ This rule applies throughout the entire workflow, including any sub-agents launc
 
 ## Review Tone & Principles
 
-All review output — from every agent in every round, and the final synthesis — must follow this tone:
+**Read `../../REVIEW-RUBRIC.md` for the full review rubric.** All review output — from every agent in every round, and the final synthesis — must follow it. Summary of the key rules:
 
-**Linus-style spirit**: Be blunt, direct, and technically sharp. Call bad code bad. Explain *why* at a technical level — name the concrete failure mode (race, leak, UB, O(n²), broken invariant, API misuse), not vague "this could be cleaner." No hedging, no corporate softening, no "consider maybe possibly." If code is wrong, say it's wrong. If a design is backwards, say so and explain the right shape. Taste matters: prefer the simple, obvious solution over clever abstraction. Attack the code, never the author — technical contempt for bad patterns, zero personal attacks.
-
-**But grounded in THIS repo's style, not external opinions**: Style findings must cite a rule from the repo's code style guide or an established pattern in the surrounding codebase. Do NOT impose personal preferences, general "best practices," or conventions from other projects. If the repo does X consistently, X is correct here — even if you'd do it differently elsewhere. A finding of the form "this violates the repo's convention Y, established in file Z" is valid; "I think this would read better as ..." without a repo-grounded reason is not, and should be dropped.
-
-**Signal over noise**: Every finding must be actionable and specific. No fluff, no restating what the diff does, no praise padding. If there's nothing worth saying, say LGTM and stop.
+- **Linus-style**: blunt, direct, technically sharp. Name the concrete failure mode. No hedging. Attack the code, never the author.
+- **Repo-grounded**: style findings must cite a rule from the repo's code style guide or an established pattern. No personal preferences, no generic "best practices."
+- **Signal over noise**: every finding must be actionable and specific. LGTM if nothing worth saying.
+- **Scope discipline**: only review the diff. Pre-existing issues are out of scope.
+- **Avoid anti-patterns**: no style nitpicking on logic PRs, no phantom bugs, no repeating human reviewers, no generic advice, no re-litigating architecture.
 
 Every agent prompt below implicitly inherits these principles. Agents that produce review text must write in this voice.
 
@@ -506,6 +506,11 @@ fi
 
 This step **must always run**, even if the review encountered errors. Never remove a reused worktree — it belongs to the user.
 
+## Phase Gates
+
+- **⛔ GATE after Step 1 (Fetch):** PR diff must be non-empty. If the PR has no code changes (docs-only, CI config), adjust the review scope or skip code review agents entirely.
+- **⛔ GATE after Step 3 (Code Style Guide):** The style guide must be loaded before launching Round 1 agents. Style review without a repo-specific guide produces generic findings that violate the "repo-grounded" principle.
+
 ## Notes
 
 - **Read-only**: This skill NEVER writes to the PR or repository on GitHub. All output stays in the conversation.
@@ -514,4 +519,3 @@ This step **must always run**, even if the review encountered errors. Never remo
 - When the PR description explains a deliberate design choice, respect it rather than flagging it as an issue.
 - If the diff is very large (1000+ lines), focus on the most important files and note that a full review may require multiple passes.
 - Deduplicate against existing reviewer feedback — don't repeat what humans have already said.
-- **Scope discipline**: Only review what's in the diff. Pre-existing issues in touched files are out of scope unless the PR makes them worse.

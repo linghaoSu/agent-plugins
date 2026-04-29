@@ -146,8 +146,26 @@ Ordered, independently-shippable stages. Each stage should leave the system work
 1. Print a 5-bullet summary: chosen option, top tradeoff accepted, top risk, first stage, any open questions.
 2. Tell the user: "Run `/review-design` next — Codex will tear this apart and we'll iterate."
 
+## Anti-Patterns
+
+Recognize and avoid these — they are the most common failure modes in this skill:
+
+- **Straw-man alternatives.** Inventing a deliberately weak option to make the favorite look good. Every alternative must be something a sane engineer would actually build. If you catch yourself writing an option just to fill the "2-3 alternatives" requirement, stop — two real options beat three where one is a prop.
+- **Premature detail.** Specifying implementation details (variable names, internal helper functions, exact line numbers) that will change the moment someone opens an editor. The architecture should specify *interfaces and contracts*, not internals. If it reads like pseudocode, it's too detailed.
+- **Designing for an imagined codebase.** Proposing patterns, layers, or abstractions that don't exist in this repo. Step 2 (Explore) exists to prevent this — if you skip it or ignore its findings, the design will fight the codebase.
+- **Hiding tradeoffs in the recommendation.** Stating "we pick Option A" without naming what you're giving up. Every recommendation has a cost — if you can't name it, you haven't thought hard enough.
+
+## Phase Gates
+
+These are hard stops. Do not proceed past a gate until its condition is met.
+
+- **⛔ GATE after Step 2 (Explore):** You must have concrete file paths and module names from the actual codebase before designing anything. If Explore returned nothing useful, widen the search or ask the user — do not design against an imagined codebase.
+- **⛔ GATE after Step 3 (Design):** Each alternative must have Pros, Cons, and Risk filled in. If you can't articulate a Con for an option, you don't understand it well enough.
+- **⛔ GATE after Step 4 (Recommend):** The recommendation must name the tradeoff it accepts. "Option A is better in every way" is a sign you invented a straw-man — go back to Step 3.
+
 ## Notes
 
 - **No code in this skill.** Signatures and schemas yes; implementations no.
 - If requirements.md is thin in a section you need, write a concrete assumption into architecture.md and flag it under Open Questions rather than blocking on the user.
 - If the design is forced into awkward shapes because requirements are wrong, say so — recommend the user revise requirements before architecting further.
+- **Read `../../LANGUAGE.md`** for shared vocabulary — use terms like "vertical slice", "deep module", "seam", "blast radius" precisely as defined there.

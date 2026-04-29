@@ -331,6 +331,17 @@ After presenting the report, tell the user:
 - If the issue is already fixed: "This issue appears to be fixed in commit <sha>. No further action needed."
 - If the issue cannot be confirmed: "I could not confirm this issue in the current codebase. The issue may be environment-specific, already fixed, or require additional context."
 
+## Anti-Patterns
+
+- **Confirmation bias.** Deciding the root cause before reading the code, then finding "evidence" that supports it. Let the code lead. If Round 1 and Round 2 disagree, that's a signal — don't just pick the first answer.
+- **Surface-level diagnosis.** "The error is on line 42" without explaining *why* it fails. A diagnosis must include the causal chain: what triggers the code path, what state is wrong, and why.
+- **Unfalsifiable hypotheses.** "It might be a race condition" without stating a concrete check. Use the falsifiable hypothesis pattern: "If X is the cause, then doing Y will produce Z." If you can't state the prediction, dig deeper.
+
+## Phase Gates
+
+- **⛔ GATE after Step 1 (Fetch) / Step 0 (Description mode):** You must have a clear problem statement. In description mode, if the description is too vague after two rounds of clarification, stop and tell the user — do not proceed with a vague diagnosis.
+- **⛔ GATE after Round 1:** At least two agents must have produced findings before proceeding to Round 2. If all agents returned empty results, something is wrong with the issue or the search scope — surface this rather than sending empty context to Codex.
+
 ## Notes
 
 - Always use `gh` CLI for GitHub interactions, not web fetch

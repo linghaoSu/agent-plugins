@@ -11,9 +11,10 @@ Read `architecture.md` and build it. One stage at a time by default, so you can 
 
 This skill writes code. It does **not** commit, push, or run adversarial review — those are separate (`git` is yours; use `/review-code` when a stage is complete).
 
-**Before coding, read `../../PRINCIPLES.md` at the plugin root** (Think Before
-Coding · Simplicity First · Surgical Changes · Goal-Driven Execution). These
-apply to every line written here.
+**Before coding, read `../../PRINCIPLES.md` and `../../LANGUAGE.md` at the
+plugin root.** PRINCIPLES governs every line written here. LANGUAGE defines
+shared terms (vertical slice, staged implementation, design drift, seam,
+blast radius) — use them precisely.
 
 ## Arguments
 
@@ -142,6 +143,19 @@ Tick the stage's checkbox in the Stage Status list at the top.
    - If more stages remain and mode is `all` → ask "Continue to stage N+1?" and loop on confirmation.
    - Otherwise suggest: "Review the diff, then `/review-code` to run adversarial review, or `/test` to write tests."
 3. Do **not** commit.
+
+## Anti-Patterns
+
+- **Big-bang implementation.** Implementing all stages at once, or treating "all" mode as permission to skip the pause between stages. Each stage must leave the system working. If you find yourself thinking "I'll fix the breakage in stage 3" while in stage 2, you're doing it wrong — stage 2 must work on its own.
+- **Silent deviation.** The architecture says X, you do Y because it's "obviously better." This is design drift (see `../../LANGUAGE.md`). Either push back and update the architecture first, or document the deviation in the log. Never just do it.
+- **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
+- **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
+
+## Phase Gates
+
+- **⛔ GATE after Step 3 (Sanity Check):** If the codebase has drifted from what `architecture.md` assumed, STOP. Do not improvise around the mismatch. Surface it, get a decision (update architecture or proceed with documented deviation), then continue.
+- **⛔ GATE after Step 3.5 (Surface Assumptions):** Assumptions must be written down before any code is written. If an assumption has multiple plausible interpretations, you must pick one explicitly and log the pick. "I'll figure it out as I go" is not an option.
+- **⛔ GATE after Step 5 (Verify):** Build, lint, and existing tests must pass. If anything fails, fix it before declaring the stage done. Do not move to Step 6 with a broken build — a "mostly done" stage is worse than an unstarted one.
 
 ## Notes
 

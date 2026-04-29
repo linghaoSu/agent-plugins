@@ -131,6 +131,18 @@ Examples of weak criteria (rewrite these):
 - Do not invent requirements the user didn't state. If unknown, put in "Open Questions".
 - If the user pushes you to skip questions, honor it — but write explicit "assumption" entries in Open Questions so the next stage knows what was guessed.
 
+## Anti-Patterns
+
+- **Leading questions.** "Don't you think we should use a cache here?" is not a question — it's a suggestion wearing a question mark. Ask "What's the latency budget?" and let the user's answer drive the design.
+- **Requirements inflation.** Adding requirements the user never stated because "we'll probably need it." If the user didn't say it and the codebase doesn't demand it, it goes in Open Questions at most — not in Functional Requirements.
+- **Accepting handwaves.** "It should be fast" is not a requirement. "It should handle errors gracefully" is not a requirement. Push until there's a number, a behavior, or a testable condition.
+- **One-at-a-time questioning.** Asking one question per turn is slow and annoying. Batch 3-5. If you need 15 questions, you're overcomplicating it — group by theme and ask the highest-leverage ones first.
+- **Interviewing when the codebase has the answer.** If the user says "integrate with the existing auth system," don't ask "what auth system do you use?" — grep the codebase and find out. Only ask what the code can't tell you.
+
+## Phase Gates
+
+- **⛔ GATE before Step 3 (Write requirements.md):** Every section in the template must be fillable without guessing. If Problem, Users, or Success Criteria still have gaps, ask another batch. Do not write a requirements doc with "TBD" in critical sections.
+
 ## Techniques worth stealing
 
 - **Let the agent interview** — for a complex feature, use `AskUserQuestion`

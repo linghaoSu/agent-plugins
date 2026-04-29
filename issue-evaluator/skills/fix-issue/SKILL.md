@@ -207,6 +207,18 @@ Present a concise summary:
 
 **Do NOT remove the worktree** — the user may want to review, push, or continue working on it.
 
+## Anti-Patterns
+
+- **Fixing the symptom, not the cause.** Adding a null check where the real bug is that the value should never be null. Trace the root cause. If the evaluation says "add a guard," ask whether the guard hides a deeper issue.
+- **Scope creep during fix.** "While I'm here, I'll also clean up this adjacent function." No. Every changed line must trace to the issue. Note unrelated improvements in the summary — do not fix them.
+- **Guessing at ambiguous issues.** If the issue has multiple plausible interpretations, don't pick one silently. The "done" check from Step 3.5 exists to force clarity. If you can't state a verifiable "done" condition, you don't understand the issue well enough.
+- **Fix without verification.** A fix with no test and no reproduction check is a hope, not a fix. Step 3.5 requires a "done" check — if none exists, the fix is not ready to commit.
+
+## Phase Gates
+
+- **⛔ GATE after Step 3.5 (Surface Assumptions):** You must have a written "done" check — a test name, command, or specific behavior that proves the fix works. If you can't state one, stop and clarify with the user.
+- **⛔ GATE after Step 5 (Verify):** Tests must pass. If no test suite exists, you must have verified the fix manually (reproduction no longer reproduces) and noted this explicitly.
+
 ## Notes
 
 - Always read files before editing them

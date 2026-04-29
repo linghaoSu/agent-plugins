@@ -125,8 +125,16 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 2. Print a 3-bullet summary of the biggest changes made during the loop.
 3. Suggest: "Run `/implement` to start building."
 
+## Anti-Patterns
+
+- **Piling on.** Finding 30 issues and reporting all of them. Prioritize ruthlessly — criticals first, then warnings. If there are more than 3 criticals, the architecture needs a rewrite, not 30 patches.
+- **Inventing work.** Flagging concerns that are explicitly out of scope per `requirements.md`. If requirements say "no real-time sync needed," don't flag "no real-time sync strategy" as a missing failure mode.
+- **Cosmetic rewrites.** Rewriting sections for style or prose quality. This is a technical review, not copyediting. Only change text to fix a technical error or add a missing failure mode.
+- **Death by a thousand nits.** If the architecture is fundamentally sound, 20 nits don't make it better — they make the reviewer feel productive while adding no value. A clean architecture with 3 real improvements beats one buried under formatting fixes.
+
 ## Notes
 
 - This skill writes to `architecture.md` (updates) and `design-review.md` (new). It does not touch source code.
 - If `codex:codex-rescue` is unavailable, fall back to a self-review pass with the same principles, and note in `design-review.md` that Codex was not used.
 - **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
+- **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.
