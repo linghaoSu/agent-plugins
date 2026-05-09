@@ -3,7 +3,7 @@ goal: "让 agent-plugins 可持续演进"
 horizon: "next 4 weeks (2026-05-09 to 2026-06-06)"
 generated_at: "2026-05-09 13:49 CST"
 repo_head: "1514e2b796fe20200854ff430219566ab2647c17"
-dirty_worktree: "only .idea-to-ship/roadmap.md"
+dirty_worktree: "clean after pushed roadmap execution commits"
 mode: "portfolio"
 source_scope: "local+git"
 write_target: ".idea-to-ship/roadmap.md"
@@ -45,6 +45,7 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Completed `ITS-ROADMAP-006` Stage 1 idea-to-ship contract fixtures.
 - Completed `ITS-ROADMAP-005` portfolio inventory and ownership model.
 - Completed `ITS-ROADMAP-007` by recording command-based secret-scan release-gate enforcement.
+- Completed `ITS-ROADMAP-002` by using `ITS-ROADMAP-006` as evidence of full-flow idea-to-ship dogfooding.
 
 ## Inputs
 
@@ -158,16 +159,16 @@ Excluded:
 ## Later
 
 ### ITS-ROADMAP-002 - Dogfood idea-to-ship as the planning backbone
-**Status:** Deferred
+**Status:** Done
 **Work Type:** Feature
 **Evidence Class:** Artifact
 **Confidence:** High
 **Source Anchors:** `idea-to-ship/README.md:40-49`; `.idea-to-ship/current/code-review.md:42-44`; `1514e2b`; `.idea-to-ship/roadmap.md`
 **Why Now / Why Next / Why Later:** The repo is already dogfooding idea-to-ship through this roadmap. Keep it as a later process improvement after release gates, metadata consistency, hook hardening, and eval fixtures are in place.
 **Owner:** Unassigned
-**Decision Owner:** User
+**Decision Owner:** None
 **Release Gate:** Entry: at least one Now item completed. Exit: future portfolio work consistently uses requirements/architecture/roadmap/review/test artifacts where useful. No-go: process overhead exceeds the value of the change.
-**Evidence Required:** At least one subsequent feature uses the full idea-to-ship flow and records artifacts.
+**Evidence Required:** Completed: `ITS-ROADMAP-006` used requirements, architecture, design review, implementation log, test plan, code review, runnable eval fixture, and release-gate verification; `.idea-to-ship/ITS-ROADMAP-002/implementation-log.md`.
 **Dependencies:** ITS-ROADMAP-001; ITS-ROADMAP-006
 **Risk:** low - main risk is process bloat.
 
@@ -204,7 +205,7 @@ Excluded:
 3. `ITS-ROADMAP-004` can start after or during `ITS-ROADMAP-001`, but accepted hook fixes should obey the release gate once it exists.
 4. `ITS-ROADMAP-006` depended on `ITS-ROADMAP-001` for where eval fixtures fit into release checks; Stage 1 now lands as a manually runnable command before release-gate integration.
 5. `ITS-ROADMAP-005` and `ITS-ROADMAP-007` follow the release gate baseline so they do not create separate, drifting process rules.
-6. `ITS-ROADMAP-002` remains later until there is a proven baseline worth codifying.
+6. `ITS-ROADMAP-002` is complete: `ITS-ROADMAP-006` proved the full-flow dogfood path, while docs-only and decision-only items used right-sized artifacts.
 
 ## Dependency Hypotheses
 
@@ -235,7 +236,7 @@ Excluded:
 | ITS-ROADMAP-006 | Done | None - contract fixture command implemented | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
 | ITS-ROADMAP-005 | Done | None - portfolio inventory added | None | `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md` |
 | ITS-ROADMAP-007 | Done | None - command-based secret-scan gate recorded | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md` |
-| ITS-ROADMAP-002 | Deferred | Revisit after baseline work | Process overhead risk | `idea-to-ship/README.md:40-49`; `.idea-to-ship/roadmap.md` |
+| ITS-ROADMAP-002 | Done | None - dogfood evidence recorded | None | `.idea-to-ship/ITS-ROADMAP-006/*`; `.idea-to-ship/ITS-ROADMAP-002/implementation-log.md` |
 
 ## Candidate Backlog
 
