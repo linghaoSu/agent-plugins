@@ -43,6 +43,7 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
 - Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
 - Completed `ITS-ROADMAP-006` Stage 1 idea-to-ship contract fixtures.
+- Completed `ITS-ROADMAP-005` portfolio inventory and ownership model.
 
 ## Inputs
 
@@ -126,16 +127,16 @@ Excluded:
 **Risk:** medium - poorly scoped evals become brittle markdown golden files.
 
 ### ITS-ROADMAP-005 - Define portfolio inventory and ownership model
-**Status:** Planned
+**Status:** Done
 **Work Type:** Docs
 **Evidence Class:** Repo
 **Confidence:** Medium
 **Source Anchors:** `.claude-plugin/marketplace.json:6-50`; `agent-playbook/README.md:53-61`; `idea-to-ship/README.md:122-124`; `de16602`
 **Why Now / Why Next / Why Later:** The repo is now a plugin portfolio. A lightweight inventory makes ownership, lifecycle, and verification expectations explicit after the immediate release gates exist.
 **Owner:** Unassigned
-**Decision Owner:** User
+**Decision Owner:** None
 **Release Gate:** Entry: plugin list from marketplace is current. Exit: each plugin has purpose, maintenance status, owner/decision owner, release checks, and deprecation/review notes. No-go: inventory duplicates README content without operational decisions.
-**Evidence Required:** Inventory artifact committed; reviewed against marketplace plugin list.
+**Evidence Required:** Completed: `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md`; inventory coverage check against `.claude-plugin/marketplace.json`; release gate `working`/`all`.
 **Dependencies:** ITS-ROADMAP-001 can provide release-check categories for the inventory.
 **Risk:** low - docs can drift if not tied to release gate.
 
@@ -231,7 +232,7 @@ Excluded:
 | ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
 | ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
 | ITS-ROADMAP-006 | Done | None - contract fixture command implemented | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
-| ITS-ROADMAP-005 | Planned | Draft portfolio inventory | Release gate categories | `.claude-plugin/marketplace.json:6-50` |
+| ITS-ROADMAP-005 | Done | None - portfolio inventory added | None | `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md` |
 | ITS-ROADMAP-007 | Planned | Decide command vs hook for scan gate | Release gate baseline | `secret-scanner/README.md:92-100` |
 | ITS-ROADMAP-002 | Deferred | Revisit after baseline work | Process overhead risk | `idea-to-ship/README.md:40-49`; `.idea-to-ship/roadmap.md` |
 
