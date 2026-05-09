@@ -37,6 +37,13 @@ will add dedicated fixture assertions around this output.
 Missing required tools (`git`, `jq`, `python3`) return exit `2`. A missing or
 non-runnable blocking checker also returns exit `2`.
 
+## Secret Scan Hook Decision
+
+Secret scanning is enforced through this command-based release gate, not through
+repo-installed git hooks. The `secret-scanner` plugin still offers an explicit
+opt-in `/install-precommit-hook` flow for local users, but hook installation is
+not part of the repo-wide release gate unless explicitly approved later.
+
 ## Output
 
 Human output groups the Stage 1 checks:

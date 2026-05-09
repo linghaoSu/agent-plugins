@@ -44,6 +44,7 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
 - Completed `ITS-ROADMAP-006` Stage 1 idea-to-ship contract fixtures.
 - Completed `ITS-ROADMAP-005` portfolio inventory and ownership model.
+- Completed `ITS-ROADMAP-007` by recording command-based secret-scan release-gate enforcement.
 
 ## Inputs
 
@@ -141,16 +142,16 @@ Excluded:
 **Risk:** low - docs can drift if not tied to release gate.
 
 ### ITS-ROADMAP-007 - Promote secret scanning from available tool to release gate
-**Status:** Planned
+**Status:** Done
 **Work Type:** Maintenance
 **Evidence Class:** Repo
 **Confidence:** Medium
 **Source Anchors:** `secret-scanner/README.md:92-100`; `secret-scanner/scripts/scan.py:1-24`; `.gitignore:1`
 **Why Now / Why Next / Why Later:** Secret scanning exists, but the repo does not yet require it as part of plugin release. It should become a release gate after the general gate shape is agreed.
 **Owner:** Unassigned
-**Decision Owner:** User
+**Decision Owner:** None
 **Release Gate:** Entry: ITS-ROADMAP-001 release gate draft exists. Exit: secret scanning is included as a documented mandatory local check or installed hook. No-go: hook installation overwrites existing hooks without confirmation.
-**Evidence Required:** `secret-scanner/scripts/scan.py --mode staged` or equivalent documented command; hook decision recorded.
+**Evidence Required:** Completed: `scripts/release-gate.sh` blocking `secret-scan`; `RELEASE-GATE.md` blocking check and hook decision; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md`; release gate `staged`/`working`/`all`.
 **Dependencies:** ITS-ROADMAP-001
 **Risk:** low - main risk is false positives or adding friction to small markdown-only changes.
 
@@ -233,7 +234,7 @@ Excluded:
 | ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
 | ITS-ROADMAP-006 | Done | None - contract fixture command implemented | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
 | ITS-ROADMAP-005 | Done | None - portfolio inventory added | None | `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md` |
-| ITS-ROADMAP-007 | Planned | Decide command vs hook for scan gate | Release gate baseline | `secret-scanner/README.md:92-100` |
+| ITS-ROADMAP-007 | Done | None - command-based secret-scan gate recorded | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md` |
 | ITS-ROADMAP-002 | Deferred | Revisit after baseline work | Process overhead risk | `idea-to-ship/README.md:40-49`; `.idea-to-ship/roadmap.md` |
 
 ## Candidate Backlog
@@ -245,7 +246,7 @@ Excluded:
 | Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
 |---|---|---|---|---|---|
 | Should the next roadmap refresh include GitHub signals? | A: local only; B: include GitHub read-only; C: include GitHub plus TODO scan | B | User | Before release planning beyond this local repo snapshot | Roadmap may miss active PRs/issues/milestones that should override repo-internal guesses. |
-| How strict should release gates be after baseline? | A: advisory checklist; B: required local command set; C: pre-commit/pre-push hooks | B first, revisit C after one release | User | Before implementing `ITS-ROADMAP-007` | Too loose gives weak verification; too strict may slow small skill edits. |
+| How strict should release gates be after baseline? | Resolved for current baseline: required local command set; pre-commit/pre-push hooks remain opt-in | B implemented | None | Done in `ITS-ROADMAP-007` | Revisit only if a future release shows the command gate is too easy to skip. |
 
 ## Acceptance Checks
 
