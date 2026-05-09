@@ -22,6 +22,14 @@ This is one of:
 - An issue number (e.g. `123` or `#123`) — assumes the current repo
 - **A free-form natural-language description** of the fix to make (e.g. "把 login page 里的 token 刷新逻辑修好，偶尔 401"). In this mode there is no real GitHub issue.
 
+## Runtime-Aware Agent Routing
+
+Before launching diagnosis or style-analysis agents, read
+`../../PRINCIPLES.md` and apply its **Runtime-aware agent routing** section.
+In Claude Code, keep the existing Sonnet-based analysis agents. Outside Claude
+Code, use the host runtime's native sub-agent mechanism for the same roles and
+do not request Claude model names.
+
 ## Workflow
 
 ### Step 0: Classify Input Mode
@@ -99,8 +107,8 @@ If that also fails, fall back to working in the current directory and warn the u
 If no prior evaluation report is found in conversation context, run the full evaluation workflow:
 
 1. Launch parallel agents to diagnose the issue (same as `/evaluate-issue` Step 3):
-   - **Agent A — Code Analysis (Sonnet):** Search codebase, confirm issue, identify root cause
-   - **Agent B — Commit History Check (Sonnet):** Check if already fixed
+   - **Agent A — Code Analysis** (Claude: Sonnet; non-Claude: native analysis sub-agent): Search codebase, confirm issue, identify root cause
+   - **Agent B — Commit History Check** (Claude: Sonnet; non-Claude: native analysis sub-agent): Check if already fixed
 2. If the issue is already fixed, report this and stop.
 3. If the issue cannot be confirmed, report this and stop.
 4. Synthesize the diagnosis into a concise fix plan.
@@ -111,7 +119,7 @@ If a prior evaluation exists, use its root cause and fix plan directly.
 
 If the code style file does not exist, generate it using the same two-agent approach as `/evaluate-issue` Step 2:
 
-1. Launch **two Sonnet agents in parallel**:
+1. Launch **two style-analysis agents in parallel** (Claude: Sonnet; non-Claude: native sub-agents):
    - **Agent 1 — Static Code Analysis:** Read config files, sample source files, document conventions
    - **Agent 2 — Reviewer Preference Mining:** Extract style preferences from PR review comments on the last 100 commits (fetch PR numbers from `git log --oneline -100`, then use `gh api` to read review comments, focus on style/convention feedback, aggregate recurring themes)
 2. Synthesize into a single document with a dedicated `## Reviewer Preferences` section
@@ -199,7 +207,7 @@ Present a concise summary:
 - <test run result, or "no test suite found">
 
 ### Next Steps
-- Run `/review-fix` to get an adversarial Codex review against the repo's code style
+- Run `/review-fix` to get a runtime-aware adversarial review against the repo's code style
 - Review the changes: `cd <worktree-path> && git diff $BASE_BRANCH`
 - Push and create PR: `cd <worktree-path> && git push -u origin fix/issue-<number>`
 - To clean up later: `git worktree remove <worktree-path>`

@@ -18,6 +18,23 @@ This is one of:
 - An issue number (e.g. `123` or `#123`) — assumes the current repo
 - **A free-form natural-language description** of the issue to evaluate (e.g. "点击登录按钮后有时会 401，token 刷新没生效"). In this mode there is no real GitHub issue; the description itself is the input.
 
+## Runtime-Aware Agent Routing
+
+Before launching any review or diagnosis agent, read `../../PRINCIPLES.md` and
+apply its **Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing model split: Sonnet for the two broad
+  Round 1 analyses, Haiku for the independent Round 1 check, Codex
+  (`codex:codex-rescue`) for Round 2 adversarial review, and Opus for Round 3
+  synthesis.
+- Outside Claude Code, do **not** request Claude model names. Use the host
+  runtime's native sub-agent mechanism for the same roles:
+  `ROUND_1_CODE_ANALYSIS`, `ROUND_1_HISTORY_CHECK`,
+  `ROUND_1_INDEPENDENT_CHECK`, `ROUND_2_ADVERSARIAL_REVIEW`, and
+  `ROUND_3_SYNTHESIS`.
+- The validation requirement is multi-pass independence, not specific model
+  brands. Keep prompts, phase gates, and output contracts the same.
+
 ## Workflow
 
 Execute the following steps in order. Use parallel agents where indicated.
@@ -75,7 +92,7 @@ Determine the storage path for this repo's code style analysis:
 
 Check if this file exists.
 
-- If it **does not exist**, launch **two Sonnet agents in parallel** to gather code style information:
+- If it **does not exist**, launch **two style-analysis agents in parallel** to gather code style information. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
 
   **Agent 1 — Static Code Analysis:**
   1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)
@@ -153,14 +170,14 @@ This diagnosis follows a **three-round sequential pipeline**. Each round builds 
 
 Launch the following agents and tools **all in parallel**:
 
-**Agent 1A — Code Analysis (Sonnet, `model: "sonnet"`):**
+**Agent 1A — Code Analysis (`ROUND_1_CODE_ANALYSIS`; Claude: Sonnet, non-Claude: native analysis sub-agent):**
 - Based on the issue description, search the codebase for the relevant code paths
 - Determine whether the reported issue can be confirmed from the code
 - Identify the root cause if the issue exists
 - Propose a concrete fix plan with specific files, lines, and changes
 - Report: confirmed/unconfirmed, affected files and lines, root cause analysis, proposed fix
 
-**Agent 1B — Commit History Check (Sonnet, `model: "sonnet"`):**
+**Agent 1B — Commit History Check (`ROUND_1_HISTORY_CHECK`; Claude: Sonnet, non-Claude: native analysis sub-agent):**
 - Search git log for commits that may have already fixed this issue:
   ```bash
   git log --all --oneline --grep="<issue-number>"
@@ -170,9 +187,9 @@ Launch the following agents and tools **all in parallel**:
 - If a potential fix commit is found, verify whether it actually addresses the issue
 - Report: fixed/not-fixed, relevant commits if any
 
-**Agent 1C — Haiku Independent Diagnosis (`model: "haiku"`):**
+**Agent 1C — Independent Diagnosis (`ROUND_1_INDEPENDENT_CHECK`; Claude: Haiku, non-Claude: native independent sub-agent):**
 
-Launch a **Haiku agent** as an independent third perspective. Provide it with the issue details and instruct it to search the codebase independently:
+Launch an independent third perspective. In Claude Code use a Haiku agent; in non-Claude runtimes use a separate sub-agent with no access to the first two agents' conclusions. Provide it with the issue details and instruct it to search the codebase independently:
 
 "You are an independent code analyst. Based on this issue, search the codebase for relevant code paths, identify the root cause, and propose a fix plan. Report: confirmed/unconfirmed, affected files and lines, root cause analysis, proposed fix. Be concise."
 
@@ -181,16 +198,16 @@ Launch a **Haiku agent** as an independent third perspective. Provide it with th
 Call `mcp__ide__getDiagnostics` to collect compiler/linter diagnostics for the current project. These are objective, machine-verified findings that may be related to the reported issue (type errors, unused imports, syntax issues, etc.). If the issue mentions specific files, filter diagnostics to those files.
 
 **Wait for all Round 1 agents and diagnostics to complete.** Collect:
-- `ROUND_1_SONNET` — output from Agent 1A + 1B
-- `ROUND_1_HAIKU` — output from Agent 1C
+- `ROUND_1_PRIMARY` — output from Agent 1A + 1B
+- `ROUND_1_INDEPENDENT` — output from Agent 1C
 - `ROUND_1_DIAGNOSTICS` — output from Tool 1D
 - `ROUND_1_DIAGNOSIS` = all of the above combined
 
 ---
 
-#### Round 2 — Codex Adversarial Review of Diagnosis
+#### Round 2 — Adversarial Review of Diagnosis
 
-**This round must wait for Round 1 to complete.** Launch a single Codex agent with `subagent_type: "codex:codex-rescue"`:
+**This round must wait for Round 1 to complete.** Launch a single adversarial reviewer. In Claude Code, use the Codex agent with `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use the host's native sub-agent mechanism and assign it the `ROUND_2_ADVERSARIAL_REVIEW` role:
 
 ```
 Adversarial review of issue diagnosis for issue #<number>: "<issue-title>".
@@ -207,11 +224,11 @@ IMPORTANT: This is a READ-ONLY analysis. Do NOT modify any files or post anythin
 ## Code Style Guide (if available)
 <compact style checklist>
 
-## Round 1 Diagnosis — Sonnet
-<ROUND_1_SONNET — full output from Agent 1A + 1B>
+## Round 1 Diagnosis — Primary Analysis
+<ROUND_1_PRIMARY — full output from Agent 1A + 1B>
 
-## Round 1 Diagnosis — Haiku (independent)
-<ROUND_1_HAIKU — full output from Agent 1C>
+## Round 1 Diagnosis — Independent Check
+<ROUND_1_INDEPENDENT — full output from Agent 1C>
 
 ## IDE Diagnostics (compiler/linter — ground truth)
 <ROUND_1_DIAGNOSTICS — machine-verified findings, treat these as facts>
@@ -238,19 +255,19 @@ If Round 1 said "already fixed" and you agree, say: "Confirmed: already fixed in
 
 ---
 
-#### Round 3 — Opus Final Synthesis
+#### Round 3 — Final Synthesis
 
-Launch a single **Opus agent** (`model: "opus"`) that acts as the final arbiter. Opus is the most capable model and is used here to make the highest-quality final judgment:
+Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent if available; otherwise perform a separate final synthesis pass in the main context and state that fallback in the report:
 
 ```
-You are the final reviewer in a multi-model issue diagnosis pipeline for issue #<number>: "<issue-title>".
+You are the final reviewer in a runtime-aware multi-pass issue diagnosis pipeline for issue #<number>: "<issue-title>".
 
-Four sources provided input: Sonnet (Round 1), Haiku (Round 1), IDE Diagnostics (Round 1), and Codex (Round 2). Your job is to produce the definitive diagnosis and fix plan by synthesizing all sources. You must:
+Four sources provided input: primary analysis (Round 1), independent check (Round 1), IDE Diagnostics (Round 1), and adversarial review (Round 2). Your job is to produce the definitive diagnosis and fix plan by synthesizing all sources. You must:
 
 1. For the root cause analysis:
    - IDE Diagnostics findings are **ground truth** — if they point to the root cause, that takes precedence
-   - If 3+ AI models agree on root cause → HIGH CONFIDENCE
-   - If 2 AI models agree → HIGH CONFIDENCE
+   - If 3+ independent review sources agree on root cause → HIGH CONFIDENCE
+   - If 2 independent review sources agree → HIGH CONFIDENCE
    - If they disagree → re-examine the code yourself (read the relevant files) to break the tie
    - State your final root cause with confidence level
 
@@ -267,16 +284,16 @@ Four sources provided input: Sonnet (Round 1), Haiku (Round 1), IDE Diagnostics 
 ## Issue Details
 <issue title, body, labels, comments>
 
-## Round 1 Diagnosis — Sonnet
-<ROUND_1_SONNET>
+## Round 1 Diagnosis — Primary Analysis
+<ROUND_1_PRIMARY>
 
-## Round 1 Diagnosis — Haiku
-<ROUND_1_HAIKU>
+## Round 1 Diagnosis — Independent Check
+<ROUND_1_INDEPENDENT>
 
 ## IDE Diagnostics (ground truth)
 <ROUND_1_DIAGNOSTICS>
 
-## Round 2 Diagnosis (Codex) + Round 1 Evaluation
+## Round 2 Diagnosis (Adversarial Review) + Round 1 Evaluation
 <ROUND_2_DIAGNOSIS>
 
 Produce a structured report in this exact format:
@@ -319,7 +336,7 @@ Take the Round 3 agent's output and present it with the issue header prepended:
 ## Issue Evaluation: <issue-title>
 
 **Issue**: #<number>
-**Diagnosis pipeline**: Round 1 (Sonnet + Haiku + IDE Diagnostics) → Round 2 (Codex + evaluation) → Round 3 (Opus synthesis)
+**Diagnosis pipeline**: Round 1 (primary analysis + independent check + IDE Diagnostics) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
 
 <Round 3 structured output follows>
 ```
@@ -327,7 +344,7 @@ Take the Round 3 agent's output and present it with the issue header prepended:
 ### Step 5: Prompt for Next Steps
 
 After presenting the report, tell the user:
-- If the issue is confirmed and not fixed: "I can implement the fix now, or you can review the plan first. After the fix is applied, run `/review-fix` to get an adversarial Codex review against the repo's code style."
+- If the issue is confirmed and not fixed: "I can implement the fix now, or you can review the plan first. After the fix is applied, run `/review-fix` to get an adversarial review against the repo's code style."
 - If the issue is already fixed: "This issue appears to be fixed in commit <sha>. No further action needed."
 - If the issue cannot be confirmed: "I could not confirm this issue in the current codebase. The issue may be environment-specific, already fixed, or require additional context."
 
@@ -340,7 +357,7 @@ After presenting the report, tell the user:
 ## Phase Gates
 
 - **⛔ GATE after Step 1 (Fetch) / Step 0 (Description mode):** You must have a clear problem statement. In description mode, if the description is too vague after two rounds of clarification, stop and tell the user — do not proceed with a vague diagnosis.
-- **⛔ GATE after Round 1:** At least two agents must have produced findings before proceeding to Round 2. If all agents returned empty results, something is wrong with the issue or the search scope — surface this rather than sending empty context to Codex.
+- **⛔ GATE after Round 1:** At least two agents must have produced findings before proceeding to Round 2. If all agents returned empty results, something is wrong with the issue or the search scope — surface this rather than sending empty context to the adversarial reviewer.
 
 ## Notes
 

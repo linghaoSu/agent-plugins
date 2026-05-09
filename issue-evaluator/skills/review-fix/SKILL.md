@@ -1,19 +1,32 @@
 ---
 name: review-fix
-description: Iteratively review and fix code changes using Codex adversarial review until all issues are resolved, then run a final holistic review
+description: Iteratively review and fix code changes using runtime-aware adversarial review until all issues are resolved, then run a final holistic review
 argument-hint: '[focus ...]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review & Fix Loop
 
-Iteratively review the current changes with Codex, fix any issues found, and repeat until clean — then run a final holistic review.
+Iteratively review the current changes with a runtime-aware adversarial reviewer, fix any issues found, and repeat until clean — then run a final holistic review.
 
 ## Arguments
 
 Raw arguments: `$ARGUMENTS`
 
 These are optional additional focus areas for the review (e.g. "concurrency", "error handling").
+
+## Runtime-Aware Agent Routing
+
+Before launching an adversarial review agent, read `../../PRINCIPLES.md` and
+apply its **Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing Codex adversarial reviewer
+  (`subagent_type: "codex:codex-rescue"`) when available.
+- Outside Claude Code, do **not** request Claude-only subagent types. Use the
+  host runtime's native sub-agent mechanism for the same adversarial reviewer
+  role. The review/fix loop, iteration cap, and output contract stay the same.
+- If no sub-agent mechanism is available, run a fresh adversarial pass in the
+  main context and state the fallback in the report.
 
 ## Workflow
 
@@ -49,16 +62,16 @@ Read `<data-dir>/<owner>/<repo>/code-style.md` and extract the key conventions. 
 
 Repeat the following cycle. Track the iteration count starting at 1.
 
-#### 3a: Codex Review
+#### 3a: Adversarial Review
 
-Use the **Agent tool with `subagent_type: "codex:codex-rescue"`** to run an adversarial review. Construct the prompt:
+Use the runtime-aware adversarial reviewer to inspect the diff. In Claude Code this is the **Agent tool with `subagent_type: "codex:codex-rescue"`**; in non-Claude runtimes use the host's native sub-agent mechanism. Construct the prompt:
 
 1. Get the current diff (staged + unstaged against the last commit before the fix):
    ```bash
    git diff HEAD
    git diff --cached
    ```
-2. Build the Codex agent prompt:
+2. Build the adversarial reviewer prompt:
    ```
    Adversarial code review (iteration <N>). Review the following diff for bugs, security issues, and design problems.
 
@@ -84,8 +97,8 @@ Use the **Agent tool with `subagent_type: "codex:codex-rescue"`** to run an adve
 
 #### 3b: Evaluate Results
 
-- If the Codex review returns **LGTM** (no issues found) → exit the loop, proceed to Step 4.
-- If the Codex review reports issues:
+- If the adversarial review returns **LGTM** (no issues found) → exit the loop, proceed to Step 4.
+- If the adversarial review reports issues:
   1. Present a brief summary to the user: "Iteration N: found X issues (Y critical, Z warnings, W nits). Fixing..."
   2. **Filter issues before fixing**: Only fix issues that are within the scope of the current change. Skip any issues that are purely lint/style/formatting problems in code that was not changed by the fix. Note skipped issues in the summary as "out of scope".
   3. Fix the remaining in-scope issues directly in the code. For each fix:
@@ -107,7 +120,7 @@ After the loop exits clean, run one final comprehensive review. This review look
    git diff HEAD
    git diff --cached
    ```
-2. Use the **Agent tool with `subagent_type: "codex:codex-rescue"`** with prompt:
+2. Use the runtime-aware adversarial reviewer with prompt:
    ```
    Final holistic code review. The changes below have passed incremental review. Now review them as a complete unit, focusing on:
 
@@ -168,5 +181,5 @@ Present a summary to the user:
 - Always re-read the diff fresh before each review iteration — don't reuse stale diffs.
 - When fixing issues, make minimal targeted changes. Don't refactor surrounding code.
 - **Scope discipline**: Only fix issues in code that is part of the current change. Lint/style/formatting issues in unrelated code are out of scope — do not touch them. This keeps diffs clean and avoids unintended regressions.
-- If a Codex-reported issue is a false positive or out of scope, skip it and note it in the summary.
+- If an adversarial-review issue is a false positive or out of scope, skip it and note it in the summary.
 - If the user hasn't run `/evaluate-issue` yet but has a code style doc, the review still works.

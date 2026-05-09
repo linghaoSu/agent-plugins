@@ -39,6 +39,23 @@ The user provided: `$ARGUMENTS`
 
 This should be a GitHub PR URL (e.g. `https://github.com/owner/repo/pull/123`) or a PR number (e.g. `123` or `#123`).
 
+## Runtime-Aware Agent Routing
+
+Before launching any review agent, read `../../PRINCIPLES.md` and apply its
+**Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing model split: Sonnet for Round 1 review
+  agents, Haiku for the independent Round 1 check, Codex
+  (`codex:codex-rescue`) for Round 2 adversarial review, and Opus for Round 3
+  synthesis.
+- Outside Claude Code, do **not** request Claude model names. Use the host
+  runtime's native sub-agent mechanism for the same roles:
+  bug/security review, style review, existing-review context, independent
+  check, linked-issue compliance, adversarial review, and final synthesis.
+- The validation requirement is multi-round independent review, not a
+  dependency on Claude model names. Keep prompts, phase gates, and output
+  contracts the same.
+
 ## Workflow
 
 ### Step 1: Fetch PR Details
@@ -155,7 +172,7 @@ Determine the code style file path for this repo:
 
 Check if this file exists:
 
-- If it **does not exist**, generate it using **two Sonnet agents in parallel**:
+- If it **does not exist**, generate it using **two style-analysis agents in parallel**. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
 
   **Agent 1 — Static Code Analysis:**
   1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)
@@ -210,7 +227,7 @@ This review follows a **three-round sequential pipeline**. Each round builds on 
 
 Launch the following agents and tools **all in parallel**:
 
-**Agent 1A — Bug, Logic & Security Review (Sonnet, `model: "sonnet"`):**
+**Agent 1A — Bug, Logic & Security Review (`ROUND_1_BUG_SECURITY`; Claude: Sonnet, non-Claude: native review sub-agent):**
 
 Review the PR diff for:
 1. **Bugs**: Logic errors, off-by-one errors, nil/null pointer dereferences, race conditions, resource leaks
@@ -221,7 +238,7 @@ Review the PR diff for:
 
 Provide the agent with the full PR diff, description, and changed files list. Instruct: "Follow the Review Tone & Principles in the parent skill — Linus-style: blunt, direct, name the concrete failure mode. Attack the code, not the author. For each issue, report: severity (critical/warning/nit), file and line, what's wrong (specific failure mode), and how to fix it. If no issues found, respond with LGTM."
 
-**Agent 1B — Code Style & Quality Review (Sonnet, `model: "sonnet"`):**
+**Agent 1B — Code Style & Quality Review (`ROUND_1_STYLE_QUALITY`; Claude: Sonnet, non-Claude: native review sub-agent):**
 
 Review the PR diff for compliance with the repo's code style:
 1. **Naming conventions**: Variables, functions, types, files match repo conventions
@@ -234,7 +251,7 @@ Review the PR diff for compliance with the repo's code style:
 
 Provide the agent with the full PR diff and the compact code style checklist from Step 3. Instruct: "Follow the Review Tone & Principles in the parent skill. CRITICAL: style findings must be grounded in THIS repo's conventions (the checklist below or patterns in surrounding code) — not your personal preferences or generic best practices. If you can't cite a repo rule or established pattern, drop the finding. Only flag issues within the changed lines. Do NOT flag pre-existing style patterns. For each issue, report: severity (critical/warning/nit), file and line, which specific repo rule or established pattern it violates (cite it), and how to fix it. Be blunt. If no issues found, respond with LGTM."
 
-**Agent 1C — Existing Review Context (Sonnet, `model: "sonnet"`):**
+**Agent 1C — Existing Review Context (`ROUND_1_EXISTING_CONTEXT`; Claude: Sonnet, non-Claude: native review sub-agent):**
 
 Analyze existing PR reviews and comments to avoid duplicating feedback:
 1. Read through all existing review comments and inline comments fetched in Step 1
@@ -244,13 +261,13 @@ Analyze existing PR reviews and comments to avoid duplicating feedback:
 
 Provide the agent with the PR metadata (reviews, comments, review comments) and the list of changed files.
 
-**Agent 1D — Haiku Independent Review (`model: "haiku"`):**
+**Agent 1D — Independent Review (`ROUND_1_INDEPENDENT`; Claude: Haiku, non-Claude: native independent sub-agent):**
 
-Launch a **Haiku agent** as an independent third perspective. Haiku's different model characteristics often catch different classes of issues. Provide it with the full PR diff, description, and code style checklist. Instruct:
+Launch an independent third perspective. In Claude Code use a Haiku agent; in non-Claude runtimes use a separate sub-agent with no access to the first two agents' conclusions. Provide it with the full PR diff, description, and code style checklist. Instruct:
 
 "You are an independent code reviewer in the spirit of Linus Torvalds: blunt, direct, technically sharp. Call bad code bad and name the concrete failure mode. Attack the code, not the author. Style findings must cite a rule from the code style checklist provided — do NOT impose personal preferences or generic best practices; this repo's conventions win. Review this PR diff for bugs, security issues, logic errors, and code style violations. For each issue, report: severity (critical/warning/nit), file and line, what's wrong, and how to fix it. If no issues found, respond with LGTM. Be concise."
 
-**Agent 1F — Linked Issue Compliance (Sonnet, `model: "sonnet"`):**
+**Agent 1F — Linked Issue Compliance (`ROUND_1_ISSUE_COMPLIANCE`; Claude: Sonnet, non-Claude: native review sub-agent):**
 
 **Skip this agent if `LINKED_ISSUES` is empty.**
 
@@ -276,8 +293,8 @@ If all linked issues are fully addressed, respond with: 'All linked issues are f
 Call `mcp__ide__getDiagnostics` to collect compiler/linter diagnostics for all files changed in the PR. These are objective, machine-verified findings (type errors, unused imports, syntax issues, etc.) that serve as ground truth for subsequent rounds. Filter the results to only include diagnostics for files in the PR's changed files list.
 
 **Wait for all Round 1 agents and diagnostics to complete.** Collect:
-- `ROUND_1_SONNET` — output from Agent 1A + 1B
-- `ROUND_1_HAIKU` — output from Agent 1D
+- `ROUND_1_PRIMARY` — output from Agent 1A + 1B
+- `ROUND_1_INDEPENDENT` — output from Agent 1D
 - `ROUND_1_DIAGNOSTICS` — output from Tool 1E
 - `ROUND_1_CONTEXT` — output from Agent 1C
 - `ROUND_1_ISSUE_COMPLIANCE` — output from Agent 1F (empty if no linked issues)
@@ -285,9 +302,9 @@ Call `mcp__ide__getDiagnostics` to collect compiler/linter diagnostics for all f
 
 ---
 
-#### Round 2 — Codex Adversarial Review + Evaluation of Round 1
+#### Round 2 — Adversarial Review + Evaluation of Round 1
 
-**This round must wait for Round 1 to complete.** Launch a single Codex agent with `subagent_type: "codex:codex-rescue"`:
+**This round must wait for Round 1 to complete.** Launch a single adversarial reviewer. In Claude Code, use the Codex agent with `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use the host's native sub-agent mechanism and assign it the `ROUND_2_ADVERSARIAL_REVIEW` role:
 
 ```
 Adversarial code review of PR #<number>: "<pr-title>".
@@ -312,11 +329,11 @@ IMPORTANT: This is a READ-ONLY review. Do NOT run any commands that modify the P
 ## PR Diff
 <the full diff>
 
-## Round 1 Findings — Sonnet
-<ROUND_1_SONNET — full output from Agent 1A + 1B>
+## Round 1 Findings — Primary Review
+<ROUND_1_PRIMARY — full output from Agent 1A + 1B>
 
-## Round 1 Findings — Haiku (independent)
-<ROUND_1_HAIKU — full output from Agent 1D>
+## Round 1 Findings — Independent Review
+<ROUND_1_INDEPENDENT — full output from Agent 1D>
 
 ## IDE Diagnostics (compiler/linter — ground truth)
 <ROUND_1_DIAGNOSTICS — machine-verified findings, treat these as facts>
@@ -338,7 +355,7 @@ For each NEW issue you found (not already in Round 1), report:
 If you found NO new issues, say: "No additional issues found."
 
 ### Section B: Evaluation of Round 1
-For each Round 1 finding (from BOTH Sonnet and Haiku), give a verdict:
+For each Round 1 finding (from BOTH the primary review and independent review), give a verdict:
 - **CONFIRMED** — you agree this is a real issue. Briefly state why.
 - **DISPUTED** — you believe this is a false positive or overstated. Explain why.
 - **UPGRADED/DOWNGRADED** — you agree the issue exists but disagree on severity. State the correct severity and why.
@@ -358,31 +375,31 @@ If Round 1 was LGTM across all sources and you agree, say: "Confirmed: LGTM"
 
 ---
 
-#### Round 3 — Opus Final Synthesis Review
+#### Round 3 — Final Synthesis Review
 
-Launch a single **Opus agent** (`model: "opus"`) that acts as the final arbiter. Opus is the most capable model and is used here to make the highest-quality final judgment:
+Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent if available; otherwise perform a separate final synthesis pass in the main context and state that fallback in the report:
 
 ```
-You are the final reviewer in a multi-model code review pipeline for PR #<number>: "<pr-title>".
+You are the final reviewer in a runtime-aware multi-pass code review pipeline for PR #<number>: "<pr-title>".
 
 TONE: Write the final report in Linus Torvalds' voice — blunt, direct, technically sharp. Name concrete failure modes, not vague concerns. No hedging, no praise padding, no corporate softening. Attack the code, never the author. If something is wrong, say it plainly.
 
 STYLE GROUNDING: Every style/quality finding in the final report must be traceable to a rule in the repo's code style guide or an established pattern in the repo's surrounding code. Drop any Round 1/2 finding that amounts to personal preference or generic best-practice with no repo-grounded citation — list it under "Disputed & Dropped" with a one-line reason.
 
-Four sources provided input: Sonnet (Round 1), Haiku (Round 1), IDE Diagnostics (Round 1), and Codex (Round 2). Your job is to produce the definitive review by synthesizing all sources. You must:
+Four sources provided input: primary review (Round 1), independent review (Round 1), IDE Diagnostics (Round 1), and adversarial review (Round 2). Your job is to produce the definitive review by synthesizing all sources. You must:
 
 1. For each finding, count how many independent sources flagged it and make a final judgment:
    - IDE Diagnostics findings are **ground truth** — always include them as `[verified]`
-   - If 3+ AI models agree → `[high]` confidence
-   - If 2 AI models agree → `[high]` confidence
-   - If 1 AI model found it and others didn't comment → `[medium]`, verify by reading the code yourself
-   - If 1 AI model found it and another disputed it → re-examine the code to break the tie
+   - If 3+ independent review sources agree → `[high]` confidence
+   - If 2 independent review sources agree → `[high]` confidence
+   - If 1 independent review source found it and others didn't comment → `[medium]`, verify by reading the code yourself
+   - If 1 independent review source found it and another disputed it → re-examine the code to break the tie
    - If a finding is a clear false positive → DROP it and note why
 
 2. Assign final severity (critical/warning/nit) and a confidence tag:
    - `[verified]` — confirmed by IDE Diagnostics (compiler/linter)
-   - `[high]` — multiple AI models agree, or you verified independently
-   - `[medium]` — single AI model found it, you believe it's valid
+   - `[high]` — multiple independent review sources agree, or you verified independently
+   - `[medium]` — single independent review source found it, you believe it's valid
    - `[low]` — uncertain, included for completeness
 
 3. Deduplicate against issues already flagged by human reviewers (from the existing review context below).
@@ -410,16 +427,16 @@ Four sources provided input: Sonnet (Round 1), Haiku (Round 1), IDE Diagnostics 
 ## PR Diff
 <the full diff>
 
-## Round 1 Findings — Sonnet
-<ROUND_1_SONNET>
+## Round 1 Findings — Primary Review
+<ROUND_1_PRIMARY>
 
-## Round 1 Findings — Haiku
-<ROUND_1_HAIKU>
+## Round 1 Findings — Independent Review
+<ROUND_1_INDEPENDENT>
 
 ## IDE Diagnostics (ground truth)
 <ROUND_1_DIAGNOSTICS>
 
-## Round 2 Findings (Codex) + Round 1 Evaluation
+## Round 2 Findings (Adversarial Review) + Round 1 Evaluation
 <ROUND_2_FINDINGS>
 
 ## Existing Human Review Comments
@@ -476,7 +493,7 @@ Take the Round 3 agent's output and present it with the PR header prepended:
 **Files changed**: <count> (+<additions> -<deletions>)
 **Status**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
 **Linked issues**: <#N (fixes), #M (references), ... or "None">
-**Review pipeline**: Round 1 (Sonnet + Haiku + IDE Diagnostics + Issue Compliance) → Round 2 (Codex + evaluation) → Round 3 (Opus synthesis)
+**Review pipeline**: Round 1 (primary review + independent review + IDE Diagnostics + Issue Compliance) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
 
 ### Summary
 <2-3 sentence summary of what this PR does>

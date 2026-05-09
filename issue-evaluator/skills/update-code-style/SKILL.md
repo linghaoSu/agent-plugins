@@ -15,6 +15,14 @@ Raw arguments: `$ARGUMENTS`
 
 - `--force`: Skip confirmation and overwrite directly.
 
+## Runtime-Aware Agent Routing
+
+Before launching analysis agents, read `../../PRINCIPLES.md` and apply its
+**Runtime-aware agent routing** section. In Claude Code, use Sonnet agents for
+the two style-analysis roles. Outside Claude Code, use the host runtime's
+native sub-agent mechanism with the same roles and do not request Claude model
+names.
+
 ## Workflow
 
 ### Step 1: Determine Storage Path
@@ -45,7 +53,7 @@ If user declines, abort.
 
 ### Step 3: Run Full Analysis
 
-Launch **two Sonnet agents in parallel**:
+Launch **two style-analysis agents in parallel**. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
 
 **Agent 1 — Static Code Analysis:**
 1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)

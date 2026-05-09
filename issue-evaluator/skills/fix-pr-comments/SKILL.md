@@ -48,6 +48,22 @@ This should be one of:
 Optional flag:
 - `--include-resolved` — also evaluate comments on already-resolved threads (default: skip them)
 
+## Runtime-Aware Agent Routing
+
+Before launching analysis, executor, or adversarial review agents, read
+`../../PRINCIPLES.md` and apply its **Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing model split: Opus for load-bearing
+  comment verdicts and reconciliation, Sonnet for mechanical execution, and
+  Codex (`codex:codex-rescue`) for adversarial review of the applied diff.
+- Outside Claude Code, do **not** request Claude model names or Claude-only
+  `subagent_type` values. Use the host runtime's native sub-agent mechanism
+  for the same roles: `ANALYST`, `RECONCILER`, `EXECUTOR`, and
+  `ADVERSARIAL_REVIEWER`.
+- The safety property is role separation and multi-pass review, not specific
+  model brands. Keep the human confirmation gate before edits and keep the
+  adversarial review read-only.
+
 ## Workflow
 
 ### Step 1: Parse Arguments & Fetch PR Context
@@ -219,7 +235,7 @@ The triage decisions need to be grounded in this repo's actual conventions, othe
 
 3. Code style file: `<data-dir>/<owner>/<repo>/code-style.md`
 
-4. **If it does not exist**, generate it using the same two-Sonnet-agents-in-parallel approach as `/review-pr` Step 3:
+4. **If it does not exist**, generate it using the same two-agent-in-parallel approach as `/review-pr` Step 3:
    - **Agent 1 — Static Code Analysis** (read config files, sample source files, document conventions)
    - **Agent 2 — Reviewer Preference Mining** (extract style preferences from PR review comments on the last 100 commits via `gh api`)
    
@@ -229,18 +245,18 @@ The triage decisions need to be grounded in this repo's actual conventions, othe
 
 5. **If it exists**, run the same lightweight staleness check used in `/review-pr` (400+ commits or 30+ days → background regenerate; otherwise use as-is). Read the guide and extract a **compact checklist (max 15 items)** of the most important rules.
 
-### Step 5: Triage — Evaluate Each Comment (Opus analysis)
+### Step 5: Triage — Evaluate Each Comment (runtime-aware analysis)
 
-This is the central step. Each comment gets an **independent verdict** before any code is touched. **Analysis is done by Opus** because verdicts have to be load-bearing — every ACCEPT becomes a code edit, every REJECT becomes a message back to a reviewer, and the cost of getting either wrong is high.
+This is the central step. Each comment gets an **independent verdict** before any code is touched. In Claude Code, analysis is done by Opus because verdicts have to be load-bearing — every ACCEPT becomes a code edit, every REJECT becomes a message back to a reviewer, and the cost of getting either wrong is high. In non-Claude runtimes, use separate analysis sub-agents with the same load-bearing role.
 
-#### Phase 1 — Per-Comment Evaluation (Opus, parallel)
+#### Phase 1 — Per-Comment Evaluation (parallel analysts)
 
-For each comment in the set, launch an **Opus agent** (`model: "opus"`) **in parallel**, capped at ~4 concurrent (Opus is heavier than Sonnet — keep the fan-out tighter). Each agent gets:
+For each comment in the set, launch an **analyst agent** in parallel, capped at ~4 concurrent. In Claude Code this is an Opus agent (`model: "opus"`); in non-Claude runtimes use the host's native sub-agent mechanism and label the role `ANALYST`. Each agent gets:
 
 ```
 You are evaluating a single code review comment on GitHub PR #<number>: "<pr-title>".
 
-Your job: decide whether this comment is a VALID change request that should be implemented, and if so, design the fix. You are doing **analysis only** — a separate Sonnet executor will apply the fix later, so your fix plan must be detailed enough for an executor to follow without re-deriving anything.
+Your job: decide whether this comment is a VALID change request that should be implemented, and if so, design the fix. You are doing **analysis only** — a separate executor will apply the fix later, so your fix plan must be detailed enough for an executor to follow without re-deriving anything.
 
 CRITICAL: This is read-only with respect to GitHub. Do NOT run any gh commands that write to the PR (no gh pr review, gh pr comment, gh api POST/PATCH/DELETE, etc.). Do NOT run git commit. You may read files in the worktree at <FIX_WORKTREE>, but DO NOT edit files yourself — analysis only.
 
@@ -315,9 +331,9 @@ A single block with:
 
 Wait for all per-comment agents to finish. Collect into `PHASE_1_VERDICTS`.
 
-#### Phase 2 — Cross-Comment Reconciliation (Opus, single agent)
+#### Phase 2 — Cross-Comment Reconciliation (single reconciler)
 
-Many PRs have overlapping or contradictory comments. Launch a single **Opus agent** (`model: "opus"`) to reconcile — same reasoning as Phase 1: this is final analysis, a wrong reconciliation gets baked into the executor's instructions.
+Many PRs have overlapping or contradictory comments. Launch a single reconciler agent. In Claude Code this is an Opus agent (`model: "opus"`); in non-Claude runtimes use a fresh sub-agent with role `RECONCILER`. Same reasoning as Phase 1: this is final analysis, and a wrong reconciliation gets baked into the executor's instructions.
 
 ```
 You are reconciling multiple per-comment verdicts on GitHub PR #<number>.
@@ -397,18 +413,18 @@ How would you like to proceed?
 
 Wait for the user's response. **Do not skip this step.** The whole point of this skill is human-in-the-loop validation; silently proceeding undermines that.
 
-If the user picks option 5, jump straight to Step 10 (Final Report) without editing any files. Skip the Sonnet executor (Step 7) and Codex review (Step 8) — there's nothing to execute or review.
+If the user picks option 5, jump straight to Step 10 (Final Report) without editing any files. Skip the executor (Step 7) and adversarial review (Step 8) — there's nothing to execute or review.
 
-### Step 7: Apply the Accepted Fixes (Sonnet executor, uncommitted)
+### Step 7: Apply the Accepted Fixes (runtime-aware executor, uncommitted)
 
-**Execution is delegated to Sonnet.** Opus did the analysis; Sonnet is faster and cheaper for the mechanical work of reading files, matching surrounding style, and applying the planned edits. The fix plan from Phase 2 is detailed enough that no fresh judgment is required — Sonnet just executes it.
+**Execution is delegated to a separate executor.** In Claude Code this is Sonnet: Opus did the analysis, and Sonnet is faster and cheaper for the mechanical work of reading files, matching surrounding style, and applying the planned edits. In non-Claude runtimes, use a worker/executor sub-agent with the same constraints. The fix plan from Phase 2 is detailed enough that no fresh judgment is required — the executor just executes it.
 
-Launch a single **Sonnet agent** (`model: "sonnet"`) with the consolidated fix plan as input. Group all accepted items into one agent run so it can see cross-file relationships and avoid redundant file re-reads.
+Launch a single executor agent with the consolidated fix plan as input. In Claude Code this is a **Sonnet agent** (`model: "sonnet"`); in non-Claude runtimes use the host's native worker/executor sub-agent. Group all accepted items into one agent run so it can see cross-file relationships and avoid redundant file re-reads.
 
 ```
 You are the executor for a pre-approved PR review fix plan on PR #<number>: "<pr-title>".
 
-A separate Opus analyst already produced the verdicts and fix plans below. The user has reviewed and approved them. Your job is mechanical: read the affected files, apply each change exactly as planned, match surrounding code style, and stop. You are not re-evaluating verdicts — Opus already did that and the user signed off.
+A separate analyst already produced the verdicts and fix plans below. The user has reviewed and approved them. Your job is mechanical: read the affected files, apply each change exactly as planned, match surrounding code style, and stop. You are not re-evaluating verdicts — analysis is complete and the user signed off.
 
 CRITICAL CONSTRAINTS:
 - Work ONLY inside the worktree at <FIX_WORKTREE>. Never touch the user's main working directory.
@@ -420,7 +436,7 @@ CRITICAL CONSTRAINTS:
 ## Worktree
 <FIX_WORKTREE>
 
-## Consolidated fix plan (from Opus Phase 2, user-approved)
+## Consolidated fix plan (from Phase 2 reconciliation, user-approved)
 <CONSOLIDATED_FIX_PLAN — file-grouped, with thread_id, file:line, exact change description>
 
 ## Code style checklist (for matching surrounding style)
@@ -450,20 +466,20 @@ After all edits, report:
 Remember: NO commits, NO staging, NO pushes, NO GitHub writes. Just edits + report.
 ```
 
-Wait for Sonnet to finish. Collect the result as `EXECUTOR_REPORT`. Move any `INFEASIBLE` items into the final report's "Needs Your Input" section so the user knows why those comments weren't addressed.
+Wait for the executor to finish. Collect the result as `EXECUTOR_REPORT`. Move any `INFEASIBLE` items into the final report's "Needs Your Input" section so the user knows why those comments weren't addressed.
 
-### Step 8: Codex Adversarial Review of the Applied Fixes
+### Step 8: Adversarial Review of the Applied Fixes
 
-After Sonnet has applied the edits, run a **Codex adversarial review** over the resulting diff. This is the safety net: Codex is the third independent model in the pipeline (after Opus analysis and Sonnet execution), and its job is to catch cases where the executor mis-applied a plan, the plan itself was subtly wrong, or a fix introduced a new bug.
+After the executor has applied the edits, run an **adversarial review** over the resulting diff. This is the safety net: the reviewer is an independent pass after analysis and execution, and its job is to catch cases where the executor mis-applied a plan, the plan itself was subtly wrong, or a fix introduced a new bug.
 
-Launch a Codex agent via `subagent_type: "codex:codex-rescue"`:
+Launch an adversarial reviewer. In Claude Code, use a Codex agent via `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use a fresh sub-agent with role `ADVERSARIAL_REVIEWER`:
 
 ```
 Adversarial review of the uncommitted edits applied for PR #<number>: "<pr-title>" review-comment fixes.
 
-You are the third reviewer in a multi-model pipeline:
-- Opus produced the verdicts and fix plans for each reviewer comment.
-- Sonnet executed the approved fix plans as uncommitted edits in a worktree.
+You are the third reviewer in a multi-pass pipeline:
+- The analysis phase produced the verdicts and fix plans for each reviewer comment.
+- The executor applied the approved fix plans as uncommitted edits in a worktree.
 - You are reviewing the resulting diff for correctness, scope creep, missed edge cases, and regressions.
 
 CRITICAL: This review is READ-ONLY.
@@ -485,10 +501,10 @@ git diff
 - Description: <pr body>
 - Base ← head: <baseRefName> ← <headRefName>
 
-## What Opus analyzed and approved (consolidated fix plan)
+## What the analysis phase approved (consolidated fix plan)
 <CONSOLIDATED_FIX_PLAN>
 
-## What Sonnet reported applying
+## What the executor reported applying
 <EXECUTOR_REPORT>
 
 ## Your job
@@ -506,7 +522,7 @@ For each change in the worktree diff, evaluate:
 
 3. **Did the executor miss anything from the plan?** Cross-check the EXECUTOR_REPORT against the CONSOLIDATED_FIX_PLAN. If the plan said "fix X in foo.go and bar.go" but the executor only touched foo.go, flag it.
 
-4. **Was Opus's verdict actually right?** You're allowed to dispute an upstream verdict if reading the code now makes you think the analyst got it wrong. Be specific: cite the file and line.
+4. **Was the upstream verdict actually right?** You're allowed to dispute an upstream verdict if reading the code now makes you think the analyst got it wrong. Be specific: cite the file and line.
 
 5. **Did the fixes introduce any NEW bugs?** Independent of the original comments — does the diff have any new logic errors, race conditions, resource leaks, or security issues?
 
@@ -527,7 +543,7 @@ For each problem, report:
 Items in the CONSOLIDATED_FIX_PLAN that the EXECUTOR_REPORT doesn't account for.
 
 ### Section D — Disputed verdicts
-Cases where, after reading the actual code, you believe Opus's original verdict was wrong. Be specific.
+Cases where, after reading the actual code, you believe the original verdict was wrong. Be specific.
 
 ### Section E — Verdict
 - **CLEAN** — all fixes look correct, scoped, and complete. Safe for the user to commit as-is.
@@ -535,7 +551,7 @@ Cases where, after reading the actual code, you believe Opus's original verdict 
 - **NEEDS_REWORK** — significant problems; recommend the user roll back specific files and re-run.
 ```
 
-Wait for Codex. Collect as `CODEX_REVIEW`. **Do not auto-apply any of Codex's suggested corrections** — surface them in the final report and let the user decide. The whole skill is human-in-the-loop; Codex is one more voice, not a closer.
+Wait for the adversarial reviewer. Collect as `ADVERSARIAL_REVIEW`. **Do not auto-apply any suggested corrections** — surface them in the final report and let the user decide. The whole skill is human-in-the-loop; the adversarial review is one more voice, not a closer.
 
 ### Step 9: Verify Locally (Optional, Read-Only)
 
@@ -553,9 +569,9 @@ If yes, try in order based on what the project uses: `npm test`, `pnpm test`, `y
 **PR**: #<number> by @<author> → <baseRefName> ← <headRefName>
 **State**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
 **Worktree**: `<FIX_WORKTREE>` (detached HEAD on `<short-sha>`)
-**Pipeline**: Opus (analysis) → Sonnet (executor) → Codex (adversarial review)
+**Pipeline**: analysis → executor → adversarial review
 **Comments triaged**: <total> total → <actionable> actionable → <accepted> accepted, <rejected> rejected, <deferred> deferred, <answered> answered, <human> need-input
-**Codex verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
+**Adversarial review verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
 
 > **No commits were made. No changes were posted to GitHub.** All edits are uncommitted modifications in the worktree above. All rebuttal text is below — you decide whether to post any of it.
 
@@ -595,18 +611,18 @@ For each REJECT verdict, here is the suggested reply you can paste into the disc
 - `path/to/file1.ext` — <what and why, citing thread id>
 - `path/to/file2.ext` — <what and why, citing thread id>
 
-### Codex Adversarial Review
+### Adversarial Review
 **Verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
 
-**Issues found by Codex** (none of these were auto-applied — review and decide):
+**Issues found by adversarial review** (none of these were auto-applied — review and decide):
 - **[critical|warning|nit]** `file:line` (thread <id> | scope creep | new bug) — <what's wrong> → <suggested correction>
 - ...
 
 **Missed from the plan** (executor didn't apply):
 - thread <id>: <file> — <what was missing>
 
-**Disputed verdicts** (Codex disagrees with Opus's analysis):
-- thread <id>: <Codex's reasoning>
+**Disputed verdicts** (adversarial review disagrees with the analysis phase):
+- thread <id>: <adversarial review reasoning>
 
 (Omit any subsection that's empty.)
 
@@ -623,9 +639,9 @@ For each REJECT verdict, here is the suggested reply you can paste into the disc
 
 ## Notes
 
-- **Three-model pipeline**: Opus does the analysis (verdicts + fix plans), Sonnet executes the approved fixes, Codex adversarially reviews the result. The split is deliberate — analysis needs the strongest model because verdicts are load-bearing; execution is mechanical and Sonnet is faster/cheaper; adversarial review needs an independent third voice that wasn't part of either of the previous steps.
-- **Read-only on GitHub, no commits locally.** Both rules are central to this skill — they're what make it safe to run on a PR you're not yet ready to update. Every sub-agent (Opus analyst, Sonnet executor, Codex reviewer) must obey both.
-- **The user is the arbiter** — Step 6 is mandatory. Never silently auto-implement without showing the triage table. Codex's findings in Step 8 are surfaced for the user, never auto-applied.
+- **Three-role pipeline**: analysis produces verdicts and fix plans, execution applies approved fixes, and adversarial review checks the result. In Claude Code these roles map to Opus, Sonnet, and Codex respectively; in non-Claude runtimes they map to native sub-agents with the same responsibilities. The split is deliberate — analysis is load-bearing, execution is mechanical, and adversarial review needs an independent voice that wasn't part of either previous step.
+- **Read-only on GitHub, no commits locally.** Both rules are central to this skill — they're what make it safe to run on a PR you're not yet ready to update. Every sub-agent must obey both.
+- **The user is the arbiter** — Step 6 is mandatory. Never silently auto-implement without showing the triage table. Adversarial review findings in Step 8 are surfaced for the user, never auto-applied.
 - **Be honest in evaluation** — don't ACCEPT a bad comment to be polite, don't REJECT a good one to avoid work. Rigorous, justifiable triage is the entire point.
 - **One comment, one citation** — every change in the fix plan must trace back to a specific thread id. If you can't cite a thread, you've expanded scope.
 - **Verify reviewer claims against the actual code** — if a reviewer says "this leaks memory" and the code clearly doesn't, that's REJECT material. Don't take the reviewer's word for it; read the code in the worktree.
