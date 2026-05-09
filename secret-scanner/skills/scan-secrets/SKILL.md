@@ -78,11 +78,11 @@ line offsets) and classify:
 |---------|---------|--------|
 | **CONFIRMED_LEAK** | Looks like a real live credential | Block; escalate to rotation |
 | **TEST_FIXTURE** | Test/spec file, clearly synthetic | Allow; optionally add to ignore |
-| **PLACEHOLDER** | Matches a known placeholder pattern (`xxx`, `AKIAIOSFODNN7EXAMPLE`, `ghp_<fill-me-in>`) | Allow |
+| **PLACEHOLDER** | Matches a known placeholder pattern (`xxx`, `AKIA...EXAMPLE`, `ghp_<fill-me-in>`) | Allow |
 | **AMBIGUOUS** | Cannot tell without asking | Ask the user |
 
 Rules of thumb:
-- `AKIAIOSFODNN7EXAMPLE` is the AWS docs example key → **PLACEHOLDER**.
+- AWS docs example keys ending in `EXAMPLE` are **PLACEHOLDER**.
 - `sk_test_*` is a Stripe test key → still report, but lower severity
   (test keys can still be rate-limit-abused).
 - A secret in a file under `test/`, `tests/`, `spec/`, `__tests__/`,
@@ -151,8 +151,8 @@ The script catches:
 | `google-api-key` | `AIza` + 35 chars |
 | `jwt` | three base64-url segments separated by `.`, starting `eyJ` |
 | `private-key-header` | `-----BEGIN [TYPE ]PRIVATE KEY-----` |
-| `basic-auth-url` | `https://user:pass@host` |
-| `db-conn-string` | `{mongodb,postgres,mysql,redis,amqp}://user:pass@host` |
+| `basic-auth-url` | HTTP(S) URLs with embedded user/password credentials |
+| `db-conn-string` | database URLs with embedded user/password credentials |
 | `generic-secret` | `password\|secret\|api_key\|token = "…"` with 16+ char value |
 
 Skipped paths (too noisy): `node_modules`, `vendor`, `dist`, `build`,

@@ -46,7 +46,7 @@ Deterministic regex for:
 - **AI API keys** — OpenAI (`sk-…`, `sk-proj-…`), Anthropic (`sk-ant-…`)
 - **JWTs** — `eyJ...eyJ....`
 - **Private keys** — `-----BEGIN [RSA|EC|…] PRIVATE KEY-----`
-- **Connection strings** — `postgres://user:pass@host`, `mongodb+srv://…`,
+- **Connection strings** — postgres or MongoDB URLs with embedded credentials,
   basic-auth URLs
 - **Generic** — `password`/`secret`/`api_key`/`token` = "…" with 16+ char
   literal value

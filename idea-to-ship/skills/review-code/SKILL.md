@@ -7,7 +7,7 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
+Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer in a sub-agent by default when the host permits it. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
 
 ## Arguments
 
@@ -19,16 +19,18 @@ Parse:
 
 ## Runtime-Aware Agent Routing
 
-Before launching a review agent, read `../../PRINCIPLES.md` and apply its
-**Runtime-aware agent routing** section.
+Read `../../PRINCIPLES.md` and apply its **Runtime-aware agent routing**
+section. Default to a runtime-native review sub-agent; fallback only when
+sub-agents are unavailable, host policy blocks delegation, or the user forbids
+delegation.
 
 - In Claude Code, keep the existing Codex adversarial reviewer
   (`subagent_type: "codex:codex-rescue"`) when available.
 - Outside Claude Code, do not request Claude-only subagent types. Use the host
   runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
   role. The review/fix loop, iteration cap, and output contract stay the same.
-- If no sub-agent mechanism is available, run a fresh adversarial pass in the
-  main context and state the fallback in `code-review.md`.
+- If fallback is required, run a fresh adversarial pass in the main context and
+  state the fallback reason in `code-review.md`.
 
 ## Workflow
 
@@ -64,10 +66,10 @@ Track iteration count starting at 1. Max 5 iterations.
 
 #### 3a — Runtime-Aware Review
 
-Use the runtime-aware adversarial reviewer. In Claude Code this is the **Agent
-tool with `subagent_type: "codex:codex-rescue"`** when available; in non-Claude
-runtimes use the host's native sub-agent mechanism with role
-`ADVERSARIAL_REVIEWER`. Prompt:
+Use the runtime-aware adversarial reviewer in a sub-agent by default. In Claude
+Code this is the **Agent tool with `subagent_type: "codex:codex-rescue"`** when
+available; in non-Claude runtimes use the host's native sub-agent mechanism
+with role `ADVERSARIAL_REVIEWER`. Prompt:
 
 ```
 Adversarial code review (iteration <N>). Linus Torvalds style — blunt, skeptical,

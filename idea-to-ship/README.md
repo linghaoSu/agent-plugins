@@ -115,10 +115,11 @@ Each step is independent — skip any, or hand-edit artifacts between steps.
 - **TDD mode**: `/implement --tdd` is opt-in. It is required to write a
   failing test before production code for behavior-changing stages, or document
   why the stage has no meaningful runtime behavior.
-- **Adversarial review is on by default** for `/review-design` and
-  `/review-code`. Claude Code uses `codex:codex-rescue` when available;
-  non-Claude runtimes use their native sub-agent review mechanism, with a
-  recorded self-review fallback if no sub-agent mechanism exists.
+- **Adversarial sub-agent review is on by default** for `/review-design` and
+  `/review-code` when the host permits sub-agents. Claude Code uses
+  `codex:codex-rescue` when available; non-Claude runtimes use their native
+  sub-agent review mechanism. Same-context self-review is a recorded fallback,
+  not the normal path.
 - **No auto-commit**: skills never commit or push. You control git.
 - **Artifact-first**: skills prefer updating the artifact over chatting.
   Read the file to see what they did.

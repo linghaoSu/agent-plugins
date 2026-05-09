@@ -28,7 +28,10 @@ Parse:
 
 ### Step 2: Explore the Codebase
 
-Use the **Agent tool with `subagent_type: "Explore"`** with thoroughness `medium`. Ask it:
+Use the runtime-native explorer sub-agent by default when the host permits it.
+In Claude Code, use the **Agent tool with `subagent_type: "Explore"`** with
+thoroughness `medium`. In non-Claude runtimes, use the host's native sub-agent
+mechanism with role `EXPLORER`. Ask it:
 
 - What are the existing modules/packages most relevant to the touch points in `requirements.md`?
 - What layering conventions does this repo follow (e.g. handler/service/repo split, domain events, hexagonal, etc)?

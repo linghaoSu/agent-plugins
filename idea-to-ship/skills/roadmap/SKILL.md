@@ -193,7 +193,8 @@ Default source budgets:
 - GitHub (`--include-github`): 20 total milestones/issues/PRs max; ignore
   stale/closed items unless explicitly requested
 
-Use subagents only for bounded collection tasks when useful:
+Use runtime-native subagents by default for bounded collection tasks when the
+source scope is broad enough to benefit from parallel collection:
 - artifact scan
 - docs/manifests scan
 - git/TODO scan
