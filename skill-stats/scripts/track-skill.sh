@@ -5,10 +5,12 @@
 set -u
 
 STATS_FILE="$HOME/.claude/skill-stats.jsonl"
+STATS_DIR="${STATS_FILE%/*}"
 
 input=$(cat)
 
 command -v jq >/dev/null 2>&1 || exit 0
+mkdir -p "$STATS_DIR" 2>/dev/null || exit 0
 
 skill_name=$(printf '%s' "$input" | jq -r '.tool_input.skill // empty' 2>/dev/null)
 [ -z "$skill_name" ] && exit 0
@@ -20,6 +22,6 @@ jq -n -c \
   --arg skill "$skill_name" \
   --arg ts "$timestamp" \
   --arg cwd "$working_dir" \
-  '{skill: $skill, timestamp: $ts, cwd: $cwd}' >> "$STATS_FILE"
+  '{skill: $skill, timestamp: $ts, cwd: $cwd}' >> "$STATS_FILE" 2>/dev/null || true
 
 exit 0

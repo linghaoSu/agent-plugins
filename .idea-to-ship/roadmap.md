@@ -41,6 +41,7 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Moved `ITS-ROADMAP-002` to `Later` because idea-to-ship dogfooding is already happening through this roadmap and does not need to block release hardening.
 - Completed `ITS-ROADMAP-001` Stage 1 release gate in commit `17460a5`.
 - Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
+- Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
 
 ## Inputs
 
@@ -94,7 +95,7 @@ Excluded:
 **Risk:** low - mostly metadata, but misleading docs can cause wrong execution mode.
 
 ### ITS-ROADMAP-004 - Audit and harden hooks/stateful scripts
-**Status:** Planned
+**Status:** Done
 **Work Type:** Spike
 **Evidence Class:** Repo
 **Confidence:** Medium
@@ -103,7 +104,7 @@ Excluded:
 **Owner:** Unassigned
 **Decision Owner:** User
 **Release Gate:** Entry: run antifragile-agent audit focused on hooks and state. Exit: accepted findings are either fixed or explicitly deferred with rationale. No-go: hook changes that can block SessionStart/PostToolUse on optional dependency failure.
-**Evidence Required:** Antifragile audit output; targeted fixes or deferral notes; shellcheck-style/manual review of changed scripts.
+**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; timeout/disable hardening in `auto-updater/scripts/check-update.sh`; non-blocking state write hardening in `skill-stats/scripts/track-skill.sh`; portable analysis docs in `skill-stats/skills/skill-stats/SKILL.md`.
 **Dependencies:** ITS-ROADMAP-001 can define the standard checks, but this spike can run independently.
 **Risk:** medium - hook changes can affect every session if failure isolation is wrong.
 
@@ -227,7 +228,7 @@ Excluded:
 |---|---|---|---|---|
 | ITS-ROADMAP-001 | Done | None - release gate Stage 1 committed and pushed | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; `17460a5` |
 | ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
-| ITS-ROADMAP-004 | Planned | Run antifragile hook/state audit | Audit owner | `antifragile/skills/antifragile-agent/SKILL.md:16-47` |
+| ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
 | ITS-ROADMAP-006 | Planned | Design first fixture harness | Release gate shape | `idea-to-ship/skills/roadmap/SKILL.md:395-413` |
 | ITS-ROADMAP-005 | Planned | Draft portfolio inventory | Release gate categories | `.claude-plugin/marketplace.json:6-50` |
 | ITS-ROADMAP-007 | Planned | Decide command vs hook for scan gate | Release gate baseline | `secret-scanner/README.md:92-100` |

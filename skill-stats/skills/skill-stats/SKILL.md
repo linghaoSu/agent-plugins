@@ -14,7 +14,8 @@ Read the local usage log at `~/.claude/skill-stats.jsonl` and present a summary.
 
 1. Check if `~/.claude/skill-stats.jsonl` exists. If not, tell the user no data has been collected yet.
 
-2. Run the following analysis via `jq` on the JSONL file:
+2. If `jq` is unavailable, tell the user it is required for local analysis.
+   Otherwise, run the following analysis via `jq` on the JSONL file:
 
 ```bash
 echo "=== Skill Usage Stats ==="
@@ -24,7 +25,8 @@ jq -r '.skill' ~/.claude/skill-stats.jsonl | sort | uniq -c | sort -rn
 
 echo ""
 echo "--- Last used per skill ---"
-jq -s 'group_by(.skill) | map({skill: .[0].skill, last_used: (map(.timestamp) | sort | last), count: length}) | sort_by(-.count) | .[] | "\(.skill)\t\(.count)\t\(.last_used)"' ~/.claude/skill-stats.jsonl | column -t -s $'\t' -N "SKILL,COUNT,LAST_USED"
+jq -s 'group_by(.skill) | map({skill: .[0].skill, last_used: (map(.timestamp) | sort | last), count: length}) | sort_by(-.count) | .[] | "\(.skill)\t\(.count)\t\(.last_used)"' ~/.claude/skill-stats.jsonl \
+  | awk -F '\t' 'BEGIN { printf "%-32s %8s %s\n", "SKILL", "COUNT", "LAST_USED" } { printf "%-32s %8s %s\n", $1, $2, $3 }'
 
 echo ""
 echo "--- Daily trend (last 14 days) ---"
