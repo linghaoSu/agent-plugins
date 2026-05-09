@@ -75,3 +75,16 @@ Stage 1 intentionally excludes:
 - release enforcement before `git push`.
 
 Those belong to later roadmap stages after the blocking gate is stable.
+
+## Idea-To-Ship Contract Fixtures
+
+Critical idea-to-ship skill contracts have a separate offline fixture command:
+
+```bash
+bash tests/idea-to-ship-eval-fixtures.sh
+```
+
+This is currently a manually runnable contract check, not a blocking release
+gate step. It validates that the `/roadmap`, `/test`, and `/review-code` skill
+instructions still contain the required safety and traceability contracts. It
+does not prove that a future live model run will obey those instructions.

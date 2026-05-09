@@ -42,6 +42,7 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Completed `ITS-ROADMAP-001` Stage 1 release gate in commit `17460a5`.
 - Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
 - Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
+- Completed `ITS-ROADMAP-006` Stage 1 idea-to-ship contract fixtures.
 
 ## Inputs
 
@@ -111,16 +112,16 @@ Excluded:
 ## Next
 
 ### ITS-ROADMAP-006 - Add executable eval fixtures for critical skill workflows
-**Status:** Planned
+**Status:** Done
 **Work Type:** Spike
 **Evidence Class:** Artifact
 **Confidence:** Medium
 **Source Anchors:** `idea-to-ship/skills/roadmap/SKILL.md:395-413`; `idea-to-ship/README.md:72-77`; `.idea-to-ship/current/code-review.md:29-36`
 **Why Now / Why Next / Why Later:** After release gates and metadata consistency, the next bottleneck is proving skill behavior with repeatable fixtures instead of manual markdown review.
 **Owner:** Unassigned
-**Decision Owner:** User
+**Decision Owner:** None
 **Release Gate:** Entry: choose fixture harness shape. Exit: smoke fixtures cover `/roadmap`, `/test`, and `/review-code` critical paths: first run, rerun preservation, missing test plan, and final-without-approval. No-go: fixtures require live GitHub or mutate user repo state.
-**Evidence Required:** Runnable fixture command; expected output snapshots or assertions; documented limitations.
+**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-006/architecture.md`; `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `RELEASE-GATE.md`; `bash tests/idea-to-ship-eval-fixtures.sh`; negative contract smoke recorded in `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md`.
 **Dependencies:** ITS-ROADMAP-001 should define where eval fixtures sit in release checks.
 **Risk:** medium - poorly scoped evals become brittle markdown golden files.
 
@@ -199,19 +200,19 @@ Excluded:
 1. `ITS-ROADMAP-001` should land first because it defines the checks used by later changes.
 2. `ITS-ROADMAP-003` can run in parallel with `ITS-ROADMAP-001`; it has no hard dependency.
 3. `ITS-ROADMAP-004` can start after or during `ITS-ROADMAP-001`, but accepted hook fixes should obey the release gate once it exists.
-4. `ITS-ROADMAP-006` depends on `ITS-ROADMAP-001` for where eval fixtures fit into release checks.
+4. `ITS-ROADMAP-006` depended on `ITS-ROADMAP-001` for where eval fixtures fit into release checks; Stage 1 now lands as a manually runnable command before release-gate integration.
 5. `ITS-ROADMAP-005` and `ITS-ROADMAP-007` follow the release gate baseline so they do not create separate, drifting process rules.
 6. `ITS-ROADMAP-002` remains later until there is a proven baseline worth codifying.
 
 ## Dependency Hypotheses
 
-- Eval fixtures may require a small local harness script. This is not yet proven and should be validated in `ITS-ROADMAP-006`.
+- Eval fixtures required a small local harness script. Stage 1 validated the contract-fixture shape; artifact-level fixtures remain a possible later extension.
 - Secret scanning may be better as a documented release command before becoming a hook. The hook path depends on user tolerance for local workflow friction.
 - Hook hardening may uncover issues that should move ahead of metadata consistency if any hook can block sessions or corrupt state.
 
 ## Critical Path
 
-`ITS-ROADMAP-001` -> `ITS-ROADMAP-006` -> `ITS-ROADMAP-005` / `ITS-ROADMAP-007`
+`ITS-ROADMAP-001` -> `ITS-ROADMAP-006` (done) -> `ITS-ROADMAP-005` / `ITS-ROADMAP-007`
 
 `ITS-ROADMAP-003` and `ITS-ROADMAP-004` are important parallel work but are not on the validated hard-dependency chain unless the hook audit finds a blocking issue.
 
@@ -229,7 +230,7 @@ Excluded:
 | ITS-ROADMAP-001 | Done | None - release gate Stage 1 committed and pushed | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; `17460a5` |
 | ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
 | ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
-| ITS-ROADMAP-006 | Planned | Design first fixture harness | Release gate shape | `idea-to-ship/skills/roadmap/SKILL.md:395-413` |
+| ITS-ROADMAP-006 | Done | None - contract fixture command implemented | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
 | ITS-ROADMAP-005 | Planned | Draft portfolio inventory | Release gate categories | `.claude-plugin/marketplace.json:6-50` |
 | ITS-ROADMAP-007 | Planned | Decide command vs hook for scan gate | Release gate baseline | `secret-scanner/README.md:92-100` |
 | ITS-ROADMAP-002 | Deferred | Revisit after baseline work | Process overhead risk | `idea-to-ship/README.md:40-49`; `.idea-to-ship/roadmap.md` |
