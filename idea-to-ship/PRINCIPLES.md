@@ -9,6 +9,21 @@ and the [Claude Code best-practices guide](https://code.claude.com/docs/en/best-
 If you are a skill: read this file once before writing or reviewing any code.
 Cite it when you push back on a request that violates it.
 
+## Runtime-aware agent routing
+
+Do not assume the host runtime is Claude Code.
+
+- **Claude Code runtime:** keep the existing model split when available. Use
+  Codex (`codex:codex-rescue`) for adversarial review.
+- **Non-Claude runtime:** do not request Claude model names or Claude-only
+  `subagent_type` values. Use the host's native sub-agent mechanism instead
+  and preserve the same roles: primary analysis, independent second opinion,
+  adversarial review, executor, and final synthesis. Label outputs by role
+  rather than model name.
+- If sub-agents are unavailable, run separate sequential passes in the main
+  context with fresh prompts, record the fallback in the final artifact, and
+  keep the same phase gates.
+
 ## 1. Think before coding
 
 Don't assume. Don't hide confusion. Surface tradeoffs.

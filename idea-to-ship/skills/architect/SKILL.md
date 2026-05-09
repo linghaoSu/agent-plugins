@@ -144,7 +144,7 @@ Ordered, independently-shippable stages. Each stage should leave the system work
 ### Step 6: Hand-off
 
 1. Print a 5-bullet summary: chosen option, top tradeoff accepted, top risk, first stage, any open questions.
-2. Tell the user: "Run `/review-design` next — Codex will tear this apart and we'll iterate."
+2. Tell the user: "Run `/review-design` next — the runtime-aware adversarial reviewer will tear this apart and we'll iterate."
 
 ## Anti-Patterns
 

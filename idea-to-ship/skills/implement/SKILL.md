@@ -1,13 +1,13 @@
 ---
 name: implement
-description: Implement the design in architecture.md in staged commits. Stops between stages for user review. Logs decisions and deviations to implementation-log.md. Does not commit or push.
-argument-hint: '[--slug <name>] [stage-number | all]'
+description: Implement the design in architecture.md in staged commits, optionally in --tdd mode that writes failing story/acceptance tests before production code. Stops between stages for user review. Logs decisions and deviations to implementation-log.md. Does not commit or push.
+argument-hint: '[--slug <name>] [--tdd] [stage-number | all]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Implement — Staged Build From Architecture
 
-Read `architecture.md` and build it. One stage at a time by default, so you can review and course-correct before the next stage. Every stage leaves the system in a working state.
+Read `architecture.md` and build it. One stage at a time by default, so you can review and course-correct before the next stage. Every stage leaves the system in a working state. With `--tdd`, write the stage's failing story/acceptance tests before production code, then implement until they pass.
 
 This skill writes code. It does **not** commit, push, or run adversarial review — those are separate (`git` is yours; use `/review-code` when a stage is complete).
 
@@ -22,6 +22,7 @@ Raw: `$ARGUMENTS`
 
 Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
+- Optional `--tdd` flag → test-first mode for behavior-changing stages.
 - Remaining: stage selector:
   - `<N>` → implement stage N only (e.g. `2`)
   - `all` → run every remaining stage sequentially, pausing between for user confirmation
@@ -33,7 +34,7 @@ Parse:
 
 1. Resolve `.idea-to-ship/<slug>/`.
 2. Require `architecture.md`. If missing → stop, tell user to run `/architect`.
-3. Read `requirements.md` (if present) and `architecture.md` fully.
+3. Read `requirements.md` (if present), `architecture.md`, and `test-plan.md` (if present) fully.
 4. Read or create `implementation-log.md`:
 
    ```markdown
@@ -82,6 +83,38 @@ Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
 4. If a simpler approach than the architecture's would work and you're
    confident, raise it and wait for confirmation. Do not silently substitute.
 
+### Step 3.6: TDD Setup (only with `--tdd`)
+
+If `--tdd` is set and the stage changes observable behavior:
+
+1. Identify the user/system story slice for this stage from `requirements.md`,
+   `architecture.md`, and `test-plan.md` if present.
+2. Derive or update the stage's acceptance criteria and scenarios:
+   - happy path
+   - at least one edge/corner case or invalid-input path
+   - named failure modes from the architecture
+3. Write the minimal tests first, matching the repo's existing test style.
+   Prefer tests already listed in `test-plan.md`.
+   - If `test-plan.md` exists, update only the rows or `## Stage TDD Slices`
+     entries for this stage. Preserve existing story, acceptance, scenario, and
+     test IDs unless the source behavior changed.
+   - If no `test-plan.md` exists and the stage spans multiple stories or has
+     broad coverage implications, stop and tell the user to run `/test` first.
+   - If no `test-plan.md` exists and the stage is a small single-story slice,
+     create a minimal `test-plan.md` with a clearly labeled
+     `## Stage TDD Slices` section. Mark it stage-local, not full coverage.
+   - If the existing plan cannot be safely merged, write `test-plan.draft.md`
+     or ask before replacing `test-plan.md`.
+4. Run the new/targeted tests and confirm they fail for the expected reason.
+   A test that passes before implementation is not proving the new behavior;
+   rewrite it or explain why this stage is not suitable for TDD.
+5. Record the failing test command and expected failure in
+   `implementation-log.md`.
+
+If the stage is docs-only, metadata-only, or otherwise has no meaningful
+runtime behavior, do not fake TDD. Document why `--tdd` was skipped for this
+stage and continue with normal implementation.
+
 ### Step 4: Implement The Stage
 
 Build it. Keep in mind:
@@ -91,6 +124,9 @@ Build it. Keep in mind:
 - **No speculative error handling.** Validate at system boundaries only. Don't wrap internal calls in defensive try/except that swallows real bugs.
 - **No scope creep.** If you spot an adjacent bug or cleanup opportunity, note it in the log; do not fix it in this stage.
 - **Keep it working.** At the end of the stage the build, type-checker, and existing tests must pass. Run them. If something fails, fix it before declaring the stage done.
+- **TDD mode:** if `--tdd` is active, do not write production code before the
+  stage's failing tests exist and fail for the expected reason, unless the
+  stage is explicitly documented as not TDD-suitable.
 
 For each file touched:
 - Prefer Edit over rewrite.
@@ -106,7 +142,9 @@ Run whatever the repo uses to verify code is working:
 
 Report the results concisely. If anything is broken, fix it before moving on.
 
-Do **not** write new tests in this skill — that's `/test`. But do not break existing tests either.
+Outside `--tdd`, do **not** write new tests in this skill — that's `/test`.
+But do not break existing tests either. In `--tdd` mode, run the failing tests
+again after implementation and require them to pass before the stage is done.
 
 ### Step 6: Update The Log
 
@@ -132,6 +170,7 @@ Append a section to `implementation-log.md`:
 - build: ok / fail (fixed: <what>)
 - lint:  ok / skipped / ...
 - tests: N passed, M skipped, 0 failed
+- tdd: skipped / failing test written then passed (`<command>`)
 ```
 
 Tick the stage's checkbox in the Stage Status list at the top.
@@ -150,11 +189,16 @@ Tick the stage's checkbox in the Stage Status list at the top.
 - **Silent deviation.** The architecture says X, you do Y because it's "obviously better." This is design drift (see `../../LANGUAGE.md`). Either push back and update the architecture first, or document the deviation in the log. Never just do it.
 - **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
 - **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
+- **Fake TDD.** Writing tests after implementation and calling it TDD, or
+  writing tests that pass before the behavior exists. In `--tdd` mode, the
+  expected failing test is the gate.
 
 ## Phase Gates
 
 - **⛔ GATE after Step 3 (Sanity Check):** If the codebase has drifted from what `architecture.md` assumed, STOP. Do not improvise around the mismatch. Surface it, get a decision (update architecture or proceed with documented deviation), then continue.
 - **⛔ GATE after Step 3.5 (Surface Assumptions):** Assumptions must be written down before any code is written. If an assumption has multiple plausible interpretations, you must pick one explicitly and log the pick. "I'll figure it out as I go" is not an option.
+- **⛔ GATE after Step 3.6 (`--tdd` only):** Behavior-changing stages must have failing tests for the stage story/acceptance criteria before production code is written. If TDD is skipped, the log must explain why the stage has no meaningful runtime behavior.
+- **⛔ GATE before touching `test-plan.md` (`--tdd` only):** Existing test-plan content must be preserved, updated by stable ID, drafted around, or explicitly approved for replacement. Stage-local TDD slices must not pretend to be a full `/test` plan.
 - **⛔ GATE after Step 5 (Verify):** Build, lint, and existing tests must pass. If anything fails, fix it before declaring the stage done. Do not move to Step 6 with a broken build — a "mostly done" stage is worse than an unstarted one.
 
 ## Notes

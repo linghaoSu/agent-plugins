@@ -1,13 +1,13 @@
 ---
 name: review-code
-description: Adversarial code review of the current diff via Codex, looping fix->review until clean. Linus-style bluntness. Uses architecture.md as context. Writes code-review.md.
+description: Runtime-aware adversarial code review of the current diff, looping fix->review until clean. Linus-style bluntness. Uses requirements.md, architecture.md, implementation-log.md, and test-plan.md as context to catch design drift and missing test traceability. Writes code-review.md.
 argument-hint: '[--slug <name>] [extra focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses `codex:codex-rescue`. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the architecture and requirements for this slug so drift is caught.
+Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
 
 ## Arguments
 
@@ -17,11 +17,24 @@ Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
 - Remaining text → extra focus areas (e.g. "concurrency", "error handling", "SQL injection").
 
+## Runtime-Aware Agent Routing
+
+Before launching a review agent, read `../../PRINCIPLES.md` and apply its
+**Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing Codex adversarial reviewer
+  (`subagent_type: "codex:codex-rescue"`) when available.
+- Outside Claude Code, do not request Claude-only subagent types. Use the host
+  runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
+  role. The review/fix loop, iteration cap, and output contract stay the same.
+- If no sub-agent mechanism is available, run a fresh adversarial pass in the
+  main context and state the fallback in `code-review.md`.
+
 ## Workflow
 
 ### Step 1: Verify Inputs
 
-1. Resolve `.idea-to-ship/<slug>/`. Read `architecture.md` and `requirements.md` if present (both optional — if absent, proceed but note in the final log).
+1. Resolve `.idea-to-ship/<slug>/`. Read `requirements.md`, `architecture.md`, `implementation-log.md`, and `test-plan.md` if present (all optional — if absent, proceed but note in the final log).
 2. Check that there's a diff to review:
    ```bash
    git diff --shortstat
@@ -29,6 +42,7 @@ Parse:
    git status --short
    ```
    If empty, tell the user there's nothing to review and stop.
+3. If `test-plan.md` is absent, remember that fact for the review context.
 
 ### Step 2: Collect The Diff
 
@@ -39,13 +53,21 @@ git diff --cached
 
 Capture both staged and unstaged. This is the review target.
 
+If `test-plan.md` is absent and the diff changes observable behavior, set
+`TEST_PLAN_MISSING=true`. This is review context, not an automatic failure: the
+reviewer must flag it as a verification gap unless the implementation log or
+current request documents why no test plan is applicable.
+
 ### Step 3: Review Loop
 
 Track iteration count starting at 1. Max 5 iterations.
 
-#### 3a — Codex Review
+#### 3a — Runtime-Aware Review
 
-Use **Agent tool with `subagent_type: "codex:codex-rescue"`**. Prompt:
+Use the runtime-aware adversarial reviewer. In Claude Code this is the **Agent
+tool with `subagent_type: "codex:codex-rescue"`** when available; in non-Claude
+runtimes use the host's native sub-agent mechanism with role
+`ADVERSARIAL_REVIEWER`. Prompt:
 
 ```
 Adversarial code review (iteration <N>). Linus Torvalds style — blunt, skeptical,
@@ -60,12 +82,26 @@ SCOPE RULES (important):
 - Check the diff against the architecture. If the implementation deviates from
   the design in a way the implementation-log does not justify, flag it as a
   "design drift" issue.
+- Check the diff against the test plan. If a behavior-changing implementation
+  lacks traceability from requirement -> story -> acceptance criterion ->
+  scenario -> test, flag it as a verification gap. For fixes or user-visible
+  behavior, missing tests are a warning; for bug fixes with no reproducible
+  regression test, upgrade to critical unless there is a documented reason.
+- If `test-plan.md` is not provided and the diff changes observable behavior,
+  flag a warning-level verification gap. For bug fixes without a reproducible
+  regression test, upgrade to critical unless there is a documented reason.
 
 ## Requirements (context, may be empty)
 <requirements.md or "not provided">
 
 ## Architecture (context, may be empty)
 <architecture.md or "not provided">
+
+## Implementation Log (context, may be empty)
+<implementation-log.md or "not provided">
+
+## Test Plan (context, may be empty)
+<test-plan.md or "not provided">
 
 ## Extra Focus From User
 <extra focus text, or "none">
@@ -106,6 +142,9 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 1. Collect `git diff HEAD` + `git diff --cached` again (post-fix state).
 2. Self-review with these questions:
    - Does the change match the requirement(s) it was supposed to satisfy?
+   - Does every behavior-changing diff hunk trace to a requirement, user story,
+     acceptance criterion, scenario, and test? If not, is the gap explicitly
+     documented?
    - Is there dead code, half-finished paths, or leftover scaffolding?
    - Are the public interfaces clean and consistent with the rest of the repo?
    - Could a reader diff this and understand *why* from the code alone?
@@ -123,7 +162,11 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
    - **Goal-driven execution** — is each functional requirement observably
      satisfied by something runnable (test, command, behavior), not just
      "the code looks right"? If not, flag for `/test`.
-4. Fix anything found. If the fix is big, loop back to 3a for one more Codex pass.
+   - **Story/test traceability** — for each core user story, is there a
+     happy-path scenario and at least one edge/invalid/failure scenario? If
+     not, flag the missing scenario or test.
+4. Fix anything found. If the fix is big, loop back to 3a for one more
+   adversarial pass.
 
 ### Step 5: Write `code-review.md`
 
@@ -131,7 +174,7 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 # Code Review — <slug>
 
 **Date:** <YYYY-MM-DD>
-**Reviewer:** Codex (codex:codex-rescue) + self-review
+**Reviewer:** <runtime-aware adversarial reviewer used> + self-review
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
 **Diff size:** <files changed>, <+added/-removed>
@@ -147,6 +190,10 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 ## Design Drift
 <Any place the implementation departed from architecture.md, and whether it was
 reconciled (fix implementation / update architecture / accept as documented deviation).>
+
+## Test Traceability
+<Requirement/story/acceptance/scenario/test gaps. Include missing happy path,
+edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 
 ## Residual Open Issues
 <Empty if clean.>
@@ -169,9 +216,13 @@ reconciled (fix implementation / update architecture / accept as documented devi
 - **Phantom bugs.** "This *could* be null" without checking if callers actually pass null. If you can't show a concrete call path that triggers the failure, it's speculation, not a finding. State the call path or drop the finding.
 - **Reviewing the architecture.** If the chosen design is wrong, that's a design review problem. Code review assumes the design is accepted and checks whether the implementation is correct, safe, and clean. Flag design drift, but don't re-litigate architectural decisions.
 - **Generic advice.** "Add error handling" without saying what error, from where, and what the handler should do. Every finding must be actionable and specific enough to implement in one edit.
+- **Trusting implementation without traceability.** If a behavior changed and
+  there is no story/acceptance/scenario/test trail, the implementation is not
+  verifiably done. Flag the missing link instead of saying "looks fine".
 
 ## Notes
 
 - Scope rules matter. Reviewing surrounding unchanged code always produces noise and no value.
 - **Design drift is a first-class finding** (see `../../LANGUAGE.md`). If the implementation took a shortcut the architecture didn't sanction, either (a) fix the code, (b) update `architecture.md` with a documented reason, or (c) note it in `code-review.md`. Silent drift is forbidden.
-- If `codex:codex-rescue` is unavailable, do a self-review pass with the same prompt and note the fallback in the final log.
+- If the configured adversarial reviewer is unavailable, do a fresh self-review
+  pass with the same prompt and note the fallback in the final log.

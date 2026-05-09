@@ -1,13 +1,13 @@
 ---
 name: review-design
-description: Adversarial review of architecture.md via Codex. Linus-style - blunt, skeptical, attacks weak assumptions. Iterates fix->review until clean (max 5 rounds). Writes design-review.md verdict.
+description: Runtime-aware adversarial review of architecture.md. Linus-style - blunt, skeptical, attacks weak assumptions. Iterates fix->review until clean (max 5 rounds). Writes design-review.md verdict.
 argument-hint: '[--slug <name>] [extra focus e.g. "concurrency" "cost"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Design — Adversarial Architecture Review
 
-Run a blunt, adversarial review of `architecture.md`. Default reviewer is Codex via the `codex:codex-rescue` agent. Fix→review loop until the reviewer returns LGTM or the iteration budget is exhausted.
+Run a blunt, adversarial review of `architecture.md` with a runtime-aware adversarial reviewer. Fix→review loop until the reviewer returns LGTM or the iteration budget is exhausted.
 
 This is the designed-in correction step. An architecture that has not been torn apart by a skeptical reviewer is not ready to implement.
 
@@ -19,21 +19,37 @@ Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
 - Remaining text → additional focus areas to emphasize (e.g. "concurrency", "cost", "failure modes").
 
+## Runtime-Aware Agent Routing
+
+Before launching a review agent, read `../../PRINCIPLES.md` and apply its
+**Runtime-aware agent routing** section.
+
+- In Claude Code, keep the existing Codex adversarial reviewer
+  (`subagent_type: "codex:codex-rescue"`) when available.
+- Outside Claude Code, do not request Claude-only subagent types. Use the host
+  runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
+  role. The review/fix loop, iteration cap, and output contract stay the same.
+- If no sub-agent mechanism is available, run a fresh adversarial pass in the
+  main context and state the fallback in `design-review.md`.
+
 ## Workflow
 
 ### Step 1: Verify Inputs
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
 2. Require `architecture.md` to exist. If missing, stop and tell the user to run `/architect` first.
-3. Read `architecture.md` and `requirements.md`. If the architecture's recommended option contradicts requirements, flag it before even calling Codex.
+3. Read `architecture.md` and `requirements.md`. If the architecture's recommended option contradicts requirements, flag it before even calling the adversarial reviewer.
 
 ### Step 2: Review Loop
 
 Track iteration count starting at 1. Max 5 iterations.
 
-#### 2a — Codex Review
+#### 2a — Runtime-Aware Review
 
-Use the **Agent tool with `subagent_type: "codex:codex-rescue"`**. Construct the prompt:
+Use the runtime-aware adversarial reviewer. In Claude Code this is the **Agent
+tool with `subagent_type: "codex:codex-rescue"`** when available; in non-Claude
+runtimes use the host's native sub-agent mechanism with role
+`ADVERSARIAL_REVIEWER`. Construct the prompt:
 
 ```
 Adversarial architecture review (iteration <N>). Be blunt, Linus Torvalds style.
@@ -69,7 +85,7 @@ If you find no material issues, respond with exactly: LGTM
 
 #### 2b — Evaluate & Fix
 
-- If Codex returns **LGTM** → break, proceed to Step 3.
+- If the reviewer returns **LGTM** → break, proceed to Step 3.
 - Otherwise:
   1. Print a 1-line summary: `Iteration N: X critical, Y warnings, Z nits.`
   2. For each **critical** and **warning** issue: update `architecture.md` directly with Edit. Be concrete — change the recommendation, rewrite a section, add a failure mode, revise an interface. Do not just append a footnote.
@@ -99,7 +115,7 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 
 **Slug:** <slug>
 **Date:** <YYYY-MM-DD>
-**Reviewer:** Codex (codex:codex-rescue) + self-review
+**Reviewer:** <runtime-aware adversarial reviewer used> + self-review
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
 
@@ -113,7 +129,7 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 <Anything accepted as open. Empty is fine.>
 
 ## Reviewer's Final Verdict
-<Paste Codex's final LGTM or accepted summary.>
+<Paste the reviewer's final LGTM or accepted summary.>
 
 ## Self-Review Notes
 <What you noticed in the holistic pass. Empty is fine.>
@@ -135,6 +151,8 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 ## Notes
 
 - This skill writes to `architecture.md` (updates) and `design-review.md` (new). It does not touch source code.
-- If `codex:codex-rescue` is unavailable, fall back to a self-review pass with the same principles, and note in `design-review.md` that Codex was not used.
+- If the configured adversarial reviewer is unavailable, fall back to a fresh
+  self-review pass with the same principles, and note the fallback in
+  `design-review.md`.
 - **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.
