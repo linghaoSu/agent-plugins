@@ -39,7 +39,8 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Promoted `ITS-ROADMAP-001`, `ITS-ROADMAP-003`, and `ITS-ROADMAP-004` to `Now`.
 - Promoted `ITS-ROADMAP-006`, `ITS-ROADMAP-005`, and `ITS-ROADMAP-007` to `Next`.
 - Moved `ITS-ROADMAP-002` to `Later` because idea-to-ship dogfooding is already happening through this roadmap and does not need to block release hardening.
-- No completed items yet.
+- Completed `ITS-ROADMAP-001` Stage 1 release gate in commit `17460a5`.
+- Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
 
 ## Inputs
 
@@ -65,7 +66,7 @@ Excluded:
 ## Now
 
 ### ITS-ROADMAP-001 - Establish repo-wide plugin release gates
-**Status:** Planned
+**Status:** Done
 **Work Type:** Maintenance
 **Evidence Class:** Artifact
 **Confidence:** High
@@ -74,12 +75,12 @@ Excluded:
 **Owner:** Unassigned
 **Decision Owner:** User
 **Release Gate:** Entry: current manifest/skill validation commands are known. Exit: one documented or scripted release gate covers JSON manifests, skill frontmatter, `git diff --check`, hook robustness, and secret scanning. No-go: gate requires network or mutates repo state without explicit approval.
-**Evidence Required:** Passing local command set; updated repo documentation or script; code review of the gate.
+**Evidence Required:** Completed: `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; commit `17460a5`.
 **Dependencies:** None
 **Risk:** medium - a too-heavy gate can slow small edits; a too-light gate preserves current manual drift.
 
 ### ITS-ROADMAP-003 - Normalize runtime-aware review language across manifests
-**Status:** Planned
+**Status:** Done
 **Work Type:** Maintenance
 **Evidence Class:** Artifact
 **Confidence:** High
@@ -88,7 +89,7 @@ Excluded:
 **Owner:** Unassigned
 **Decision Owner:** None
 **Release Gate:** Entry: identify all stale Codex-only descriptions. Exit: marketplace and plugin metadata consistently describe runtime-aware validation without overclaiming model availability. No-go: docs imply unavailable model names are mandatory outside Claude Code.
-**Evidence Required:** `rg` check for stale model-only wording; JSON manifest validation; reviewed diff.
+**Evidence Required:** Completed: targeted stale wording scan; JSON manifest validation; release gate `working`/`all`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md`.
 **Dependencies:** None
 **Risk:** low - mostly metadata, but misleading docs can cause wrong execution mode.
 
@@ -224,8 +225,8 @@ Excluded:
 
 | Slug/ID | Status | Next Action | Blockers | Evidence |
 |---|---|---|---|---|
-| ITS-ROADMAP-001 | Planned | Review `.idea-to-ship/ITS-ROADMAP-001/architecture.md` | Owner assignment | `.claude-plugin/marketplace.json:6-50`; `secret-scanner/scripts/scan.py:1-24`; `.idea-to-ship/ITS-ROADMAP-001/architecture.md` |
-| ITS-ROADMAP-003 | Planned | Patch stale runtime-aware metadata | None | `issue-evaluator/README.md:9-12`; `issue-evaluator/.claude-plugin/plugin.json:1-7` |
+| ITS-ROADMAP-001 | Done | None - release gate Stage 1 committed and pushed | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; `17460a5` |
+| ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
 | ITS-ROADMAP-004 | Planned | Run antifragile hook/state audit | Audit owner | `antifragile/skills/antifragile-agent/SKILL.md:16-47` |
 | ITS-ROADMAP-006 | Planned | Design first fixture harness | Release gate shape | `idea-to-ship/skills/roadmap/SKILL.md:395-413` |
 | ITS-ROADMAP-005 | Planned | Draft portfolio inventory | Release gate categories | `.claude-plugin/marketplace.json:6-50` |
