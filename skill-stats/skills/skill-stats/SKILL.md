@@ -1,0 +1,39 @@
+---
+name: skill-stats
+description: Display skill usage statistics — call counts, last used, and identify unused skills.
+allowed-tools:
+  - Bash
+  - Read
+---
+
+# Skill Usage Statistics
+
+Read the local usage log at `~/.claude/skill-stats.jsonl` and present a summary.
+
+## Steps
+
+1. Check if `~/.claude/skill-stats.jsonl` exists. If not, tell the user no data has been collected yet.
+
+2. Run the following analysis via `jq` on the JSONL file:
+
+```bash
+echo "=== Skill Usage Stats ==="
+echo ""
+echo "--- Call counts (descending) ---"
+jq -r '.skill' ~/.claude/skill-stats.jsonl | sort | uniq -c | sort -rn
+
+echo ""
+echo "--- Last used per skill ---"
+jq -s 'group_by(.skill) | map({skill: .[0].skill, last_used: (map(.timestamp) | sort | last), count: length}) | sort_by(-.count) | .[] | "\(.skill)\t\(.count)\t\(.last_used)"' ~/.claude/skill-stats.jsonl | column -t -s $'\t' -N "SKILL,COUNT,LAST_USED"
+
+echo ""
+echo "--- Daily trend (last 14 days) ---"
+jq -r '.timestamp[:10]' ~/.claude/skill-stats.jsonl | sort | uniq -c | sort -k2
+```
+
+3. Compare tracked skills against the list of all installed skills (from the system-reminder in the conversation). Identify skills that have **never been called** — these are candidates for removal or re-evaluation.
+
+4. Present results as a concise table. Highlight:
+   - Top 5 most-used skills
+   - Skills never called (if any installed skills are absent from the log)
+   - Any skills not called in the last 30 days

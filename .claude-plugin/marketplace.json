@@ -38,6 +38,16 @@
       "name": "secret-scanner",
       "description": "Scan staged/uncommitted/recent changes for leaked secrets - cloud keys (AWS, Google), VCS tokens (GitHub, GitLab), AI API keys (OpenAI, Anthropic), payment keys (Stripe), Slack/Twilio/SendGrid tokens, JWTs, private keys, DB connection strings, and generic password/token assignments. Deterministic Python scanner plus LLM-assisted false-positive triage. Read-only.",
       "source": "./secret-scanner"
+    },
+    {
+      "name": "skill-stats",
+      "description": "Track skill invocations via PostToolUse hook and display usage statistics. Run /skill-stats to see call counts, last-used times, daily trends, and identify unused skills.",
+      "source": "./skill-stats"
+    },
+    {
+      "name": "antifragile",
+      "description": "Antifragility audits. /antifragile-agent checks plugin/hook/skill robustness; /antifragile-system checks the target project for resilience gaps (dependency fallbacks, error handling, single points of failure, data safety, observability).",
+      "source": "./antifragile"
     }
   ]
 }
