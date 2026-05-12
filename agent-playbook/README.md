@@ -5,8 +5,9 @@ concrete, repo-level actions you can run.
 
 Where `harness-engineering` is *design-time* (scaffolding a new agent) and
 `idea-to-ship` is *flow-time* (taking one feature from idea to ship),
-`agent-playbook` is *operator-time*: configuring your repo and reviewing
-your tools so agents work reliably day-to-day.
+`agent-playbook` is *operator-time*: configuring your repo, reviewing
+your tools, and handling repo-specific commit / draft PR hygiene so agents
+work reliably day-to-day.
 
 ## Source material
 
@@ -50,12 +51,21 @@ principles: boundary clarity, consolidation, namespacing, token-efficient
 returns, error messages that guide, evaluation hooks. Produces a ranked
 punch-list.
 
+### `/commit-changes [message, scope, or draft PR request]`
+Create a local git commit after reading the current repo's commit
+requirements. Verifies the intended diff, runs required pre-commit checks,
+and commits with only the human user's Git author/committer identity. When
+asked to open a PR, reads the project's PR template and uses `gh pr create
+--draft` with a filled body file. Never adds AI co-author or generated-by
+trailers.
+
 ## Conventions
 
 - **Artifact-first.** Reports land under `.agent-playbook/<slug>/` so you
   can diff changes over time. Default slug: `current`.
 - **Read-only by default.** `/context-audit` and `/tool-review` never
   mutate your repo; `/bootstrap-project-memory` writes only after showing
-  you the proposed file.
+  you the proposed file. `/commit-changes` mutates git history and creates
+  GitHub draft PRs only when the user asks and the repo's checks pass.
 - **Cite sources.** Every recommendation points at the specific article
   and section so you can sanity-check before applying.

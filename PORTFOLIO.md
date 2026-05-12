@@ -45,7 +45,7 @@ Additional plugin-specific checks are listed in the inventory table.
 
 | Plugin | Lifecycle | Owner | Decision Owner | Purpose | Required Checks | Review / Deprecation Notes |
 |---|---|---|---|---|---|---|
-| `agent-playbook` | Active | linghao | linghao | Operator-facing repo and tool hygiene playbook. | Global release checks. | Review when source-practice guidance changes or skills start duplicating `harness-engineering` / `idea-to-ship`. |
+| `agent-playbook` | Active | linghao | linghao | Operator-facing repo, tool, commit, and draft PR hygiene playbook. | Global release checks. | Review when source-practice guidance changes or skills start duplicating `harness-engineering` / `idea-to-ship`. |
 | `antifragile` | Active | linghao | linghao | Audits plugin infrastructure and target systems for resilience gaps. | Global release checks. | Keep audit criteria aligned with hook/state findings from `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`. |
 | `auto-updater` | Experimental | linghao | linghao | SessionStart hook that updates directory-marketplace plugins when source commits advance. | Global release checks; `bash -n auto-updater/scripts/check-update.sh`; `CLAUDE_AUTO_UPDATER_DISABLE=1 auto-updater/scripts/check-update.sh`. | Stateful hook with install-state side effects. Keep timeout and disable controls working; consider advisory-only behavior if it causes session friction. |
 | `harness-engineering` | Active | linghao | linghao | Designs and audits the harness around autonomous agents. | Global release checks. | Maintain artifact-first behavior under `.harness-engineering/<slug>/`; avoid drifting into implementation work. |

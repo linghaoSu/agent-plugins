@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Changes"
+  short_description: "Commit changes from repo rules"
+  default_prompt: "Use $commit-changes to commit my changes after reading this repo's requirements."
