@@ -42,7 +42,10 @@ priority_approval: "user-approved Now/Next/Later ordering in current request"
 - Completed `ITS-ROADMAP-001` Stage 1 release gate in commit `17460a5`.
 - Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
 - Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
-- Completed `ITS-ROADMAP-006` Stage 1 idea-to-ship contract fixtures.
+- Completed `ITS-ROADMAP-006` idea-to-ship contract fixtures, artifact safety
+  fixtures, `--mode all` advisory release-gate integration, and runtime-aware
+  delegation authorization hardening, plus requirements/architecture ownership
+  safety and selected-model capacity fallback handling for reviews.
 - Completed `ITS-ROADMAP-005` portfolio inventory and ownership model.
 - Completed `ITS-ROADMAP-007` by recording command-based secret-scan release-gate enforcement.
 - Completed `ITS-ROADMAP-002` by using `ITS-ROADMAP-006` as evidence of full-flow idea-to-ship dogfooding.
@@ -124,7 +127,7 @@ Excluded:
 **Owner:** Unassigned
 **Decision Owner:** None
 **Release Gate:** Entry: choose fixture harness shape. Exit: smoke fixtures cover `/roadmap`, `/test`, and `/review-code` critical paths: first run, rerun preservation, missing test plan, and final-without-approval. No-go: fixtures require live GitHub or mutate user repo state.
-**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-006/architecture.md`; `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `RELEASE-GATE.md`; `bash tests/idea-to-ship-eval-fixtures.sh`; negative contract smoke recorded in `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md`.
+**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-006/architecture.md`; `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `scripts/release-gate.sh`; `tests/release-gate-stage1.sh`; `RELEASE-GATE.md`; `bash tests/idea-to-ship-eval-fixtures.sh`; `scripts/release-gate.sh --mode all`; negative contract, artifact safety, delegation authorization, capacity fallback, and requirements/architecture ownership coverage recorded in `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md`.
 **Dependencies:** ITS-ROADMAP-001 should define where eval fixtures sit in release checks.
 **Risk:** medium - poorly scoped evals become brittle markdown golden files.
 
@@ -203,13 +206,15 @@ Excluded:
 1. `ITS-ROADMAP-001` should land first because it defines the checks used by later changes.
 2. `ITS-ROADMAP-003` can run in parallel with `ITS-ROADMAP-001`; it has no hard dependency.
 3. `ITS-ROADMAP-004` can start after or during `ITS-ROADMAP-001`, but accepted hook fixes should obey the release gate once it exists.
-4. `ITS-ROADMAP-006` depended on `ITS-ROADMAP-001` for where eval fixtures fit into release checks; Stage 1 now lands as a manually runnable command before release-gate integration.
+4. `ITS-ROADMAP-006` depended on `ITS-ROADMAP-001` for where eval fixtures fit into release checks; the fixture command now runs as a non-blocking `--mode all` advisory.
 5. `ITS-ROADMAP-005` and `ITS-ROADMAP-007` follow the release gate baseline so they do not create separate, drifting process rules.
 6. `ITS-ROADMAP-002` is complete: `ITS-ROADMAP-006` proved the full-flow dogfood path, while docs-only and decision-only items used right-sized artifacts.
 
 ## Dependency Hypotheses
 
-- Eval fixtures required a small local harness script. Stage 1 validated the contract-fixture shape; artifact-level fixtures remain a possible later extension.
+- Eval fixtures required a small local harness script. Contract fixtures,
+  artifact-level fixtures, and release-gate advisory integration are now in
+  place; live-agent evals remain out of scope.
 - Secret scanning may be better as a documented release command before becoming a hook. The hook path depends on user tolerance for local workflow friction.
 - Hook hardening may uncover issues that should move ahead of metadata consistency if any hook can block sessions or corrupt state.
 
@@ -233,7 +238,7 @@ Excluded:
 | ITS-ROADMAP-001 | Done | None - release gate Stage 1 committed and pushed | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; `17460a5` |
 | ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
 | ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
-| ITS-ROADMAP-006 | Done | None - contract fixture command implemented | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
+| ITS-ROADMAP-006 | Done | None - contract/artifact/delegation/capacity/ownership fixtures integrated as `--mode all` advisory | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `scripts/release-gate.sh`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
 | ITS-ROADMAP-005 | Done | None - portfolio inventory added | None | `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md` |
 | ITS-ROADMAP-007 | Done | None - command-based secret-scan gate recorded | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md` |
 | ITS-ROADMAP-002 | Done | None - dogfood evidence recorded | None | `.idea-to-ship/ITS-ROADMAP-006/*`; `.idea-to-ship/ITS-ROADMAP-002/implementation-log.md` |

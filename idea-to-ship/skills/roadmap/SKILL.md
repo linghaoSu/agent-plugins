@@ -204,15 +204,18 @@ Default source budgets:
 - GitHub (`--include-github`): 20 total milestones/issues/PRs max; ignore
   stale/closed items unless explicitly requested
 
-Use runtime-native subagents by default for bounded collection tasks when the
-source scope is broad enough to benefit from parallel collection:
+Use runtime-native subagents for bounded collection tasks only when the source
+scope is broad enough to benefit from parallel collection and the host/user
+policy authorizes delegation:
 - artifact scan
 - docs/manifests scan
 - git/TODO scan
 - GitHub scan
 
 Each subagent must return fixed-schema findings with citations and confidence.
-Final prioritization stays in the main coordinator.
+If delegation is unavailable or unauthorized, collect sources sequentially in
+the main context with the same schema. Final prioritization stays in the main
+coordinator.
 
 ### Step 3: Collect Evidence
 

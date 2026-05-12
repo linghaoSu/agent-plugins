@@ -59,7 +59,7 @@ until the reviewer returns LGTM (max 5 iterations). Final verdict goes to
 `design-review.md`.
 
 ### `/implement [--tdd] [stage]`
-Reads `architecture.md` and implements it in staged commits. Logs each stage
+Reads `architecture.md` and implements it as stage-by-stage local edits. Logs each stage
 (files touched, decisions, deviations from the design) to
 `implementation-log.md`. Stops between stages for your review. With `--tdd`,
 behavior-changing stages write failing story/acceptance tests before
@@ -93,10 +93,10 @@ tests and runs them until green.
 # staged implementation
 /implement --tdd 1
 # optional test-first implementation for one behavior-changing stage
-/review-code
-# adversarial review of the diff + test traceability
 /test
 # story-driven test plan + implementation
+/review-code
+# adversarial review of the diff + test traceability
 ```
 
 You may hand-edit artifacts between stages, but do not skip `/brainstorm`.
@@ -117,16 +117,16 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   horizon, sourced candidate items, and overwrite safety. Weak signals such as
   TODOs and mined issues never enter `Now` automatically.
 - **Test traceability**: `/test` derives user stories, acceptance criteria,
-  scenario matrices, and test cases before implementation. `/review-code`
+  scenario matrices, and test cases before final review. `/review-code`
   flags behavior changes without requirement/story/scenario/test evidence.
 - **TDD mode**: `/implement --tdd` is opt-in. It is required to write a
   failing test before production code for behavior-changing stages, or document
   why the stage has no meaningful runtime behavior.
-- **Adversarial sub-agent review is on by default** for `/review-design` and
-  `/review-code` when the host permits sub-agents. Claude Code uses
-  `codex:codex-rescue` when available; non-Claude runtimes use their native
-  sub-agent review mechanism. Same-context self-review is a recorded fallback,
-  not the normal path.
+- **Adversarial review uses sub-agents only when authorized** for
+  `/review-design` and `/review-code`. Claude Code uses `codex:codex-rescue`
+  when available and authorized; non-Claude runtimes use their native sub-agent
+  review mechanism when host/user policy permits it. Same-context adversarial
+  passes are recorded fallbacks.
 - **No auto-commit**: skills never commit or push. You control git.
 - **Artifact-first**: skills prefer updating the artifact over chatting.
   Read the file to see what they did.

@@ -34,9 +34,29 @@ Parse:
    mkdir -p "$ARTIFACT_DIR"
    ```
 2. Check for existing `requirements.md`:
-   - If it exists → read it and ask: "Existing requirements found. Continue refining, or start over?"
+   - If it exists → read it fully. This run is a refinement unless the user
+     explicitly approves starting over.
    - If not → proceed.
 3. If the initial idea description is empty, ask: "What are you thinking about building? Give me the rough shape — I'll dig in."
+
+### Step 1.5: Requirements Ownership
+
+`requirements.md` is the canonical product contract for this slug. `/brainstorm`
+owns its generated structure, but humans may have edited requirements, open
+questions, exclusions, or success criteria between runs.
+
+On rerun:
+
+1. Preserve stable requirement IDs (`FR-1`, `FR-2`, etc.) and success criteria
+   meaning unless the user explicitly changes the behavior.
+2. Update known sections by heading instead of rewriting the whole file.
+3. Preserve human notes, manual exclusions, open questions, and any content
+   outside the expected headings.
+4. If the existing file cannot be safely merged because it lacks the expected
+   headings or contains unstructured human content, write
+   `requirements.draft.md` or ask before replacing `requirements.md`.
+5. If the user asks to start over, summarize what will be discarded and get
+   explicit approval before replacing the canonical file.
 
 ### Step 2: Socratic Questioning
 
@@ -92,7 +112,9 @@ Once the picture is clear, write the document. Template:
 - <bullet — be generous here, this is where bloat dies>
 
 ## Functional Requirements
-<Numbered list. Each item is a testable, user-visible behavior. No implementation details.>
+<Numbered list or table. Each item is a testable, user-visible behavior. No
+implementation details. Use stable IDs (`FR-1`, `FR-2`, etc.) and preserve
+those IDs on rerun unless behavior is intentionally removed.>
 
 1. <FR-1>
 2. <FR-2>
@@ -149,6 +171,10 @@ Examples of weak criteria (rewrite these):
 ## Phase Gates
 
 - **⛔ GATE before Step 3 (Write requirements.md):** Every section in the template must be fillable without guessing. If Problem, Users, or Success Criteria still have gaps, ask another batch. Do not write a requirements doc with "TBD" in critical sections.
+- **⛔ GATE before replacing existing requirements:** Existing human edits and
+  stable requirement IDs must be preserved, merged by heading, drafted around
+  with `requirements.draft.md`, or explicitly approved for replacement before
+  writing `requirements.md`.
 
 ## Techniques worth stealing
 
@@ -156,10 +182,11 @@ Examples of weak criteria (rewrite these):
   (if available) rather than free-form chat. Structured prompts force the
   user to think about edges they'd otherwise skip. See the "Let Claude
   interview you" pattern in [Claude Code best practices](https://code.claude.com/docs/en/best-practices#let-claude-interview-you).
-- **Two-context critique** — when the spec feels soft, spawn a fresh subagent
-  (clean context) with the prompt: *"Take this requirements doc apart. Give
-  me 20 points that are underspecified, weird, or inconsistent."* Feed the
-  critique back into this skill's Q&A. Credit: Peter Steinberger's
+- **Two-context critique** — when the spec feels soft and delegation is
+  authorized, spawn a fresh subagent (clean context) with the prompt: *"Take
+  this requirements doc apart. Give me 20 points that are underspecified,
+  weird, or inconsistent."* Feed the critique back into this skill's Q&A.
+  Credit: Peter Steinberger's
   [Gemini workflow](https://steipete.me/posts/2025/understanding-codebases-with-ai-gemini-workflow).
-  Do this instead of asking the same model to self-review — self-review in
-  the same context is biased toward what it just wrote.
+  If delegation is unavailable or unauthorized, do a fresh main-context pass
+  with the same prompt and record that fallback in the hand-off.

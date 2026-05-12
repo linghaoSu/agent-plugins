@@ -24,14 +24,37 @@ Parse:
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
 2. Require `requirements.md` to exist. If it doesn't, stop and tell the user to run `/brainstorm --slug <slug>` first.
 3. Read `requirements.md` fully.
-4. If `architecture.md` already exists, read it — this run is a revision. Ask the user whether to revise or start over.
+4. If `architecture.md` already exists, read it fully. This run is a revision
+   unless the user explicitly approves starting over.
+
+### Step 1.5: Architecture Ownership
+
+`architecture.md` is the canonical design contract for this slug. `/architect`
+owns its generated structure, but humans may have edited tradeoffs, risks,
+open questions, or staged implementation notes between runs.
+
+On rerun:
+
+1. Preserve stable requirement references, option names, stage names, and any
+   existing decision history unless the source requirements changed.
+2. Update known sections by heading instead of rewriting the whole file.
+3. Preserve human notes, manually accepted tradeoffs, unresolved risks, and
+   prior review findings.
+4. If the existing file cannot be safely merged because it lacks the expected
+   headings or contains unstructured human content, write
+   `architecture.draft.md` or ask before replacing `architecture.md`.
+5. If the user asks to start over, summarize what will be discarded and get
+   explicit approval before replacing the canonical file.
 
 ### Step 2: Explore the Codebase
 
-Use the runtime-native explorer sub-agent by default when the host permits it.
-In Claude Code, use the **Agent tool with `subagent_type: "Explore"`** with
-thoroughness `medium`. In non-Claude runtimes, use the host's native sub-agent
-mechanism with role `EXPLORER`. Ask it:
+Use a runtime-native explorer sub-agent only when the host permits sub-agents
+and the current user/host policy authorizes delegation. In Claude Code, use the
+**Agent tool with `subagent_type: "Explore"`** with thoroughness `medium` when
+authorized. In non-Claude runtimes, use the host's native sub-agent mechanism
+with role `EXPLORER` when authorized. Otherwise, run a separate main-context
+exploration pass with the same questions and record the fallback in
+`architecture.md` under Codebase Context. Ask:
 
 - What are the existing modules/packages most relevant to the touch points in `requirements.md`?
 - What layering conventions does this repo follow (e.g. handler/service/repo split, domain events, hexagonal, etc)?
@@ -162,6 +185,10 @@ Recognize and avoid these — they are the most common failure modes in this ski
 
 These are hard stops. Do not proceed past a gate until its condition is met.
 
+- **⛔ GATE after Step 1.5 (Architecture Ownership):** Existing human edits,
+  option/stage identity, and decision history must be preserved, merged by
+  heading, drafted around with `architecture.draft.md`, or explicitly approved
+  for replacement before writing `architecture.md`.
 - **⛔ GATE after Step 2 (Explore):** You must have concrete file paths and module names from the actual codebase before designing anything. If Explore returned nothing useful, widen the search or ask the user — do not design against an imagined codebase.
 - **⛔ GATE after Step 3 (Design):** Each alternative must have Pros, Cons, and Risk filled in. If you can't articulate a Con for an option, you don't understand it well enough.
 - **⛔ GATE after Step 4 (Recommend):** The recommendation must name the tradeoff it accepts. "Option A is better in every way" is a sign you invented a straw-man — go back to Step 3.

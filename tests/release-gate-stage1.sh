@@ -118,6 +118,7 @@ test_valid_repo_passes() {
   assert_contains "$repo/out.txt" "PASS skill-frontmatter" "valid repo"
   assert_contains "$repo/out.txt" "PASS diff-whitespace" "valid repo"
   assert_contains "$repo/out.txt" "PASS secret-scan" "valid repo"
+  assert_contains "$repo/out.txt" "SKIP idea-to-ship-fixtures" "valid repo"
 }
 
 test_malformed_manifest_fails() {
@@ -254,6 +255,15 @@ test_missing_secret_scanner_exits_2() {
   assert_contains "$repo/out.txt" "FAIL secret-scan" "missing secret scanner"
 }
 
+test_all_mode_missing_idea_to_ship_fixture_is_advisory() {
+  repo="$(make_fixture_repo all_missing_idea_to_ship_fixture)"
+  run_gate "$repo" --mode all
+  code="$?"
+  assert_exit "$code" 0 "all mode missing idea-to-ship fixture advisory"
+  assert_contains "$repo/out.txt" "WARN idea-to-ship-fixtures" \
+    "all mode missing idea-to-ship fixture advisory"
+}
+
 require_cmd git
 require_cmd jq
 require_cmd python3
@@ -278,6 +288,7 @@ test_working_whitespace_fails
 test_staged_secret_fails
 test_invalid_mode_exits_2
 test_missing_secret_scanner_exits_2
+test_all_mode_missing_idea_to_ship_fixture_is_advisory
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '%s test(s) failed\n' "$FAILURES" >&2

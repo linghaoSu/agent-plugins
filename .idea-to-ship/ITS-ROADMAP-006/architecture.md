@@ -182,6 +182,8 @@ python3 tests/idea-to-ship-eval-fixtures.py <repo-root>
 
 Named checks:
 
+- `brainstorm-rerun-preservation-contract`
+- `architect-rerun-preservation-contract`
 - `roadmap-first-run-contract`
 - `roadmap-rerun-preservation-contract`
 - `roadmap-final-without-approval-contract`
@@ -209,6 +211,8 @@ Stage 1 check definitions:
 
 | Check | Required invariant groups |
 |---|---|
+| `brainstorm-rerun-preservation-contract` | requirements ownership; stable requirement IDs; human content preservation; draft fallback; replacement approval |
+| `architect-rerun-preservation-contract` | architecture ownership; option/stage preservation; human content preservation; draft fallback; replacement approval |
 | `roadmap-first-run-contract` | first run/no existing roadmap; Candidate Brief; resolved `WRITE_TARGET` |
 | `roadmap-rerun-preservation-contract` | rerun/refresh; human content preservation; generated markers or draft fallback |
 | `roadmap-final-without-approval-contract` | `--final`; priority approval; final lanes blocked or not written |
@@ -263,6 +267,15 @@ label the coverage as contract fixtures to avoid overstating the signal.
    become executable outside the LLM prompt.
 3. **Stage 3 - Release-gate integration:** Decide advisory vs blocking and wire
    the eval command into `scripts/release-gate.sh` or `RELEASE-GATE.md`.
+4. **Stage 4 - Delegation authorization hardening:** Require user/host
+   authorization before runtime sub-agent delegation, with main-context
+   fallback recording.
+5. **Stage 5 - Requirements and architecture ownership safety:** Extend
+   `/brainstorm` and `/architect` rerun rules plus fixture coverage for
+   canonical artifact preservation and draft fallback.
+6. **Stage 6 - Capacity fallback hardening:** Treat review sub-agent
+   model-selection and capacity errors as sub-agent unavailability, then
+   continue in the main context and record the fallback reason.
 
 ## Open Questions
 

@@ -357,6 +357,39 @@ check_secret_scan() {
   fi
 }
 
+check_idea_to_ship_fixtures() {
+  command_text="bash tests/idea-to-ship-eval-fixtures.sh"
+
+  if [ "$MODE" != "all" ]; then
+    add_result "skipped" "skip" "idea-to-ship-fixtures" \
+      "runs only in --mode all" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/idea-to-ship-eval-fixtures.sh" ]; then
+    add_result "advisory" "warn" "idea-to-ship-fixtures" \
+      "idea-to-ship fixture command is missing" \
+      "tests/idea-to-ship-eval-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/idea-to-ship-eval-fixtures.sh 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "idea-to-ship-fixtures" \
+      "idea-to-ship fixture checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "idea-to-ship-fixtures" \
+      "idea-to-ship fixture checks reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "idea-to-ship-fixtures" \
+      "idea-to-ship fixture checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -373,7 +406,22 @@ emit_human() {
   done <"$RESULTS_FILE"
 
   printf '\nAdvisory\n'
-  printf '  <none>\n'
+  advisory_found=0
+  while IFS="$(printf '\t')" read -r category status id message evidence command_text exit_code; do
+    [ "$category" = "advisory" ] || continue
+    advisory_found=1
+    printf '  %s %s' "$(status_label "$status")" "$id"
+    if [ -n "$message" ]; then
+      printf ': %s' "$message"
+    fi
+    if [ -n "$evidence" ]; then
+      printf ' (%s)' "$evidence"
+    fi
+    printf '\n'
+  done <"$RESULTS_FILE"
+  if [ "$advisory_found" -eq 0 ]; then
+    printf '  <none>\n'
+  fi
 
   printf '\nSkipped\n'
   if grep -F "$(printf '\tskip\t')" "$RESULTS_FILE" >/dev/null 2>&1; then
@@ -411,6 +459,7 @@ check_manifest_json
 check_skill_frontmatter
 check_diff_whitespace
 check_secret_scan
+check_idea_to_ship_fixtures
 
 if [ "$JSON_OUTPUT" = "true" ]; then
   emit_json

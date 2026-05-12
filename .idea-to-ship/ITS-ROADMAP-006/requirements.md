@@ -44,6 +44,8 @@ Out of scope:
 | FR-8 | The `/review-code` fixture coverage must check the runtime-aware routing and fallback documentation contract without hard-coding Claude-only execution in non-Claude runtimes. | `idea-to-ship/skills/review-code/SKILL.md`; ITS-ROADMAP-003 |
 | FR-9 | Fixtures must avoid live GitHub, network, plugin installation, and mutation outside temporary files. | `.idea-to-ship/roadmap.md` no-go |
 | FR-10 | Assertions must prefer behavioral invariants over exact prose snapshots to keep evals stable as wording improves. | `.idea-to-ship/roadmap.md` risk |
+| FR-11 | The `/brainstorm` and `/architect` fixture coverage must check rerun-safety contracts: stable IDs/sections are preserved, human edits are not overwritten, and unsafe merges draft or require approval. | Stage 5 hardening |
+| FR-12 | Review skills must treat model-selection/capacity failures as sub-agent unavailability and fall back to main-context review instead of failing or retrying the same selected model. | User report: Codex shows "Selected model is at capacity" |
 
 ## Success Criteria
 
@@ -55,6 +57,10 @@ Out of scope:
 - The fixture command is referenced from the release-gate path as either an
   advisory or documented next-stage check.
 - Limitations are documented in the implementation artifact.
+- Rerun preservation for `requirements.md` and `architecture.md` is covered by
+  both skill-contract checks and artifact draft-fallback checks.
+- Runtime-aware review fixtures require explicit capacity fallback wording so
+  Codex capacity errors do not break `/review-code`.
 
 ## Constraints
 

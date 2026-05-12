@@ -13,21 +13,28 @@ Cite it when you push back on a request that violates it.
 
 Do not assume the host runtime is Claude Code.
 
-- **Default:** if a skill defines an independent reviewer, explorer, or
-  collection role and the host runtime permits sub-agents, use a runtime-native
-  sub-agent by default. Treat same-context self-review as a fallback, not the
-  normal path.
-- **Claude Code runtime:** keep the existing model split when available. Use
-  Codex (`codex:codex-rescue`) for adversarial review.
+- **Delegation gate:** if a skill defines an independent reviewer, explorer, or
+  collection role, use a runtime-native sub-agent only when the host runtime
+  permits sub-agents and the current user/host policy authorizes delegation.
+  Otherwise, run separate sequential passes in the main context and record the
+  fallback reason in the artifact.
+- **Claude Code runtime:** keep the existing model split when available and
+  authorized. Use Codex (`codex:codex-rescue`) for adversarial review.
 - **Non-Claude runtime:** do not request Claude model names or Claude-only
   `subagent_type` values. Use the host's native sub-agent mechanism instead
   and preserve the same roles: primary analysis, independent second opinion,
   adversarial review, executor, and final synthesis. Label outputs by role
   rather than model name.
 - If sub-agents are unavailable, host policy requires explicit delegation
-  approval that is absent, or the user forbids delegation, run separate
-  sequential passes in the main context with fresh prompts, record the fallback
-  in the final artifact, and keep the same phase gates.
+  approval that is absent, or the user forbids delegation, do not spawn a
+  sub-agent. Run separate sequential passes in the main context with fresh
+  prompts, record the fallback in the final artifact, and keep the same phase
+  gates.
+- Treat model-selection and capacity errors from a review/explorer sub-agent
+  request, including "Selected model is at capacity", as sub-agent
+  unavailability. Do not retry the same selected model in a loop. Fall back to
+  the main context, record the capacity fallback reason, and continue the
+  workflow.
 
 ## 1. Think before coding
 

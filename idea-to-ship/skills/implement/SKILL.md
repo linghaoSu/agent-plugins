@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Implement the design in architecture.md in staged commits, optionally in --tdd mode that writes failing story/acceptance tests before production code. Stops between stages for user review. Logs decisions and deviations to implementation-log.md. Does not commit or push.
+description: Implement the design in architecture.md as stage-by-stage local edits, optionally in --tdd mode that writes failing story/acceptance tests before production code. Stops between stages for user review. Logs decisions and deviations to implementation-log.md. Does not commit or push.
 argument-hint: '[--slug <name>] [--tdd] [stage-number | all]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -181,7 +181,7 @@ Tick the stage's checkbox in the Stage Status list at the top.
 1. Print a concise summary: stage name, files touched count, deviations (if any), verification status.
 2. Next-step suggestion:
    - If more stages remain and mode is `all` → ask "Continue to stage N+1?" and loop on confirmation.
-   - Otherwise suggest: "Review the diff, then `/review-code` to run adversarial review, or `/test` to write tests."
+   - Otherwise suggest: "Run `/test` for traceability if needed, then `/review-code` for adversarial review."
 3. Do **not** commit.
 
 ## Anti-Patterns

@@ -7,7 +7,7 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer in a sub-agent by default when the host permits it. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
+Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer in a sub-agent only when the host permits sub-agents and the current user/host policy authorizes delegation. Otherwise it runs the same adversarial pass in the main context and records the fallback. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
 
 ## Arguments
 
@@ -20,17 +20,20 @@ Parse:
 ## Runtime-Aware Agent Routing
 
 Read `../../PRINCIPLES.md` and apply its **Runtime-aware agent routing**
-section. Default to a runtime-native review sub-agent; fallback only when
-sub-agents are unavailable, host policy blocks delegation, or the user forbids
-delegation.
+section. Use a runtime-native review sub-agent only when the host permits
+sub-agents and the current user/host policy authorizes delegation.
 
 - In Claude Code, keep the existing Codex adversarial reviewer
-  (`subagent_type: "codex:codex-rescue"`) when available.
+  (`subagent_type: "codex:codex-rescue"`) when available and authorized.
 - Outside Claude Code, do not request Claude-only subagent types. Use the host
   runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
-  role. The review/fix loop, iteration cap, and output contract stay the same.
+  role only when authorized. The review/fix loop, iteration cap, and output
+  contract stay the same.
 - If fallback is required, run a fresh adversarial pass in the main context and
   state the fallback reason in `code-review.md`.
+- If the sub-agent request fails because the selected model is unavailable or
+  at capacity, treat that as fallback-required. Do not keep retrying the same
+  selected model. Continue in the main context and record the capacity fallback.
 
 ## Workflow
 
@@ -69,10 +72,17 @@ Track iteration count starting at 1. Max 5 iterations.
 
 #### 3a — Runtime-Aware Review
 
-Use the runtime-aware adversarial reviewer in a sub-agent by default. In Claude
-Code this is the **Agent tool with `subagent_type: "codex:codex-rescue"`** when
-available; in non-Claude runtimes use the host's native sub-agent mechanism
-with role `ADVERSARIAL_REVIEWER`. Prompt:
+Use the runtime-aware adversarial reviewer in a sub-agent only when authorized.
+In Claude Code this is the **Agent tool with
+`subagent_type: "codex:codex-rescue"`** when available and authorized; in
+non-Claude runtimes use the host's native sub-agent mechanism with role
+`ADVERSARIAL_REVIEWER` when authorized. Otherwise, run the same prompt as a
+fresh main-context adversarial pass and record the fallback reason. Prompt:
+
+If the host reports a capacity/model-selection error such as "Selected model is
+at capacity", stop attempting the sub-agent for this review iteration. Run the
+same adversarial prompt in the main context and record the reason as a capacity
+fallback in `code-review.md`.
 
 ```
 Adversarial code review (iteration <N>). Linus Torvalds style — blunt, skeptical,

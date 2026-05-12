@@ -6,8 +6,8 @@ Use the release gate before committing or releasing plugin marketplace changes:
 scripts/release-gate.sh --mode staged
 ```
 
-Stage 1 is local, offline, and non-mutating. It does not install hooks, change
-git state, call GitHub, or update plugin files.
+The release gate is local, offline, and non-mutating. It does not install hooks,
+change git state, call GitHub, or update plugin files.
 
 ## Modes
 
@@ -19,11 +19,11 @@ git state, call GitHub, or update plugin files.
   diff whitespace relative to `HEAD`. Use this before publishing a plugin
   release or doing push-time hardening.
 
-`--strict` is accepted for forward compatibility. It has no effect in Stage 1
-because advisory checks are not implemented yet.
+`--strict` is accepted for forward compatibility. Advisory checks remain
+non-blocking in the current gate.
 
-`--json` emits the same Stage 1 check results as machine-readable JSON. Stage 3
-will add dedicated fixture assertions around this output.
+`--json` emits the same check results as machine-readable JSON, including
+blocking, advisory, and skipped checks.
 
 ## Blocking Checks
 
@@ -37,6 +37,14 @@ will add dedicated fixture assertions around this output.
 Missing required tools (`git`, `jq`, `python3`) return exit `2`. A missing or
 non-runnable blocking checker also returns exit `2`.
 
+## Advisory Checks
+
+Advisory checks report risk without changing the release gate exit code.
+
+| Check | Mode | What It Validates | Failure Status |
+|---|---|---|---|
+| `idea-to-ship-fixtures` | `all` | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` |
+
 ## Secret Scan Hook Decision
 
 Secret scanning is enforced through this command-based release gate, not through
@@ -46,7 +54,7 @@ not part of the repo-wide release gate unless explicitly approved later.
 
 ## Output
 
-Human output groups the Stage 1 checks:
+Human output groups blocking, advisory, and skipped checks:
 
 ```text
 Release gate: staged
@@ -61,7 +69,14 @@ Advisory
   <none>
 
 Skipped
-  <none>
+  SKIP idea-to-ship-fixtures: runs only in --mode all
+```
+
+In `--mode all`, the idea-to-ship fixture check appears under Advisory:
+
+```text
+Advisory
+  PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
 ```
 
 Exit codes:
@@ -73,7 +88,7 @@ Exit codes:
 
 ## Stage Boundaries
 
-Stage 1 intentionally excludes:
+The current gate intentionally excludes:
 
 - runtime-aware wording advisory scans.
 - hook robustness advisory scans.
@@ -81,7 +96,8 @@ Stage 1 intentionally excludes:
 - CI wiring.
 - release enforcement before `git push`.
 
-Those belong to later roadmap stages after the blocking gate is stable.
+Those belong to later roadmap stages after the blocking gate and first advisory
+fixture path stay stable.
 
 ## Idea-To-Ship Contract Fixtures
 
@@ -91,7 +107,10 @@ Critical idea-to-ship skill contracts have a separate offline fixture command:
 bash tests/idea-to-ship-eval-fixtures.sh
 ```
 
-This is currently a manually runnable contract check, not a blocking release
-gate step. It validates that the `/roadmap`, `/test`, and `/review-code` skill
-instructions still contain the required safety and traceability contracts. It
-does not prove that a future live model run will obey those instructions.
+This command is also run as the non-blocking `idea-to-ship-fixtures` advisory
+check in `scripts/release-gate.sh --mode all`. It validates that the
+`/roadmap`, `/test`, and `/review-code` skill instructions still contain the
+required safety and traceability contracts, and that current roadmap/test-plan
+artifacts satisfy the generated-marker, draft-fallback, lane-schema, and
+traceability fixture checks. It does not prove that a future live model run
+will obey those instructions.
