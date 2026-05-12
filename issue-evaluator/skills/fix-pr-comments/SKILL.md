@@ -1,6 +1,6 @@
 ---
 name: fix-pr-comments
-description: Triage review comments on a GitHub pull request - evaluates each comment for validity, applies fixes locally for reasonable ones (no commit, no push), explains rebuttal reasoning for unreasonable ones, fully read-only on GitHub
+description: Triage GitHub PR review comments, apply accepted fixes as local unstaged edits, and draft rebuttals. Read-only on GitHub; no commits or pushes.
 argument-hint: <pr-url-or-number> [--include-resolved]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -51,18 +51,10 @@ Optional flag:
 ## Runtime-Aware Agent Routing
 
 Before launching analysis, executor, or adversarial review agents, read
-`../../PRINCIPLES.md` and apply its **Runtime-aware agent routing** section.
-
-- In Claude Code, keep the existing model split: Opus for load-bearing
-  comment verdicts and reconciliation, Sonnet for mechanical execution, and
-  Codex (`codex:codex-rescue`) for adversarial review of the applied diff.
-- Outside Claude Code, do **not** request Claude model names or Claude-only
-  `subagent_type` values. Use the host runtime's native sub-agent mechanism
-  for the same roles: `ANALYST`, `RECONCILER`, `EXECUTOR`, and
-  `ADVERSARIAL_REVIEWER`.
-- The safety property is role separation and multi-pass review, not specific
-  model brands. Keep the human confirmation gate before edits and keep the
-  adversarial review read-only.
+`../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
+**Runtime-Aware Agent Routing** contract. The roles for this workflow are
+`ANALYST`, `RECONCILER`, `EXECUTOR`, and `ADVERSARIAL_REVIEWER`. Keep the
+human confirmation gate before edits and keep adversarial review read-only.
 
 ## Workflow
 
@@ -221,29 +213,15 @@ If after filtering the set is **empty**, stop and report:
 
 The triage decisions need to be grounded in this repo's actual conventions, otherwise REJECT/ACCEPT verdicts will drift.
 
-1. Get the repo's `owner/name`:
-   ```bash
-   gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
-   ```
+Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle:
 
-2. Resolve the plugin's data directory:
-   ```bash
-   MARKETPLACE_PATH=$(cat ~/.claude/settings.local.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   [ -z "$MARKETPLACE_PATH" ] && MARKETPLACE_PATH=$(cat ~/.claude/settings.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   echo "$MARKETPLACE_PATH/issue-evaluator/data"
-   ```
-
-3. Code style file: `<data-dir>/<owner>/<repo>/code-style.md`
-
-4. **If it does not exist**, generate it using the same two-agent-in-parallel approach as `/review-pr` Step 3:
-   - **Agent 1 — Static Code Analysis** (read config files, sample source files, document conventions)
-   - **Agent 2 — Reviewer Preference Mining** (extract style preferences from PR review comments on the last 100 commits via `gh api`)
-   
-   Synthesize into one document with a `## Reviewer Preferences` section and write to `<data-dir>/<owner>/<repo>/code-style.md` with a `<!-- generated: YYYY-MM-DD | commits-analyzed: <sha> -->` header.
-
-   The Reviewer Preference Mining part is especially valuable here — it tells you what this team's reviewers usually care about, which directly informs whether the current comments are in line with project norms or are personal nits.
-
-5. **If it exists**, run the same lightweight staleness check used in `/review-pr` (400+ commits or 30+ days → background regenerate; otherwise use as-is). Read the guide and extract a **compact checklist (max 15 items)** of the most important rules.
+1. Resolve the guide path.
+2. Generate it if absent.
+3. Run the Freshness Check if present; stale guides may regenerate in the
+   background while triage proceeds with the existing guide.
+4. Extract a compact checklist of at most 15 rules. Reviewer Preference Mining
+   is especially important here because it indicates which current comments are
+   project convention versus personal preference.
 
 ### Step 5: Triage — Evaluate Each Comment (runtime-aware analysis)
 

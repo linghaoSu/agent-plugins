@@ -11,6 +11,9 @@ Opus/Sonnet/Haiku/Codex role split. In non-Claude runtimes, they use the host's
 native sub-agent mechanism for the same roles and report the pipeline by role
 instead of model name.
 
+Shared runtime routing, code-style-guide, GitHub read-only, and adversarial
+review-loop contracts live in [`WORKFLOW-CONTRACTS.md`](./WORKFLOW-CONTRACTS.md).
+
 ## Commands
 
 ### `/evaluate-issue <issue-url-or-number>`

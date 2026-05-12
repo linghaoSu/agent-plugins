@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: Build or refresh an evidence-backed roadmap for one idea-to-ship slug or the whole project. Produces a candidate brief first, requires explicit goal/horizon/source scope before final Now/Next/Later planning, preserves human edits, and writes .idea-to-ship/roadmap.md or .idea-to-ship/<slug>/roadmap.md.
+description: Build or refresh an evidence-backed Now/Next/Later roadmap for a slug or portfolio, with sourced candidate briefs and overwrite safety.
 argument-hint: '[--slug <name> | --portfolio] [--goal <text>] [--horizon <text>] [--include-git] [--include-todos] [--include-github] [--final] [notes]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---

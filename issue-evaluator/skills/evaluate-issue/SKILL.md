@@ -21,19 +21,10 @@ This is one of:
 ## Runtime-Aware Agent Routing
 
 Before launching any review or diagnosis agent, read `../../PRINCIPLES.md` and
-apply its **Runtime-aware agent routing** section.
-
-- In Claude Code, keep the existing model split: Sonnet for the two broad
-  Round 1 analyses, Haiku for the independent Round 1 check, Codex
-  (`codex:codex-rescue`) for Round 2 adversarial review, and Opus for Round 3
-  synthesis.
-- Outside Claude Code, do **not** request Claude model names. Use the host
-  runtime's native sub-agent mechanism for the same roles:
-  `ROUND_1_CODE_ANALYSIS`, `ROUND_1_HISTORY_CHECK`,
-  `ROUND_1_INDEPENDENT_CHECK`, `ROUND_2_ADVERSARIAL_REVIEW`, and
-  `ROUND_3_SYNTHESIS`.
-- The validation requirement is multi-pass independence, not specific model
-  brands. Keep prompts, phase gates, and output contracts the same.
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
+contract. The roles for this workflow are `ROUND_1_CODE_ANALYSIS`,
+`ROUND_1_HISTORY_CHECK`, `ROUND_1_INDEPENDENT_CHECK`,
+`ROUND_2_ADVERSARIAL_REVIEW`, and `ROUND_3_SYNTHESIS`.
 
 ## Workflow
 
@@ -73,92 +64,12 @@ Use `gh issue view` to fetch the full issue details including title, body, label
 
 ### Step 2: Code Style Analysis (First Run Only)
 
-Determine the storage path for this repo's code style analysis:
+Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle:
 
-1. Get the repo's owner and name:
-   ```bash
-   gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
-   ```
-   If `gh` fails (e.g. no remote), fall back to the current directory name as the identifier.
-2. Resolve this plugin's source data directory:
-   ```bash
-   # Read the marketplace source path from Claude settings
-   MARKETPLACE_PATH=$(cat ~/.claude/settings.local.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   # If not found, try settings.json
-   [ -z "$MARKETPLACE_PATH" ] && MARKETPLACE_PATH=$(cat ~/.claude/settings.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   echo "$MARKETPLACE_PATH/issue-evaluator/data"
-   ```
-3. The code style file path is: `<data-dir>/<owner>/<repo>/code-style.md`
-
-Check if this file exists.
-
-- If it **does not exist**, launch **two style-analysis agents in parallel** to gather code style information. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
-
-  **Agent 1 — Static Code Analysis:**
-  1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)
-  2. Sample 5-8 representative source files from the main directories
-  3. Analyze and document:
-     - Language(s) and framework(s) used
-     - Naming conventions (variables, functions, classes, files)
-     - Import/module organization patterns
-     - Error handling patterns
-     - Testing patterns and framework
-     - Code organization and directory structure conventions
-     - Comment style and documentation conventions
-     - Type system usage (if applicable)
-     - Common idioms and patterns specific to this codebase
-
-  **Agent 2 — Reviewer Preference Mining:**
-  Extract code style preferences from PR review comments on the last 100 commits:
-  1. Get the last 100 merge commit PR numbers:
-     ```bash
-     git log --oneline -100 | grep -oP '#\K[0-9]+' | head -30
-     ```
-  2. For each PR with a number (batch with `gh api` to stay within rate limits), fetch review comments:
-     ```bash
-     gh api "repos/{owner}/{repo}/pulls/<number>/comments" --jq '.[].body' 2>/dev/null
-     gh api "repos/{owner}/{repo}/pulls/<number>/reviews" --jq '.[] | select(.body != "") | .body' 2>/dev/null
-     ```
-  3. Focus on comments that express **style preferences or code conventions**, such as:
-     - Requests to rename variables/functions
-     - Preferred patterns (e.g. "use X instead of Y", "we prefer...", "nit:")
-     - Structural feedback (e.g. "extract this into...", "this should be in...")
-     - Error handling preferences
-     - Testing expectations
-     - Import ordering or grouping requests
-  4. Ignore comments that are purely about logic, bugs, or feature design
-  5. Aggregate recurring themes into a ranked list of **Reviewer Preferences** (most frequent first)
-
-  After both agents complete, **synthesize** their outputs into a single code style document:
-  - The static analysis forms the base structure
-  - The reviewer preferences are added as a dedicated `## Reviewer Preferences` section, with each preference citing the PR(s) where it appeared
-  - If a reviewer preference contradicts a config file rule, note the conflict — reviewer practice takes precedence over unconfigured defaults
-
-  Add a metadata header as the first line of the document:
-  ```markdown
-  <!-- generated: YYYY-MM-DD | commits-analyzed: <latest-commit-sha> -->
-  ```
-  where `<latest-commit-sha>` is the output of `git rev-parse HEAD`.
-
-  Create the directory if needed (`mkdir -p`) and write the combined analysis to `<data-dir>/<owner>/<repo>/code-style.md`
-
-- If it **already exists**, run a **lightweight staleness check** before skipping:
-
-  1. Read the first line of the code style doc to extract the metadata comment:
-     ```
-     <!-- generated: YYYY-MM-DD | commits-analyzed: <sha> -->
-     ```
-  2. Get the number of commits since that sha and the age of the guide:
-     ```bash
-     git rev-list --count <sha>..HEAD 2>/dev/null
-     ```
-     Calculate days since generation from the `generated: YYYY-MM-DD` date in the metadata.
-  3. Decision:
-     - If the metadata is missing or the sha is not found → mark as **stale**
-     - If **400+ commits** have landed since the last analysis **or** the guide is **30+ days old** → mark as **stale**
-     - Otherwise → **skip** (the guide is fresh enough)
-  4. If stale, inform the user: "Code style guide is outdated (<N> new commits since last analysis). Updating in the background..."
-     Then launch the full analysis (same as the "does not exist" path above) as a **background agent** so it doesn't block the issue evaluation. The current evaluation proceeds with the existing (stale) guide in the meantime.
+1. Resolve `<data-dir>/<owner>/<repo>/code-style.md`.
+2. If the guide is missing, run Full Regeneration before diagnosis.
+3. If the guide exists, run the Freshness Check. If stale, launch regeneration
+   in the background when possible and continue with the existing guide.
 
 ### Step 3: Three-Round Diagnosis & Fix Plan
 

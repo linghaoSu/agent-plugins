@@ -17,11 +17,9 @@ Raw arguments: `$ARGUMENTS`
 
 ## Runtime-Aware Agent Routing
 
-Before launching analysis agents, read `../../PRINCIPLES.md` and apply its
-**Runtime-aware agent routing** section. In Claude Code, use Sonnet agents for
-the two style-analysis roles. Outside Claude Code, use the host runtime's
-native sub-agent mechanism with the same roles and do not request Claude model
-names.
+Before launching analysis agents, read `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
+contract and the **Code Style Guide Lifecycle** contract.
 
 ## Workflow
 
@@ -53,55 +51,15 @@ If user declines, abort.
 
 ### Step 3: Run Full Analysis
 
-Launch **two style-analysis agents in parallel**. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
-
-**Agent 1 — Static Code Analysis:**
-1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)
-2. Sample 5-8 representative source files from the main directories
-3. Analyze and document:
-   - Language(s) and framework(s) used
-   - Naming conventions (variables, functions, classes, files)
-   - Import/module organization patterns
-   - Error handling patterns
-   - Testing patterns and framework
-   - Code organization and directory structure conventions
-   - Comment style and documentation conventions
-   - Type system usage (if applicable)
-   - Common idioms and patterns specific to this codebase
-
-**Agent 2 — Reviewer Preference Mining:**
-Extract code style preferences from PR review comments on the last 100 commits:
-1. Get the last 100 merge commit PR numbers:
-   ```bash
-   git log --oneline -100 | grep -oP '#\K[0-9]+' | head -30
-   ```
-2. For each PR with a number (batch with `gh api` to stay within rate limits), fetch review comments:
-   ```bash
-   gh api "repos/{owner}/{repo}/pulls/<number>/comments" --jq '.[].body' 2>/dev/null
-   gh api "repos/{owner}/{repo}/pulls/<number>/reviews" --jq '.[] | select(.body != "") | .body' 2>/dev/null
-   ```
-3. Focus on comments that express **style preferences or code conventions**, such as:
-   - Requests to rename variables/functions
-   - Preferred patterns (e.g. "use X instead of Y", "we prefer...", "nit:")
-   - Structural feedback (e.g. "extract this into...", "this should be in...")
-   - Error handling preferences
-   - Testing expectations
-   - Import ordering or grouping requests
-4. Ignore comments that are purely about logic, bugs, or feature design
-5. Aggregate recurring themes into a ranked list of **Reviewer Preferences** (most frequent first)
+Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle / Full
+Regeneration. Launch the Static Code Analysis and Reviewer Preference Mining
+roles in parallel, then synthesize their outputs into the guide with the
+required metadata header.
 
 ### Step 4: Synthesize and Write
 
-After both agents complete, **synthesize** their outputs into a single code style document:
-- The static analysis forms the base structure
-- The reviewer preferences are added as a dedicated `## Reviewer Preferences` section, with each preference citing the PR(s) where it appeared
-- If a reviewer preference contradicts a config file rule, note the conflict — reviewer practice takes precedence over unconfigured defaults
-- Add a metadata header to the document:
-  ```markdown
-  <!-- generated: YYYY-MM-DD | commits-analyzed: <latest-commit-sha> -->
-  ```
-
-Create the directory if needed (`mkdir -p`) and write to `<data-dir>/<owner>/<repo>/code-style.md`.
+Create the directory if needed (`mkdir -p`) and write the regenerated guide to
+`<data-dir>/<owner>/<repo>/code-style.md`.
 
 ### Step 5: Report
 
@@ -115,4 +73,4 @@ Code style guide updated: ~/.claude/issue-evaluator/<owner>/<repo>/code-style.md
 ## Notes
 
 - This is the same analysis that `/evaluate-issue` runs on first use, extracted as a standalone command for manual re-generation.
-- The metadata comment at the top of the doc is used by `/evaluate-issue` to cheaply check staleness.
+- The metadata comment at the top of the doc is used by `/evaluate-issue` and PR review skills to cheaply check staleness.

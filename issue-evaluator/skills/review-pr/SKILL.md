@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a GitHub pull request locally - analyze diff, check code style compliance, find bugs and issues, report results without posting any comments to the PR
+description: Review a GitHub pull request locally for bugs, security, issue coverage, and repo-specific style. Read-only on GitHub; never posts PR comments.
 argument-hint: <pr-url-or-number>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -41,20 +41,11 @@ This should be a GitHub PR URL (e.g. `https://github.com/owner/repo/pull/123`) o
 
 ## Runtime-Aware Agent Routing
 
-Before launching any review agent, read `../../PRINCIPLES.md` and apply its
-**Runtime-aware agent routing** section.
-
-- In Claude Code, keep the existing model split: Sonnet for Round 1 review
-  agents, Haiku for the independent Round 1 check, Codex
-  (`codex:codex-rescue`) for Round 2 adversarial review, and Opus for Round 3
-  synthesis.
-- Outside Claude Code, do **not** request Claude model names. Use the host
-  runtime's native sub-agent mechanism for the same roles:
-  bug/security review, style review, existing-review context, independent
-  check, linked-issue compliance, adversarial review, and final synthesis.
-- The validation requirement is multi-round independent review, not a
-  dependency on Claude model names. Keep prompts, phase gates, and output
-  contracts the same.
+Before launching any review agent, read `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
+contract. The roles for this workflow are bug/security review, style review,
+existing-review context, independent check, linked-issue compliance,
+adversarial review, and final synthesis.
 
 ## Workflow
 
@@ -155,67 +146,14 @@ Check if the current working directory belongs to the PR's target repository. If
 
 ### Step 3: Code Style Guide
 
-Determine the code style file path for this repo:
+Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle:
 
-1. Get the repo's owner and name:
-   ```bash
-   gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
-   ```
-   If `gh` fails, fall back to the current directory name.
-2. Resolve this plugin's source data directory:
-   ```bash
-   MARKETPLACE_PATH=$(cat ~/.claude/settings.local.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   [ -z "$MARKETPLACE_PATH" ] && MARKETPLACE_PATH=$(cat ~/.claude/settings.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   echo "$MARKETPLACE_PATH/issue-evaluator/data"
-   ```
-3. The code style file path is: `<data-dir>/<owner>/<repo>/code-style.md`
-
-Check if this file exists:
-
-- If it **does not exist**, generate it using **two style-analysis agents in parallel**. In Claude Code these are Sonnet agents; in non-Claude runtimes use native sub-agents with the same responsibilities:
-
-  **Agent 1 — Static Code Analysis:**
-  1. Read the project's config files (e.g. `.editorconfig`, `eslint*`, `prettier*`, `tsconfig*`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `package.json`, etc.)
-  2. Sample 5-8 representative source files from the main directories
-  3. Analyze and document:
-     - Language(s) and framework(s) used
-     - Naming conventions (variables, functions, classes, files)
-     - Import/module organization patterns
-     - Error handling patterns
-     - Testing patterns and framework
-     - Code organization and directory structure conventions
-     - Comment style and documentation conventions
-     - Type system usage (if applicable)
-     - Common idioms and patterns specific to this codebase
-
-  **Agent 2 — Reviewer Preference Mining:**
-  Extract code style preferences from PR review comments on the last 100 commits:
-  1. Get the last 100 merge commit PR numbers:
-     ```bash
-     git log --oneline -100 | grep -oP '#\K[0-9]+' | head -30
-     ```
-  2. For each PR (batch with `gh api` to stay within rate limits), fetch review comments:
-     ```bash
-     gh api "repos/{owner}/{repo}/pulls/<number>/comments" --jq '.[].body' 2>/dev/null
-     gh api "repos/{owner}/{repo}/pulls/<number>/reviews" --jq '.[] | select(.body != "") | .body' 2>/dev/null
-     ```
-  3. Focus on comments expressing **style preferences or code conventions** (e.g. nit, rename, "use X instead of Y", import ordering, error handling preferences)
-  4. Ignore comments about logic, bugs, or feature design
-  5. Aggregate into a ranked list of **Reviewer Preferences**
-
-  Synthesize both outputs into a single document with a `## Reviewer Preferences` section and write to `<data-dir>/<owner>/<repo>/code-style.md` with a metadata header:
-  ```markdown
-  <!-- generated: YYYY-MM-DD | commits-analyzed: <latest-commit-sha> -->
-  ```
-
-- If it **already exists**, run a lightweight staleness check (same as `/evaluate-issue`):
-  1. Extract the `commits-analyzed` sha from the metadata header
-  2. Count commits since: `git rev-list --count <sha>..HEAD 2>/dev/null`
-  3. Also calculate days since generation from the `generated: YYYY-MM-DD` date in the metadata
-  4. If 400+ commits **or** 30+ days old → launch background update agent; proceed with existing guide
-  4. Otherwise → use the existing guide as-is
-
-Read the code style guide and extract a compact checklist (max 15 items) of the most important rules.
+1. Resolve the guide path.
+2. Generate it if absent.
+3. Run the Freshness Check if present; stale guides may regenerate in the
+   background while review proceeds with the existing guide.
+4. Extract a compact checklist of at most 15 rules before launching style
+   reviewers.
 
 ### Step 4: Three-Round Sequential Review
 

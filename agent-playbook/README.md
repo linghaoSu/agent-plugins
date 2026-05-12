@@ -61,6 +61,12 @@ or `context-audit`.
 Contract coverage for this workflow lives in
 `tests/agent-playbook-eval-fixtures.sh`.
 
+### `/vibe-coding-fix [--slug <name>] [--dry-run|--apply]`
+Consumes `.agent-playbook/<slug>/vibe-health-check.md`, classifies every
+finding, applies safe local cleanup when explicitly authorized, and writes
+`.agent-playbook/<slug>/vibe-fix-log.md`. It routes domain-specific or unsafe
+work to the owning skill instead of becoming a generic autopilot.
+
 ### `/commit-changes [message, scope, or draft PR request]`
 Create a local git commit after reading the current repo's commit
 requirements. Verifies the intended diff, runs required pre-commit checks,
@@ -75,7 +81,9 @@ trailers.
   can diff changes over time. Default slug: `current`.
 - **Read-only by default.** `/context-audit` and `/tool-review` never
   mutate your repo; `/bootstrap-project-memory` writes only after showing
-  you the proposed file. `/commit-changes` mutates git history and creates
-  GitHub draft PRs only when the user asks and the repo's checks pass.
+  you the proposed file. `/vibe-coding-fix` applies only bounded local cleanup
+  from a prior health check when explicitly authorized. `/commit-changes`
+  mutates git history and creates GitHub draft PRs only when the user asks and
+  the repo's checks pass.
 - **Cite sources.** Every recommendation points at the specific article
   and section so you can sanity-check before applying.

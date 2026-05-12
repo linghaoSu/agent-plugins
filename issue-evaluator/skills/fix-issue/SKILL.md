@@ -25,10 +25,9 @@ This is one of:
 ## Runtime-Aware Agent Routing
 
 Before launching diagnosis or style-analysis agents, read
-`../../PRINCIPLES.md` and apply its **Runtime-aware agent routing** section.
-In Claude Code, keep the existing Sonnet-based analysis agents. Outside Claude
-Code, use the host runtime's native sub-agent mechanism for the same roles and
-do not request Claude model names.
+`../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
+**Runtime-Aware Agent Routing** contract and the **Code Style Guide Lifecycle**
+contract.
 
 ## Workflow
 
@@ -62,7 +61,8 @@ Run the following checks in parallel:
 - If found, extract: root cause, affected files, and suggested fix plan
 
 **B — Check code style guide:**
-- Determine the code style file path: `~/.claude/issue-evaluator/<owner>/<repo>/code-style.md` (use `gh repo view --json owner,name` to resolve)
+- Determine the code style file path using `../../WORKFLOW-CONTRACTS.md`
+  § Code Style Guide Lifecycle / Storage Path.
 - If it exists, read it and keep key conventions in mind for the fix
 
 **C — Fetch issue details (if no evaluation exists):**
@@ -117,13 +117,9 @@ If a prior evaluation exists, use its root cause and fix plan directly.
 
 ### Step 3: Generate Code Style Guide (if missing)
 
-If the code style file does not exist, generate it using the same two-agent approach as `/evaluate-issue` Step 2:
-
-1. Launch **two style-analysis agents in parallel** (Claude: Sonnet; non-Claude: native sub-agents):
-   - **Agent 1 — Static Code Analysis:** Read config files, sample source files, document conventions
-   - **Agent 2 — Reviewer Preference Mining:** Extract style preferences from PR review comments on the last 100 commits (fetch PR numbers from `git log --oneline -100`, then use `gh api` to read review comments, focus on style/convention feedback, aggregate recurring themes)
-2. Synthesize into a single document with a dedicated `## Reviewer Preferences` section
-3. Write to `~/.claude/issue-evaluator/<owner>/<repo>/code-style.md`
+If the code style file does not exist, apply `../../WORKFLOW-CONTRACTS.md`
+§ Code Style Guide Lifecycle / Full Regeneration before coding. The generated
+guide must include the metadata header and `## Reviewer Preferences` section.
 
 ### Step 3.5: Surface Assumptions & Define "Done" Before Coding
 

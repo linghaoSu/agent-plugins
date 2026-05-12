@@ -81,6 +81,38 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("agent loop stop", (r"agent loop has no persisted state",)),
         ),
     ),
+    ContractCheck(
+        "vibe-health-fix-handoff-contract",
+        "agent-playbook/skills/vibe-coding-health-check/SKILL.md",
+        (
+            InvariantGroup("workflow contracts loaded", (r"../../WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("fix handoff", (r"vibe-coding-fix",)),
+            InvariantGroup("health artifact remains diagnostic", (r"vibe-health-check\.md",)),
+        ),
+    ),
+    ContractCheck(
+        "vibe-fix-classification-contract",
+        "agent-playbook/skills/vibe-coding-fix/SKILL.md",
+        (
+            InvariantGroup("workflow contracts loaded", (r"../../WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("requires source health check", (r"vibe-health-check\.md",)),
+            InvariantGroup("safe local cleanup", (r"Safe local cleanup",)),
+            InvariantGroup("routed workflow", (r"Routed workflow",)),
+            InvariantGroup("user-owned decision", (r"User-owned decision",)),
+            InvariantGroup("stop item", (r"Stop item",)),
+        ),
+    ),
+    ContractCheck(
+        "vibe-fix-safety-contract",
+        "agent-playbook/skills/vibe-coding-fix/SKILL.md",
+        (
+            InvariantGroup("explicit apply authorization", (r"--apply", r"explicitly asks to\s+fix")),
+            InvariantGroup("no commits", (r"Do not commit", r"no `git commit`")),
+            InvariantGroup("no pushes", (r"push",)),
+            InvariantGroup("release gate verification", (r"scripts/release-gate\.sh --mode all",)),
+            InvariantGroup("fix log artifact", (r"vibe-fix-log\.md",)),
+        ),
+    ),
 )
 
 

@@ -18,33 +18,15 @@ These are optional additional focus areas for the review (e.g. "concurrency", "e
 ## Runtime-Aware Agent Routing
 
 Before launching an adversarial review agent, read `../../PRINCIPLES.md` and
-apply its **Runtime-aware agent routing** section.
-
-- In Claude Code, keep the existing Codex adversarial reviewer
-  (`subagent_type: "codex:codex-rescue"`) when available.
-- Outside Claude Code, do **not** request Claude-only subagent types. Use the
-  host runtime's native sub-agent mechanism for the same adversarial reviewer
-  role. The review/fix loop, iteration cap, and output contract stay the same.
-- If no sub-agent mechanism is available, run a fresh adversarial pass in the
-  main context and state the fallback in the report.
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
+and **Adversarial Review Loop** contracts.
 
 ## Workflow
 
 ### Step 1: Verify Prerequisites
 
-1. Determine the code style file path for this repo:
-   ```bash
-   # Get repo identifier
-   gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
-   ```
-   If `gh` fails, fall back to the current directory name.
-   ```bash
-   # Resolve this plugin's source data directory
-   MARKETPLACE_PATH=$(cat ~/.claude/settings.local.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   [ -z "$MARKETPLACE_PATH" ] && MARKETPLACE_PATH=$(cat ~/.claude/settings.json | jq -r '.extraKnownMarketplaces["claude-skills"].source.path // empty')
-   echo "$MARKETPLACE_PATH/issue-evaluator/data"
-   ```
-   The file is at `<data-dir>/<owner>/<repo>/code-style.md`.
+1. Determine the code style guide path with `../../WORKFLOW-CONTRACTS.md`
+   § Code Style Guide Lifecycle / Storage Path.
 2. Check that this file exists. If not, tell the user to run `/evaluate-issue` first to generate the code style analysis.
 3. Check that there are uncommitted changes or recent commits representing the fix:
    ```bash

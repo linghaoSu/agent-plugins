@@ -1,6 +1,6 @@
 ---
 name: commit-changes
-description: Create a local git commit and optionally open a GitHub draft pull request for completed work. Use when the user asks to commit change, commit changes, commit my changes, commit all changes, make a commit, commit staged/current changes, prepare a commit after edits, or create a draft PR with gh. Always read the current repo's commit and PR requirements first, verify the intended diff, run required pre-commit checks, commit with only the human user's Git author/committer identity, exclude AI co-author or generated-by trailers, and fill the target project's PR template before running gh pr create --draft.
+description: Create a local git commit and optionally a GitHub draft PR for completed work, after verifying the intended diff and repo-specific commit/PR rules.
 argument-hint: '[message, scope, or draft PR request]'
 allowed-tools: [Read, Glob, Grep, Bash]
 ---

@@ -1,6 +1,6 @@
 ---
 name: vibe-coding-health-check
-description: Audit a repo or current diff after vibe coding to detect when code is becoming uncontrollable. Use when the user asks for a vibe coding self-check, health check, maintainability audit, sustainability check, "code getting out of control", "is this still robust", or wants review-code/test/antifragile/harness/context audits stitched into one lightweight report. Writes .agent-playbook/<slug>/vibe-health-check.md.
+description: Audit a repo or current diff after fast AI-assisted coding for drift, fragility, missing verification, and context/tool hygiene. Writes .agent-playbook/<slug>/vibe-health-check.md.
 argument-hint: '[--slug <name>] [--scope diff|repo|agent|all] [--deep] [focus notes]'
 allowed-tools: [Read, Write, Glob, Grep, Bash]
 ---
@@ -15,10 +15,12 @@ This is a router plus scorecard. Do not duplicate the full audits from
 `idea-to-ship`, `antifragile`, `harness-engineering`, or `context-audit`; use
 this skill to collect the first signals and route to the right deeper workflow.
 
-Before scoring, read `../../PRINCIPLES.md`. In particular, apply "Verify over
-vibe" and "Explore -> Plan -> Code -> Verify": every green decision needs a
-runnable check or cited evidence, not confidence from the same model that made
-the change.
+Before scoring, read `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`. In particular, apply "Verify over vibe" and
+"Explore -> Plan -> Code -> Verify": every green decision needs a runnable
+check or cited evidence, not confidence from the same model that made the
+change. If the user asks to fix the findings after this diagnosis, hand off to
+the Vibe Health To Fix Contract via `agent-playbook:vibe-coding-fix`.
 
 ## Arguments
 
