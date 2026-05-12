@@ -31,6 +31,7 @@ blocking, advisory, and skipped checks.
 |---|---|---|
 | `manifest-json` | `.claude-plugin/marketplace.json` and every `*/.claude-plugin/plugin.json` parse with `jq empty`. | `1` |
 | `skill-frontmatter` | Every `*/skills/*/SKILL.md` starts with frontmatter delimiters and has non-empty `name` and `description` keys. | `1` |
+| `skill-metadata` | Every `*/skills/*/agents/openai.yaml` has the expected `interface` fields for UI metadata. | `1` |
 | `diff-whitespace` | Mode-specific git diff whitespace check passes. | `1` |
 | `secret-scan` | `secret-scanner/scripts/scan.py --format json` reports no findings for the selected mode. | `1` |
 
@@ -44,6 +45,7 @@ Advisory checks report risk without changing the release gate exit code.
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
 | `idea-to-ship-fixtures` | `all` | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` |
+| `agent-playbook-fixtures` | `all` | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook instruction contracts and skill metadata fixtures stay intact. | `WARN` |
 
 ## Secret Scan Hook Decision
 
@@ -62,6 +64,7 @@ Release gate: staged
 Blocking
   PASS manifest-json: validated 10 manifest file(s)
   PASS skill-frontmatter: validated 27 skill file(s)
+  PASS skill-metadata: validated 2 skill metadata file(s)
   PASS diff-whitespace: diff whitespace check passed
   PASS secret-scan: secret scan passed
 
@@ -70,13 +73,15 @@ Advisory
 
 Skipped
   SKIP idea-to-ship-fixtures: runs only in --mode all
+  SKIP agent-playbook-fixtures: runs only in --mode all
 ```
 
-In `--mode all`, the idea-to-ship fixture check appears under Advisory:
+In `--mode all`, fixture checks appear under Advisory:
 
 ```text
 Advisory
   PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
+  PASS agent-playbook-fixtures: agent-playbook fixture checks passed
 ```
 
 Exit codes:
@@ -114,3 +119,19 @@ required safety and traceability contracts, and that current roadmap/test-plan
 artifacts satisfy the generated-marker, draft-fallback, lane-schema, and
 traceability fixture checks. It does not prove that a future live model run
 will obey those instructions.
+
+## Agent-Playbook Contract Fixtures
+
+Critical agent-playbook workflow contracts have a separate offline fixture
+command:
+
+```bash
+bash tests/agent-playbook-eval-fixtures.sh
+```
+
+This command is also run as the non-blocking `agent-playbook-fixtures`
+advisory check in `scripts/release-gate.sh --mode all`. It validates that the
+`/vibe-coding-health-check` skill keeps its scorecard dimensions, safe routing,
+stop rules, untracked-file handling, and artifact ownership contract, and that
+skill `agents/openai.yaml` metadata follows the repo's expected interface
+shape.

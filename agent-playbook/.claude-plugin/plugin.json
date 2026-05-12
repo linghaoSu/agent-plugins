@@ -1,6 +1,6 @@
 {
   "name": "agent-playbook",
-  "description": "Operator-facing playbook distilled from Cursor, Claude Code, Codex, Anthropic engineering, and Peter Steinberger's practice blogs. Skills: bootstrap CLAUDE.md/AGENTS.md for a repo, audit a project's agent-context hygiene, review a tool/CLI/MCP against tool-writing principles, and create human-authored commits plus GitHub draft PRs from repo rules and templates.",
+  "description": "Operator-facing playbook distilled from Cursor, Claude Code, Codex, Anthropic engineering, and Peter Steinberger's practice blogs. Skills: bootstrap CLAUDE.md/AGENTS.md for a repo, audit agent-context hygiene, run vibe-coding health checks, review tool/CLI/MCP design, and create human-authored commits plus GitHub draft PRs from repo rules and templates.",
   "author": {
     "name": "linghao"
   }

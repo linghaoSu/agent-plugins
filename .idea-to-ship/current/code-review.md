@@ -42,3 +42,55 @@ None.
 ## Final Verdict
 
 LGTM. The roadmap skill and companion idea-to-ship skills now cover roadmap evidence ordering, write-target safety, acceptance checks, test-plan ownership, mature-project test derivation, TDD boundaries, and runtime-aware adversarial review routing.
+
+---
+
+## Vibe Coding Health Check Addendum
+
+**Date:** 2026-05-12
+**Reviewer:** Codex plus sub-agent multi-angle review (Peirce: skill design, Harvey: metadata/integration, Boyle: validation/maintainability)
+**Iterations:** 2
+**Result:** clean
+**Diff size:** 7 tracked files changed plus new `agent-playbook/skills/vibe-coding-health-check/` and `tests/agent-playbook-eval-fixtures.*`
+
+### Issues Raised & Resolution
+
+| # | Severity | File:line | Issue | Resolution |
+|---|---|---|---|---|
+| 1 | critical | `agent-playbook/skills/vibe-coding-health-check/SKILL.md:53` | Bootstrap only considered tracked/staged diffs, so fresh skill files could be missed by the health check. | Fixed. The skill now captures untracked files and builds a tracked/staged/untracked changed-file union before scoring scope and size. |
+| 2 | critical | `agent-playbook/skills/vibe-coding-health-check/SKILL.md:102` | `--deep` was unsafe because it could execute mutating workflows such as `idea-to-ship:test` or `agent-playbook:commit-changes`. | Fixed. `--deep` only auto-runs read-only or artifact-only audits; mutating workflows are recommendations unless the user gives explicit current authorization. |
+| 3 | warning | `agent-playbook/skills/vibe-coding-health-check/SKILL.md:139` | Re-running the skill could overwrite an existing health-check artifact and lose human notes or previous runs. | Fixed. The artifact writer appends dated runs, preserves notes outside expected headings, and falls back to `vibe-health-check.draft.md` when a safe merge is not possible. |
+| 4 | warning | `scripts/release-gate.sh:369` | New `agents/openai.yaml` metadata was not validated by the release gate, so UI-facing skill metadata could drift silently. | Fixed. Added a blocking `skill-metadata` check and stage1 coverage for malformed metadata. |
+| 5 | warning | `tests/agent-playbook-eval-fixtures.py:28` | The new skill had no contract fixture protecting its scoring, routing, stop rules, artifact ownership, or metadata. | Fixed. Added agent-playbook fixtures and wired them into release gate `--mode all` as an advisory check. |
+| 6 | nit | `agent-playbook/skills/vibe-coding-health-check/SKILL.md:18` | The new skill did not explicitly anchor itself to `agent-playbook/PRINCIPLES.md`. | Fixed. The skill now reads the principles and applies "Verify over vibe" plus "Explore -> Plan -> Code -> Verify" before scoring. |
+
+### Out-of-Scope Issues Skipped
+
+- The system `quick_validate.py` path was not adopted because it depends on unavailable PyYAML in this repo context and rejects repo-common metadata keys. The repo-owned release-gate and fixture validators now cover the needed contract.
+
+### Design Drift
+
+- No drift from the requested direction. The change adds a thin operator-time health check and routes deeper issues to existing `idea-to-ship`, `antifragile`, `harness-engineering`, and `agent-playbook` skills instead of duplicating those workflows.
+
+### Test Traceability
+
+- `tests/agent-playbook-eval-fixtures.py` covers the new skill's changed-file bootstrap, seven-dimension scorecard, safe `--deep` routing, artifact ownership, stop rules, and metadata shape.
+- `tests/release-gate-stage1.sh` covers the new blocking `skill-metadata` gate and the advisory `agent-playbook-fixtures` hook.
+
+### Verification
+
+- `jq empty .claude-plugin/marketplace.json agent-playbook/.claude-plugin/plugin.json`
+- Ruby YAML parse for `agent-playbook/skills/vibe-coding-health-check/agents/openai.yaml`
+- `bash -n scripts/release-gate.sh`
+- `bash -n tests/release-gate-stage1.sh`
+- `bash -n tests/agent-playbook-eval-fixtures.sh`
+- `python3 -m py_compile tests/agent-playbook-eval-fixtures.py`
+- `bash tests/agent-playbook-eval-fixtures.sh`
+- `bash tests/release-gate-stage1.sh`
+- `scripts/release-gate.sh --mode working`
+- `scripts/release-gate.sh --mode all`
+- `git diff --check`
+
+### Final Verdict
+
+LGTM. The multi-angle review found unsafe routing, incomplete diff discovery, artifact ownership risk, and missing validation coverage; all accepted findings have been fixed and verified.

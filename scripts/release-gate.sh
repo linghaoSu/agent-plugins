@@ -127,6 +127,16 @@ list_skill_files() {
   fi
 }
 
+list_skill_metadata_files() {
+  if [ "$MODE" = "staged" ]; then
+    git ls-files -- '*/skills/*/agents/openai.yaml'
+  else
+    find . -path './.git' -prune -o -path './*/skills/*/agents/openai.yaml' -type f -print |
+      sort |
+      sed 's#^\./##'
+  fi
+}
+
 index_has_file() {
   git cat-file -e ":$1" 2>/dev/null
 }
@@ -300,6 +310,91 @@ check_skill_frontmatter() {
   rm -f "$files_file" "$failures_file"
 }
 
+validate_skill_metadata_file() {
+  python3 - "$MODE" "$1" <<'PY'
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+mode = sys.argv[1]
+path = sys.argv[2]
+
+if mode == "staged":
+    result = subprocess.run(
+        ["git", "show", f":{path}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("missing from index: " + result.stderr.strip())
+        sys.exit(1)
+    text = result.stdout
+else:
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+
+lines = text.splitlines()
+if not lines or lines[0].strip() != "interface:":
+    print("missing top-level interface mapping")
+    sys.exit(1)
+
+fields: dict[str, str] = {}
+for line in lines[1:]:
+    if not line.strip():
+        continue
+    match = re.match(r'^  ([A-Za-z_][A-Za-z0-9_]*)\s*:\s*"(.*)"\s*$', line)
+    if not match:
+        print("unsupported or malformed line: " + line.strip())
+        sys.exit(1)
+    fields[match.group(1)] = match.group(2)
+
+required = ("display_name", "short_description", "default_prompt")
+missing = [field for field in required if not fields.get(field)]
+if missing:
+    print("missing required interface field(s): " + ", ".join(missing))
+    sys.exit(1)
+
+short_description = fields["short_description"]
+if not 25 <= len(short_description) <= 64:
+    print("short_description must be 25-64 characters")
+    sys.exit(1)
+
+if "$" not in fields["default_prompt"]:
+    print("default_prompt must mention the skill with $skill-name")
+    sys.exit(1)
+PY
+}
+
+check_skill_metadata() {
+  files_file="$(mktemp "${TMPDIR:-/tmp}/release-gate-metadata.XXXXXX")"
+  failures_file="$(mktemp "${TMPDIR:-/tmp}/release-gate-metadata-failures.XXXXXX")"
+  : >"$files_file"
+  : >"$failures_file"
+
+  list_skill_metadata_files >"$files_file"
+
+  count=0
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    count=$((count + 1))
+    output="$(validate_skill_metadata_file "$file" 2>&1)"
+    code="$?"
+    if [ "$code" -ne 0 ]; then
+      printf '%s: %s\n' "$file" "$(join_output "$output")" >>"$failures_file"
+    fi
+  done <"$files_file"
+
+  if [ -s "$failures_file" ]; then
+    evidence="$(join_output "$(cat "$failures_file")")"
+    add_result "blocking" "fail" "skill-metadata" "skill metadata validation failed" "$evidence" "structural agents/openai.yaml validation" 1
+  else
+    add_result "blocking" "pass" "skill-metadata" "validated $count skill metadata file(s)" "" "structural agents/openai.yaml validation" 0
+  fi
+
+  rm -f "$files_file" "$failures_file"
+}
+
 check_diff_whitespace() {
   case "$MODE" in
     staged)
@@ -390,6 +485,39 @@ check_idea_to_ship_fixtures() {
   fi
 }
 
+check_agent_playbook_fixtures() {
+  command_text="bash tests/agent-playbook-eval-fixtures.sh"
+
+  if [ "$MODE" != "all" ]; then
+    add_result "skipped" "skip" "agent-playbook-fixtures" \
+      "runs only in --mode all" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/agent-playbook-eval-fixtures.sh" ]; then
+    add_result "advisory" "warn" "agent-playbook-fixtures" \
+      "agent-playbook fixture command is missing" \
+      "tests/agent-playbook-eval-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/agent-playbook-eval-fixtures.sh 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "agent-playbook-fixtures" \
+      "agent-playbook fixture checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "agent-playbook-fixtures" \
+      "agent-playbook fixture checks reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "agent-playbook-fixtures" \
+      "agent-playbook fixture checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -457,9 +585,11 @@ emit_json() {
 
 check_manifest_json
 check_skill_frontmatter
+check_skill_metadata
 check_diff_whitespace
 check_secret_scan
 check_idea_to_ship_fixtures
+check_agent_playbook_fixtures
 
 if [ "$JSON_OUTPUT" = "true" ]; then
   emit_json

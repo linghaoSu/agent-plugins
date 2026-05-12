@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vibe Coding Health Check"
+  short_description: "Keep AI-coded changes maintainable."
+  default_prompt: "Use $vibe-coding-health-check to audit this repo or diff for drift, fragility, and missing verification."

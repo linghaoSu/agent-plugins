@@ -51,6 +51,16 @@ principles: boundary clarity, consolidation, namespacing, token-efficient
 returns, error messages that guide, evaluation hooks. Produces a ranked
 punch-list.
 
+### `/vibe-coding-health-check [--scope diff|repo|agent|all] [--deep]`
+Run a lightweight control check after fast AI-assisted coding. Scores the
+current diff or repo for scope drift, missing requirement/test traceability,
+resilience gaps, harness/state/recovery gaps, and agent-context hygiene. Routes
+to the right deeper audit: `idea-to-ship`, `antifragile`, `harness-engineering`,
+or `context-audit`.
+
+Contract coverage for this workflow lives in
+`tests/agent-playbook-eval-fixtures.sh`.
+
 ### `/commit-changes [message, scope, or draft PR request]`
 Create a local git commit after reading the current repo's commit
 requirements. Verifies the intended diff, runs required pre-commit checks,

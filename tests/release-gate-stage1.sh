@@ -116,9 +116,11 @@ test_valid_repo_passes() {
   assert_exit "$code" 0 "valid repo"
   assert_contains "$repo/out.txt" "PASS manifest-json" "valid repo"
   assert_contains "$repo/out.txt" "PASS skill-frontmatter" "valid repo"
+  assert_contains "$repo/out.txt" "PASS skill-metadata" "valid repo"
   assert_contains "$repo/out.txt" "PASS diff-whitespace" "valid repo"
   assert_contains "$repo/out.txt" "PASS secret-scan" "valid repo"
   assert_contains "$repo/out.txt" "SKIP idea-to-ship-fixtures" "valid repo"
+  assert_contains "$repo/out.txt" "SKIP agent-playbook-fixtures" "valid repo"
 }
 
 test_malformed_manifest_fails() {
@@ -201,6 +203,24 @@ MD
   assert_contains "$repo/out.txt" "FAIL skill-frontmatter" "staged frontmatter reads index"
 }
 
+test_malformed_skill_metadata_fails() {
+  repo="$(make_fixture_repo bad_skill_metadata)"
+  mkdir -p "$repo/demo/skills/example/agents"
+  cat >"$repo/demo/skills/example/agents/openai.yaml" <<'YAML'
+interface:
+  display_name: "Example"
+  short_description: "Too short"
+YAML
+  (
+    cd "$repo" &&
+      git add demo/skills/example/agents/openai.yaml
+  )
+  run_gate "$repo" --mode staged
+  code="$?"
+  assert_exit "$code" 1 "malformed skill metadata"
+  assert_contains "$repo/out.txt" "FAIL skill-metadata" "malformed skill metadata"
+}
+
 test_staged_whitespace_fails() {
   repo="$(make_fixture_repo staged_whitespace)"
   printf 'bad trailing \n' >"$repo/new-file.md"
@@ -262,6 +282,8 @@ test_all_mode_missing_idea_to_ship_fixture_is_advisory() {
   assert_exit "$code" 0 "all mode missing idea-to-ship fixture advisory"
   assert_contains "$repo/out.txt" "WARN idea-to-ship-fixtures" \
     "all mode missing idea-to-ship fixture advisory"
+  assert_contains "$repo/out.txt" "WARN agent-playbook-fixtures" \
+    "all mode missing agent-playbook fixture advisory"
 }
 
 require_cmd git
@@ -283,6 +305,7 @@ test_malformed_manifest_fails
 test_malformed_frontmatter_fails
 test_staged_manifest_reads_index
 test_staged_frontmatter_reads_index
+test_malformed_skill_metadata_fails
 test_staged_whitespace_fails
 test_working_whitespace_fails
 test_staged_secret_fails
