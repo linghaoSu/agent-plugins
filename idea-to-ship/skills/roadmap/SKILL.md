@@ -20,6 +20,11 @@ Architecture owns design and staged implementation. Implementation logs own
 completion/deviations. Roadmap owns cross-work sequencing, tradeoffs, release
 gates, and human decisions.
 
+Roadmap does not replace `/brainstorm`. Portfolio mode may list candidates from
+repo evidence, but a candidate is not ready for `/architect`, `/implement`,
+`/test`, or `/review-code` until its slug has `.idea-to-ship/<slug>/requirements.md`
+from `/brainstorm --slug <slug>`.
+
 ## Arguments
 
 Raw: `$ARGUMENTS`
@@ -151,6 +156,12 @@ Resolve mode and output path:
 - Portfolio mode → `.idea-to-ship/roadmap.md`
 - Slug mode → `.idea-to-ship/<slug>/roadmap.md`
 
+In slug mode, require `.idea-to-ship/<slug>/requirements.md`. If missing, stop
+and tell the user to run `/brainstorm --slug <slug>` first. In portfolio mode,
+you may plan from existing evidence, but any non-Done item that lacks accepted
+requirements must have `/brainstorm --slug <slug>` as its next action before
+design or implementation.
+
 Before broad source collection, establish:
 - Goal / strategic objective
 - Horizon (date-based, release-based, or effort-based)
@@ -281,6 +292,9 @@ Before writing final roadmap lanes, enforce:
   Backlog unchanged.
 - Every `Now` item has an owner or is flagged as a blocking open decision.
 - Every milestone has release gates.
+- Every non-Done lane item that is headed toward design, implementation, test,
+  or code review either cites an accepted `requirements.md` or has an explicit
+  release-gate/next-action entry to run `/brainstorm --slug <slug>` first.
 
 If any gate fails, write/update the brief and stop. Do not fabricate a final
 roadmap.
@@ -425,6 +439,8 @@ Tell the user:
 ## Anti-Patterns
 
 - **Repo mining as strategy.** A TODO is a signal, not a commitment.
+- **Roadmap as requirements.** A roadmap item can prioritize work, but it is
+  not a substitute for `/brainstorm` and `requirements.md`.
 - **Fake critical path.** If the dependency is inferred, it is a hypothesis.
 - **Overwriting human planning.** Preserve human sections or draft instead.
 - **Unbounded source sweeps.** Respect source budgets and opt-in flags.

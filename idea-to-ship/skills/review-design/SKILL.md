@@ -39,8 +39,9 @@ delegation.
 ### Step 1: Verify Inputs
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
-2. Require `architecture.md` to exist. If missing, stop and tell the user to run `/architect` first.
-3. Read `architecture.md` and `requirements.md`. If the architecture's recommended option contradicts requirements, flag it before even calling the adversarial reviewer.
+2. Require `requirements.md` to exist. If missing, stop and tell the user to run `/brainstorm --slug <slug>` first.
+3. Require `architecture.md` to exist. If missing, stop and tell the user to run `/architect --slug <slug>` first.
+4. Read `architecture.md` and `requirements.md`. If the architecture's recommended option contradicts requirements, flag it before even calling the adversarial reviewer.
 
 ### Step 2: Review Loop
 

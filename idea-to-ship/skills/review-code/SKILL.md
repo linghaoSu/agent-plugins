@@ -36,7 +36,10 @@ delegation.
 
 ### Step 1: Verify Inputs
 
-1. Resolve `.idea-to-ship/<slug>/`. Read `requirements.md`, `architecture.md`, `implementation-log.md`, and `test-plan.md` if present (all optional — if absent, proceed but note in the final log).
+1. Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`. If missing,
+   stop and tell the user to run `/brainstorm --slug <slug>` first. Read
+   `requirements.md`, plus `architecture.md`, `implementation-log.md`, and
+   `test-plan.md` if present.
 2. Check that there's a diff to review:
    ```bash
    git diff --shortstat
@@ -93,8 +96,8 @@ SCOPE RULES (important):
   flag a warning-level verification gap. For bug fixes without a reproducible
   regression test, upgrade to critical unless there is a documented reason.
 
-## Requirements (context, may be empty)
-<requirements.md or "not provided">
+## Requirements (required context)
+<requirements.md>
 
 ## Architecture (context, may be empty)
 <architecture.md or "not provided">

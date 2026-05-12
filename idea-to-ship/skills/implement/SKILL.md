@@ -33,9 +33,10 @@ Parse:
 ### Step 1: Load Context
 
 1. Resolve `.idea-to-ship/<slug>/`.
-2. Require `architecture.md`. If missing → stop, tell user to run `/architect`.
-3. Read `requirements.md` (if present), `architecture.md`, and `test-plan.md` (if present) fully.
-4. Read or create `implementation-log.md`:
+2. Require `requirements.md`. If missing → stop, tell user to run `/brainstorm --slug <slug>`.
+3. Require `architecture.md`. If missing → stop, tell user to run `/architect --slug <slug>`.
+4. Read `requirements.md`, `architecture.md`, and `test-plan.md` (if present) fully.
+5. Read or create `implementation-log.md`:
 
    ```markdown
    # Implementation Log — <slug>

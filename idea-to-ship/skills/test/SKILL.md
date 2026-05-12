@@ -24,8 +24,10 @@ Parse:
 ### Step 1: Load Context
 
 1. Resolve `.idea-to-ship/<slug>/`.
-2. Read whichever of these exist: `requirements.md`, `architecture.md`,
-   `implementation-log.md`, `code-review.md`, `test-plan.md`.
+2. Require `requirements.md`. If missing, stop and tell the user to run
+   `/brainstorm --slug <slug>` first. Read `requirements.md`, plus whichever
+   of these exist: `architecture.md`, `implementation-log.md`,
+   `code-review.md`, `test-plan.md`.
 3. Identify the changed files:
    ```bash
    git diff --name-only HEAD
@@ -59,20 +61,15 @@ On rerun:
 
 ### Step 2: Derive User Stories & Acceptance Criteria
 
-Before listing tests, turn the best available source into behavior that a user
-or system actor cares about.
+Before listing tests, turn `requirements.md` into behavior that a user or
+system actor cares about. Use `architecture.md`, `implementation-log.md`,
+`code-review.md`, existing `test-plan.md`, changed-file diff, and `git log`
+only as supporting evidence to refine scenarios, identify regression hooks, or
+spot drift. They are not substitutes for brainstormed requirements.
 
-Use this fallback order:
-
-1. `requirements.md`
-2. `architecture.md`
-3. `implementation-log.md`
-4. `code-review.md`
-5. existing `test-plan.md`
-6. changed-file diff and `git log` for the changed files
-
-Stories from sources 5-6 are provisional. Mark their source as
-`reverse-engineered:<path-or-commit>` and list any uncertainty in `Risk Notes`.
+If `requirements.md` is too vague to derive stories or acceptance criteria,
+stop and send the user back to `/brainstorm --slug <slug>` to refine it. Do not
+reverse-engineer product intent from a diff and call that the plan.
 
 For each story, capture:
 
@@ -281,7 +278,9 @@ Do not chase a coverage percentage — chase meaningful behavior coverage. A 100
 ## Notes
 
 - Do **not** commit or push.
-- If no `architecture.md` exists, derive scope from the diff + `git log` of the changed files. Note in `test-plan.md` that the plan was reverse-engineered.
+- If no `architecture.md` exists, derive interface and regression hints from
+  the diff + `git log` of the changed files, but derive scope from
+  `requirements.md`. Do not mark a diff-derived plan as complete requirements.
 - Flaky tests are bugs. If a test is intermittent, fix the root cause or don't write it.
 - If adding tests reveals a production bug, that's a win, not a problem — fix the bug, note it clearly in the results block.
 - **Read `../../LANGUAGE.md`** — use "seam" when discussing test boundaries, "vertical slice" when scoping test coverage.

@@ -25,6 +25,60 @@ class ContractCheck:
 
 CHECKS: tuple[ContractCheck, ...] = (
     ContractCheck(
+        "brainstorm-mandatory-readme-contract",
+        "idea-to-ship/README.md",
+        (
+            InvariantGroup("mandatory brainstorm", (r"mandatory brainstorm", r"do not skip `/brainstorm`")),
+            InvariantGroup("downstream stop", (r"requirements\.md` is missing.{0,160}downstream skills stop",)),
+            InvariantGroup("roadmap boundary", (r"Roadmaps can sequence work.{0,180}do not replace",)),
+        ),
+    ),
+    ContractCheck(
+        "brainstorm-mandatory-skill-contract",
+        "idea-to-ship/skills/brainstorm/SKILL.md",
+        (
+            InvariantGroup("mandatory first stage", (r"mandatory first stage",)),
+            InvariantGroup("downstream skills stop", (r"Downstream skills.{0,160}must stop",)),
+            InvariantGroup("roadmap does not replace", (r"roadmap.{0,80}does not replace",)),
+        ),
+    ),
+    ContractCheck(
+        "architect-requires-brainstorm-contract",
+        "idea-to-ship/skills/architect/SKILL.md",
+        (
+            InvariantGroup("requires requirements", (r"Require `requirements\.md`",)),
+            InvariantGroup("run brainstorm when missing", (r"/brainstorm --slug <slug>",)),
+            InvariantGroup("thin requirements return to brainstorm", (r"thin.{0,160}/brainstorm --slug <slug>",)),
+        ),
+    ),
+    ContractCheck(
+        "test-requires-brainstorm-contract",
+        "idea-to-ship/skills/test/SKILL.md",
+        (
+            InvariantGroup("requires requirements", (r"Require `requirements\.md`",)),
+            InvariantGroup("run brainstorm when missing", (r"/brainstorm --slug <slug>",)),
+            InvariantGroup("no diff substitute", (r"not substitutes for brainstormed requirements", r"not.*substitute.*requirements")),
+        ),
+    ),
+    ContractCheck(
+        "review-code-requires-brainstorm-contract",
+        "idea-to-ship/skills/review-code/SKILL.md",
+        (
+            InvariantGroup("requires requirements", (r"Require `requirements\.md`",)),
+            InvariantGroup("run brainstorm when missing", (r"/brainstorm --slug <slug>",)),
+            InvariantGroup("required context", (r"Requirements \(required context\)",)),
+        ),
+    ),
+    ContractCheck(
+        "roadmap-does-not-replace-brainstorm-contract",
+        "idea-to-ship/skills/roadmap/SKILL.md",
+        (
+            InvariantGroup("roadmap boundary", (r"Roadmap does not replace `/brainstorm`",)),
+            InvariantGroup("slug mode requirements", (r"In slug mode.{0,180}requirements\.md",)),
+            InvariantGroup("portfolio next action", (r"portfolio mode.{0,260}/brainstorm --slug <slug>",)),
+        ),
+    ),
+    ContractCheck(
         "roadmap-first-run-contract",
         "idea-to-ship/skills/roadmap/SKILL.md",
         (

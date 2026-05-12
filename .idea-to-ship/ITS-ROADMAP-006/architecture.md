@@ -256,8 +256,8 @@ label the coverage as contract fixtures to avoid overstating the signal.
 ## Staged Implementation Plan
 
 1. **Stage 1 - Contract fixture command:** Add the shell runner, Python helper,
-   documentation, and implementation log. Cover the seven named checks and label
-   the output as contract-fixture coverage.
+   documentation, and implementation log. Cover the named checks and label the
+   output as contract-fixture coverage.
 2. **Stage 2 - Artifact safety fixtures:** Add temporary artifact fixtures for
    generated-marker preservation and draft fallback behavior if those behaviors
    become executable outside the LLM prompt.

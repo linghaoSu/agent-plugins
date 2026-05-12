@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Read requirements.md, explore the codebase, and produce an architecture document with 2-3 alternatives, tradeoffs, and a recommendation. Does not write production code. Writes .idea-to-ship/<slug>/architecture.md.
+description: Read the brainstormed requirements.md, explore the codebase, and produce an architecture document with 2-3 alternatives, tradeoffs, and a recommendation. Does not write production code. Writes .idea-to-ship/<slug>/architecture.md.
 argument-hint: '[--slug <name>] [extra notes]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -22,7 +22,7 @@ Parse:
 ### Step 1: Load Context
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
-2. Require `requirements.md` to exist. If it doesn't, stop and tell the user to run `/brainstorm` first.
+2. Require `requirements.md` to exist. If it doesn't, stop and tell the user to run `/brainstorm --slug <slug>` first.
 3. Read `requirements.md` fully.
 4. If `architecture.md` already exists, read it — this run is a revision. Ask the user whether to revise or start over.
 
@@ -169,6 +169,8 @@ These are hard stops. Do not proceed past a gate until its condition is met.
 ## Notes
 
 - **No code in this skill.** Signatures and schemas yes; implementations no.
-- If requirements.md is thin in a section you need, write a concrete assumption into architecture.md and flag it under Open Questions rather than blocking on the user.
+- If `requirements.md` is thin in Problem, Users, Scope, or Success Criteria,
+  stop and send the user back to `/brainstorm --slug <slug>` to refine it.
+  Minor design assumptions can still go in `architecture.md` Open Questions.
 - If the design is forced into awkward shapes because requirements are wrong, say so — recommend the user revise requirements before architecting further.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use terms like "vertical slice", "deep module", "seam", "blast radius" precisely as defined there.

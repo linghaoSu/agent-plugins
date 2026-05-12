@@ -2,6 +2,8 @@
 
 A plugin for taking a fuzzy idea all the way to shipped, tested code. Each stage
 produces a markdown artifact on disk so you can stop, edit, and resume anywhere.
+Every new idea-to-ship slug starts with `/brainstorm`; downstream stages require
+the resulting `requirements.md`.
 
 All skills that write or review code apply the four principles in
 [`PRINCIPLES.md`](./PRINCIPLES.md): Think Before Coding · Simplicity First ·
@@ -22,15 +24,15 @@ All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 
 Portfolio roadmaps land at `.idea-to-ship/roadmap.md`.
 
-The default `<slug>` is `current`. Pass `--slug <name>` to any skill to switch,
-or run `/brainstorm` to create a fresh one.
+The default `<slug>` is `current`. Pass `--slug <name>` to any skill to switch.
+For a fresh slug, run `/brainstorm --slug <name>` first.
 
 ## Commands
 
 ### `/brainstorm [description]`
-Turns a vague idea into a concrete requirements document via Socratic Q&A.
-Asks clarifying questions in batches until the problem, users, constraints,
-and success criteria are unambiguous. Writes `requirements.md`.
+Mandatory first stage. Turns a vague idea into a concrete requirements document
+via Socratic Q&A. Asks clarifying questions in batches until the problem, users,
+constraints, and success criteria are unambiguous. Writes `requirements.md`.
 
 ### `/architect [notes]`
 Reads `requirements.md`, explores the codebase, and produces `architecture.md`:
@@ -97,12 +99,17 @@ tests and runs them until green.
 # story-driven test plan + implementation
 ```
 
-Each step is independent — skip any, or hand-edit artifacts between steps.
+You may hand-edit artifacts between stages, but do not skip `/brainstorm`.
+If `requirements.md` is missing, downstream skills stop and send you back to
+`/brainstorm --slug <name>`.
 
 ## Conventions
 
 - **Slug**: all skills accept `--slug <name>` as the first token of their
   arguments. If omitted, uses `current`.
+- **Mandatory brainstorm**: every new slug begins with `/brainstorm`, which
+  owns `requirements.md`. Roadmaps can sequence work, but they do not replace
+  brainstormed requirements for design, implementation, test, or review.
 - **Roadmap scope**: `/roadmap` defaults to portfolio mode
   (`.idea-to-ship/roadmap.md`). With `--slug <name>`, it writes the feature
   roadmap for that slug.

@@ -1,13 +1,20 @@
 ---
 name: brainstorm
-description: Turn a vague idea into a concrete requirements document via Socratic Q&A. Asks clarifying questions in batches until the problem, users, constraints, and success criteria are unambiguous. Writes .idea-to-ship/<slug>/requirements.md.
+description: Mandatory first stage for every new idea-to-ship slug. Turn a vague idea into a concrete requirements document via Socratic Q&A. Asks clarifying questions in batches until the problem, users, constraints, and success criteria are unambiguous. Writes .idea-to-ship/<slug>/requirements.md.
 argument-hint: '[--slug <name>] [free-form description of the idea]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 ---
 
 # Brainstorm — Socratic Requirement Mining
 
-Take a fuzzy idea and drill into it until the requirements are concrete enough to architect. The output is `.idea-to-ship/<slug>/requirements.md` — a document that a different engineer could act on without needing to ask the user anything.
+Take a fuzzy idea and drill into it until the requirements are concrete enough
+to architect. This is the mandatory first stage for every new idea-to-ship
+slug. The output is `.idea-to-ship/<slug>/requirements.md` — a document that a
+different engineer could act on without needing to ask the user anything.
+
+Downstream skills (`/architect`, `/review-design`, `/implement`, `/test`, and
+`/review-code`) must stop if this file is missing. `/roadmap` may sequence
+work, but it does not replace brainstormed requirements for a slug.
 
 ## Arguments
 

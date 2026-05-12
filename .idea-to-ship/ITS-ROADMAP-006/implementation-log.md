@@ -48,7 +48,7 @@
 
 - syntax: ok (`bash -n tests/idea-to-ship-eval-fixtures.sh`; `bash -n tests/release-gate-stage1.sh`; `bash -n scripts/release-gate.sh`)
 - python compile: ok (`python3 -m py_compile tests/idea-to-ship-eval-fixtures.py`)
-- eval fixtures: ok (`bash tests/idea-to-ship-eval-fixtures.sh`, 7 contract checks)
+- eval fixtures: ok (`bash tests/idea-to-ship-eval-fixtures.sh`, 13 contract checks)
 - negative smoke: ok (temporary root with removed roadmap Candidate Brief fails `roadmap-first-run-contract`)
 - usage errors: ok (`python3 tests/idea-to-ship-eval-fixtures.py`; `python3 tests/idea-to-ship-eval-fixtures.py /tmp/agent-plugins-nonexistent-root-006` both exit `2`)
 - release gate stage 1 tests: ok (`bash tests/release-gate-stage1.sh`)
