@@ -338,9 +338,10 @@ CHECKS: tuple[ContractCheck, ...] = (
         (
             InvariantGroup("multi-agent routing", (r"Multi-Agent Review Routing",)),
             InvariantGroup("multiple angles", (r"multiple independent", r"at least two angles")),
-            InvariantGroup("no same-context fallback", (r"Do not fall back to same-context review",)),
-            InvariantGroup("blocked status", (r"blocked-missing-review-agents",)),
-            InvariantGroup("same context invalid", (r"Same-context review is not a valid substitute",)),
+            InvariantGroup("multiple rounds", (r"multiple rounds", r"Run multiple rounds")),
+            InvariantGroup("explicit fallback only", (r"explicitly unsupported by the host/runtime", r"explicitly unavailable\s+or at capacity")),
+            InvariantGroup("degraded mode recorded", (r"degraded-same-context-review",)),
+            InvariantGroup("degraded preserves angles", (r"Degraded mode.{0,140}same angles and rounds",)),
         ),
     ),
     ContractCheck(
@@ -349,8 +350,9 @@ CHECKS: tuple[ContractCheck, ...] = (
         (
             InvariantGroup("multi-agent review", (r"multiple independent", r"reviewer agents")),
             InvariantGroup("required angles", (r"Architecture correctness angle", r"Implementation/testability angle")),
-            InvariantGroup("blocked missing agents", (r"blocked-missing-review-agents",)),
-            InvariantGroup("no same-context fallback", (r"Do not run a\s+same-context adversarial review",)),
+            InvariantGroup("explicit fallback only", (r"explicitly unsupported by the host/runtime", r"selected reviewer/model is\s+explicitly unavailable")),
+            InvariantGroup("degraded mode recorded", (r"degraded-same-context-review",)),
+            InvariantGroup("degraded preserves rounds", (r"preserves multi-angle and multi-round",)),
         ),
     ),
     ContractCheck(
@@ -359,8 +361,9 @@ CHECKS: tuple[ContractCheck, ...] = (
         (
             InvariantGroup("multi-agent review", (r"multiple independent", r"reviewer agents")),
             InvariantGroup("required angles", (r"Correctness/security angle", r"Traceability/testability angle", r"Maintainability/repo-fit angle")),
-            InvariantGroup("blocked missing agents", (r"blocked-missing-review-agents",)),
-            InvariantGroup("no same-context fallback", (r"Do not run a\s+same-context adversarial review",)),
+            InvariantGroup("explicit fallback only", (r"explicitly unsupported by the host/runtime", r"selected reviewer/model is\s+explicitly unavailable")),
+            InvariantGroup("degraded mode recorded", (r"degraded-same-context-review",)),
+            InvariantGroup("rerun all angles", (r"re-run every required reviewer angle",)),
         ),
     ),
 )
