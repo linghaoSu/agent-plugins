@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check-update.sh"
+            "command": "sh -lc 'for root in \"${CLAUDE_PLUGIN_ROOT:-}\" \"${CODEX_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"$PWD\"; do [ -x \"$root/scripts/check-update.sh\" ] && exec \"$root/scripts/check-update.sh\"; done; exit 0'"
           }
         ]
       }

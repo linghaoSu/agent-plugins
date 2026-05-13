@@ -36,8 +36,13 @@ Parse:
 - `--scope agent` -> agent/plugin/hook/harness health.
 - `--scope all` -> diff + repo + agent workflow.
 - `--deep` -> after the lightweight scorecard, run the relevant deeper local
-  checks that are safe and non-mutating. Do not spawn subagents unless the user
-  explicitly authorizes delegation.
+  checks that are safe and non-mutating. This health-check does not launch its
+  own subagents unless the user explicitly authorizes delegation. If it routes
+  to a review skill, invoking that review skill is standing authorization for
+  its reviewer sub-agents unless the user explicitly forbids delegation, the
+  runtime explicitly does not support reviewer sub-agents, or the selected
+  reviewer/model is explicitly unavailable or at capacity; in that case the
+  review skill may fall back to recorded same-context review.
 - Remaining text -> focus notes.
 
 ## Workflow
@@ -114,9 +119,13 @@ that additional authorization in the current request.
 | Agent rules, tools, MCPs, memory files, or context are bloated/conflicting | Run or recommend `agent-playbook:context-audit` or `agent-playbook:tool-review` | Yes, read-only/artifact-only |
 | Commit or release readiness is the question | Recommend `agent-playbook:commit-changes` after staged release gate passes | No, mutates git and may create PRs |
 
-Do not run subagents as part of this skill unless the user explicitly asked for
-delegation. Main-context audits are acceptable; record the fallback if a
-deeper skill normally prefers delegation.
+Do not run subagents as part of this health-check unless the user explicitly
+asked for delegation. Main-context audits are acceptable here. Do not convert a
+routed review workflow into same-context review because of this health-check's
+local delegation gate; review skills own their multi-agent routing and should
+fall back to recorded same-context review only when required reviewer agents are
+explicitly unsupported by the host/runtime, explicitly forbidden by the user,
+or explicitly unavailable / at capacity.
 
 ### Step 5: Decision
 

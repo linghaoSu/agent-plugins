@@ -8,7 +8,7 @@ If you are a skill: read this file once before writing or reviewing any code.
 Cite it when you push back on a reviewer comment, an issue description, or a
 fix plan that violates it.
 
-## Runtime-aware agent routing
+## Multi-agent review routing
 
 Do not assume the host runtime is Claude Code.
 
@@ -21,9 +21,24 @@ Do not assume the host runtime is Claude Code.
   and preserve the same review roles: primary analysis, independent second
   opinion, adversarial review, executor, and final synthesis. Label outputs by
   role rather than model name.
-- If sub-agents are unavailable, run separate sequential passes in the main
-  context with fresh prompts, record the fallback in the final report, and keep
-  the same phase gates.
+- **Review delegation is pre-authorized:** invoking a review workflow is
+  standing authorization to launch multiple reviewer and synthesis sub-agents.
+  Do not ask for fresh multi-agent authorization and do not use its absence as
+  a reason to review in the main context.
+- **Review means multi-agent, multi-angle, multi-round by default:** every
+  review workflow must preserve distinct reviewer angles such as
+  correctness/security, repo style/scope, and issue/test/plan traceability,
+  and must rerun the required angles after fixes or touchups.
+- Fall back to same-context review only when reviewer sub-agents are
+  explicitly unsupported by the host/runtime, the user explicitly forbids
+  reviewer sub-agents, or the selected reviewer/model is explicitly unavailable
+  or at capacity. Record `degraded-same-context-review` and the exact reason,
+  and do not present the result as independent multi-agent review. Degraded
+  mode still preserves the same angles and rounds; it only loses independent
+  agents.
+- Non-review analysis or executor phases may use a degraded main-context
+  fallback only when the skill explicitly defines one, and must record the loss
+  of independent validation.
 
 ## 1. Think before coding
 

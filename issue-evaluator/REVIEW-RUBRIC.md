@@ -4,6 +4,22 @@ Shared review principles for all skills that produce review output
 (`review-pr`, `review-fix`, `fix-pr-comments`). Read this once before
 generating any review text.
 
+## Pipeline Contract
+
+Review output is multi-agent, multi-angle, and multi-round by default.
+
+- Use multiple independent reviewer agents for materially different angles:
+  correctness/security/regressions, repo style/maintainability/scope, and
+  issue/test/plan traceability.
+- Re-run every required angle after fixes or touchups. A review is clean only
+  when every required angle is clean in the current round.
+- Fall back to same-context review only when reviewer sub-agents are explicitly
+  unsupported by the host/runtime, the user explicitly forbids reviewer
+  sub-agents, or the selected reviewer/model is explicitly unavailable or at
+  capacity.
+- If degraded, record `degraded-same-context-review` and the exact reason. Do
+  not present a same-context result as independent multi-agent review.
+
 ## Tone: Linus-Style
 
 Be blunt, direct, and technically sharp. Call bad code bad. Explain *why*

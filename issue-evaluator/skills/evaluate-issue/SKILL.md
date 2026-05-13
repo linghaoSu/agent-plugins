@@ -18,13 +18,22 @@ This is one of:
 - An issue number (e.g. `123` or `#123`) — assumes the current repo
 - **A free-form natural-language description** of the issue to evaluate (e.g. "点击登录按钮后有时会 401，token 刷新没生效"). In this mode there is no real GitHub issue; the description itself is the input.
 
-## Runtime-Aware Agent Routing
+## Multi-Agent Review Routing
 
 Before launching any review or diagnosis agent, read `../../PRINCIPLES.md` and
-`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
-contract. The roles for this workflow are `ROUND_1_CODE_ANALYSIS`,
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
+contract to the adversarial diagnosis review and synthesis phases. The roles for this workflow are `ROUND_1_CODE_ANALYSIS`,
 `ROUND_1_HISTORY_CHECK`, `ROUND_1_INDEPENDENT_CHECK`,
-`ROUND_2_ADVERSARIAL_REVIEW`, and `ROUND_3_SYNTHESIS`.
+`ROUND_2_ADVERSARIAL_REVIEW:<ANGLE>`, and `ROUND_3_SYNTHESIS`.
+
+Round 2 and Round 3 are review-related gates. They are pre-authorized to launch
+reviewer and synthesis sub-agents. Fall back to same-context review only when
+reviewer sub-agents are explicitly unsupported by the host/runtime, the user
+explicitly forbids them, or the selected reviewer/model is explicitly
+unavailable or at capacity. In degraded mode, record
+`degraded-same-context-review`, preserve the same angles and rounds
+sequentially in the main context, and do not present the result as independent
+multi-agent review.
 
 ## Workflow
 
@@ -77,7 +86,7 @@ This diagnosis follows a **three-round sequential pipeline**. Each round builds 
 
 ---
 
-#### Round 1 — Multi-Model Diagnosis + Static Analysis
+#### Round 1 — Multi-Agent Diagnosis + Static Analysis
 
 Launch the following agents and tools **all in parallel**:
 
@@ -116,15 +125,30 @@ Call `mcp__ide__getDiagnostics` to collect compiler/linter diagnostics for the c
 
 ---
 
-#### Round 2 — Adversarial Review of Diagnosis
+#### Round 2 — Multi-Angle Adversarial Review of Diagnosis
 
-**This round must wait for Round 1 to complete.** Launch a single adversarial reviewer. In Claude Code, use the Codex agent with `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use the host's native sub-agent mechanism and assign it the `ROUND_2_ADVERSARIAL_REVIEW` role:
+**This round must wait for Round 1 to complete.** Launch adversarial reviewers
+for separate diagnosis-review angles. In Claude Code, use Codex rescue and/or
+native review agents when available. In non-Claude runtimes, use the host's
+native sub-agent mechanism and assign each output
+`ROUND_2_ADVERSARIAL_REVIEW:<ANGLE>`.
+
+Required angles:
+
+- `ROOT_CAUSE`: validate the causal chain and code-path evidence
+- `FIX_PLAN_TESTABILITY`: validate the proposed fix, tests, and verification
+- `REGRESSION_SCOPE`: validate scope control, regressions, and already-fixed
+  claims
+
+Use this prompt per angle:
 
 ```
 Adversarial review of issue diagnosis for issue #<number>: "<issue-title>".
 
-You are the second reviewer in a multi-round diagnosis pipeline. You have TWO jobs:
-1. Independently analyze the issue and the relevant code to form your own diagnosis and fix plan.
+You are the second reviewer in a multi-agent, multi-angle diagnosis pipeline.
+Assigned angle: <ANGLE>.
+You have TWO jobs:
+1. Independently analyze the issue and the relevant code from your assigned angle.
 2. Evaluate the first-round diagnosis below — challenge any conclusions you believe are wrong, confirm conclusions you agree with, and flag anything the first round missed.
 
 IMPORTANT: This is a READ-ONLY analysis. Do NOT modify any files or post anything to GitHub.
@@ -162,16 +186,17 @@ Note: IDE Diagnostics are machine-verified facts — do not dispute them. They m
 If Round 1 said "already fixed" and you agree, say: "Confirmed: already fixed in <sha>"
 ```
 
-**Wait for Round 2 to complete.** Collect its output as `ROUND_2_DIAGNOSIS`.
+**Wait for all Round 2 angles to complete.** Collect their outputs as
+`ROUND_2_DIAGNOSIS`, grouped by angle.
 
 ---
 
 #### Round 3 — Final Synthesis
 
-Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent if available; otherwise perform a separate final synthesis pass in the main context and state that fallback in the report:
+Launch a single final synthesis agent. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent. This is issue diagnosis, but Round 3 synthesizes adversarial review evidence; fall back to same-context synthesis only when synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime, the user explicitly forbids them, or the selected synthesis reviewer/model is explicitly unavailable or at capacity. Record `degraded-same-context-review` before any final recommendation and do not present a main-context synthesis as independent review:
 
 ```
-You are the final reviewer in a runtime-aware multi-pass issue diagnosis pipeline for issue #<number>: "<issue-title>".
+You are the final synthesis agent in a runtime-aware multi-pass issue diagnosis pipeline for issue #<number>: "<issue-title>".
 
 Four sources provided input: primary analysis (Round 1), independent check (Round 1), IDE Diagnostics (Round 1), and adversarial review (Round 2). Your job is to produce the definitive diagnosis and fix plan by synthesizing all sources. You must:
 
@@ -247,6 +272,8 @@ Take the Round 3 agent's output and present it with the issue header prepended:
 ## Issue Evaluation: <issue-title>
 
 **Issue**: #<number>
+**Review mode**: <multi-agent | degraded-same-context-review>
+**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Diagnosis pipeline**: Round 1 (primary analysis + independent check + IDE Diagnostics) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
 
 <Round 3 structured output follows>

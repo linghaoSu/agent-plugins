@@ -168,6 +168,27 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "tdd-skill-contract",
+        "idea-to-ship/skills/tdd/SKILL.md",
+        (
+            InvariantGroup("stage tdd mode", (r"stage-tdd", r"--stage <N>")),
+            InvariantGroup("backfill mode", (r"test-backfill", r"--backfill")),
+            InvariantGroup("backfill standalone authority", (r"concrete user focus", r"current diff", r"lower-authority")),
+            InvariantGroup("no production code", (r"does not edit\s+production code", r"never writes production code")),
+            InvariantGroup("stage tdd slices", (r"Stage TDD Slices",)),
+            InvariantGroup("red first gate", (r"expected failing test", r"before `/implement` writes production code")),
+            InvariantGroup("tdd log", (r"tdd-log\.md",)),
+            InvariantGroup("backfill not tdd", (r"Backfill pretending to be TDD",)),
+        ),
+    ),
+    ContractCheck(
+        "tdd-runtime-metadata-contract",
+        "idea-to-ship/skills/tdd/agents/openai.yaml",
+        (
+            InvariantGroup("plugin qualified default prompt", (r"\$idea-to-ship:tdd",)),
+        ),
+    ),
+    ContractCheck(
         "test-requires-brainstorm-contract",
         "idea-to-ship/skills/test/SKILL.md",
         (
@@ -192,6 +213,16 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("implement reads interface design", (r"interface-design\.md",)),
             InvariantGroup("implement reads project design", (r"DESIGN\.md",)),
             InvariantGroup("ui contract drift", (r"design drift", r"document the deviation")),
+        ),
+    ),
+    ContractCheck(
+        "implement-delegates-tdd-contract",
+        "idea-to-ship/skills/implement/SKILL.md",
+        (
+            InvariantGroup("delegates to tdd skill", (r"\$idea-to-ship:tdd",)),
+            InvariantGroup("requires tdd evidence", (r"Stage TDD Slices", r"tdd-log\.md")),
+            InvariantGroup("no inline substitute", (r"Do not inline a\s+weaker same-context TDD substitute",)),
+            InvariantGroup("tdd gate before code", (r"before production code is\s+written",)),
         ),
     ),
     ContractCheck(
@@ -302,19 +333,34 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
-        "review-code-runtime-aware-routing-contract",
+        "workflow-multi-agent-review-contract",
+        "idea-to-ship/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("multi-agent routing", (r"Multi-Agent Review Routing",)),
+            InvariantGroup("multiple angles", (r"multiple independent", r"at least two angles")),
+            InvariantGroup("no same-context fallback", (r"Do not fall back to same-context review",)),
+            InvariantGroup("blocked status", (r"blocked-missing-review-agents",)),
+            InvariantGroup("same context invalid", (r"Same-context review is not a valid substitute",)),
+        ),
+    ),
+    ContractCheck(
+        "review-design-multi-agent-contract",
+        "idea-to-ship/skills/review-design/SKILL.md",
+        (
+            InvariantGroup("multi-agent review", (r"multiple independent", r"reviewer agents")),
+            InvariantGroup("required angles", (r"Architecture correctness angle", r"Implementation/testability angle")),
+            InvariantGroup("blocked missing agents", (r"blocked-missing-review-agents",)),
+            InvariantGroup("no same-context fallback", (r"Do not run a\s+same-context adversarial review",)),
+        ),
+    ),
+    ContractCheck(
+        "review-code-multi-agent-contract",
         "idea-to-ship/skills/review-code/SKILL.md",
         (
-            InvariantGroup("runtime-aware routing", (r"runtime-aware",)),
-            InvariantGroup("non-Claude runtime path", (r"non-claude",)),
-            InvariantGroup(
-                "delegation authorization",
-                (r"policy authorizes delegation", r"authorizes delegation"),
-            ),
-            InvariantGroup("host permission", (r"host permits sub-agents",)),
-            InvariantGroup("capacity fallback", (r"at capacity", r"capacity fallback")),
-            InvariantGroup("fallback path", (r"\bfallback\b",)),
-            InvariantGroup("fallback reason recorded", (r"fallback reason", r"state the fallback", r"note the fallback")),
+            InvariantGroup("multi-agent review", (r"multiple independent", r"reviewer agents")),
+            InvariantGroup("required angles", (r"Correctness/security angle", r"Traceability/testability angle", r"Maintainability/repo-fit angle")),
+            InvariantGroup("blocked missing agents", (r"blocked-missing-review-agents",)),
+            InvariantGroup("no same-context fallback", (r"Do not run a\s+same-context adversarial review",)),
         ),
     ),
 )

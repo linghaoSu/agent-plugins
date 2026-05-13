@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a GitHub pull request locally for bugs, security, issue coverage, and repo-specific style. Read-only on GitHub; never posts PR comments.
+description: Multi-agent, multi-angle, multi-round local review of a GitHub PR for bugs, security, issue coverage, and repo-specific style. Read-only on GitHub.
 argument-hint: <pr-url-or-number>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -39,13 +39,22 @@ The user provided: `$ARGUMENTS`
 
 This should be a GitHub PR URL (e.g. `https://github.com/owner/repo/pull/123`) or a PR number (e.g. `123` or `#123`).
 
-## Runtime-Aware Agent Routing
+## Multi-Agent Review Routing
 
 Before launching any review agent, read `../../PRINCIPLES.md` and
-`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Runtime-Aware Agent Routing**
-contract. The roles for this workflow are bug/security review, style review,
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
+contract. This workflow is pre-authorized to launch reviewer and synthesis
+sub-agents. The roles for this workflow are bug/security review, style review,
 existing-review context, independent check, linked-issue compliance,
 adversarial review, and final synthesis.
+
+Run these roles as independent sub-agents when supported. Fall back to
+same-context review only when reviewer sub-agents are explicitly unsupported by
+the host/runtime, the user explicitly forbids them, or the selected
+reviewer/model is explicitly unavailable or at capacity. In that degraded mode,
+record `degraded-same-context-review`, keep the same roles and rounds
+sequentially in the main context, and do not present the result as independent
+multi-agent review.
 
 ## Workflow
 
@@ -155,13 +164,16 @@ Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle:
 4. Extract a compact checklist of at most 15 rules before launching style
    reviewers.
 
-### Step 4: Three-Round Sequential Review
+### Step 4: Three-Round Multi-Agent Review
 
-This review follows a **three-round sequential pipeline**. Each round builds on the previous round's output, producing increasingly validated findings.
+This review follows a **three-round multi-agent, multi-angle pipeline**. Each
+round builds on the previous round's output, producing increasingly validated
+findings. If degraded, run the same role prompts sequentially in the main
+context and label the report `degraded-same-context-review`.
 
 ---
 
-#### Round 1 — Multi-Model Self Review + Static Analysis
+#### Round 1 — Multi-Agent Self Review + Static Analysis
 
 Launch the following agents and tools **all in parallel**:
 
@@ -240,9 +252,19 @@ Call `mcp__ide__getDiagnostics` to collect compiler/linter diagnostics for all f
 
 ---
 
-#### Round 2 — Adversarial Review + Evaluation of Round 1
+#### Round 2 — Multi-Angle Adversarial Review + Evaluation of Round 1
 
-**This round must wait for Round 1 to complete.** Launch a single adversarial reviewer. In Claude Code, use the Codex agent with `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use the host's native sub-agent mechanism and assign it the `ROUND_2_ADVERSARIAL_REVIEW` role:
+**This round must wait for Round 1 to complete.** Launch adversarial reviewers
+for separate angles. In Claude Code, use Codex rescue and/or native review
+agents when available. In non-Claude runtimes, use the host's native sub-agent
+mechanism and label each output `ROUND_2_ADVERSARIAL_REVIEW:<ANGLE>`.
+Required Round 2 angles:
+
+- `CORRECTNESS_SECURITY`: bugs, security, regressions, API/data breakage
+- `STYLE_SCOPE`: repo style grounding, maintainability, scope control
+- `TRACEABILITY`: linked issue coverage, test evidence, review finding validity
+
+Use this prompt per angle:
 
 ```
 Adversarial code review of PR #<number>: "<pr-title>".
@@ -251,10 +273,12 @@ TONE: Linus-style — blunt, direct, technically sharp. Call bad code bad and na
 
 STYLE GROUNDING: Style findings must cite a rule from the repo's code style checklist below, or an established pattern in the surrounding code. Personal preferences and generic "best practices" from other projects are OUT — this repo's conventions are the law. If a Round 1 style finding isn't grounded in this repo, DISPUTE it.
 
-You are the second reviewer in a multi-round review pipeline. Your jobs:
-1. Independently review the PR diff for bugs, security issues, design problems, and code style violations.
-2. Evaluate the first-round review findings below — challenge any findings you believe are false positives, confirm findings you agree with, and flag anything the first round missed.
-3. If this PR links to issues, evaluate whether the issue compliance assessment from Round 1 is accurate — verify the PR actually addresses the linked issue requirements.
+You are the second reviewer in a multi-agent, multi-angle review pipeline.
+Assigned angle: <ANGLE>.
+Your jobs:
+1. Independently review the PR diff from your assigned angle.
+2. Evaluate the first-round review findings relevant to your angle — challenge false positives, confirm real findings, and flag anything the first round missed.
+3. If this PR links to issues and your angle is TRACEABILITY, evaluate whether the issue compliance assessment from Round 1 is accurate — verify the PR actually addresses the linked issue requirements.
 
 IMPORTANT: This is a READ-ONLY review. Do NOT run any commands that modify the PR, post comments, or write to GitHub.
 
@@ -309,13 +333,14 @@ For each linked issue in the Round 1 issue compliance assessment:
 If Round 1 was LGTM across all sources and you agree, say: "Confirmed: LGTM"
 ```
 
-**Wait for Round 2 to complete.** Collect its output as `ROUND_2_FINDINGS`.
+**Wait for all Round 2 angles to complete.** Collect their outputs as
+`ROUND_2_FINDINGS`, grouped by angle.
 
 ---
 
 #### Round 3 — Final Synthesis Review
 
-Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent if available; otherwise perform a separate final synthesis pass in the main context and state that fallback in the report:
+Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent. This review workflow is already authorized for reviewer sub-agents. Fall back to same-context synthesis only when synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime, the user explicitly forbids them, or the selected synthesis reviewer/model is explicitly unavailable or at capacity; record `degraded-same-context-review` and do not present it as independent multi-agent synthesis:
 
 ```
 You are the final reviewer in a runtime-aware multi-pass code review pipeline for PR #<number>: "<pr-title>".
@@ -431,6 +456,8 @@ Take the Round 3 agent's output and present it with the PR header prepended:
 **Files changed**: <count> (+<additions> -<deletions>)
 **Status**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
 **Linked issues**: <#N (fixes), #M (references), ... or "None">
+**Review mode**: <multi-agent | degraded-same-context-review>
+**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Review pipeline**: Round 1 (primary review + independent review + IDE Diagnostics + Issue Compliance) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
 
 ### Summary

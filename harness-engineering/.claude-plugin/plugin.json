@@ -1,6 +1,6 @@
 {
   "name": "harness-engineering",
-  "description": "Design, audit, and harden the scaffolding around autonomous agents. Based on the harness-engineering framework: the model sits inside a harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Each skill writes a markdown artifact under .harness-engineering/<slug>/.",
+  "description": "Design, audit, harden, and run the scaffolding around autonomous agents. Based on the harness-engineering framework: the model sits inside a harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Skills write artifacts under .harness-engineering/<slug>/, including persistent goal-mode state.",
   "author": {
     "name": "linghao"
   }

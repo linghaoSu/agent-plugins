@@ -1,13 +1,20 @@
 ---
 name: review-design
-description: Runtime-aware adversarial review of architecture.md. Linus-style - blunt, skeptical, attacks weak assumptions. Iterates fix->review until clean (max 5 rounds). Writes design-review.md verdict.
+description: Multi-agent, multi-angle, multi-round adversarial review of architecture.md. Loops fix->review until all angles are clean; same-context fallback only for explicit unsupported/forbidden/capacity cases.
 argument-hint: '[--slug <name>] [extra focus e.g. "concurrency" "cost"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Design — Adversarial Architecture Review
 
-Run a blunt, adversarial review of `architecture.md` with a runtime-aware adversarial reviewer in a sub-agent only when the host permits sub-agents and the current user/host policy authorizes delegation. Otherwise run the same adversarial pass in the main context and record the fallback. Fix→review loop until the reviewer returns LGTM or the iteration budget is exhausted.
+Run a blunt, adversarial review of `architecture.md` with multiple independent
+review agents and multiple angles. Every round covers every required angle.
+After fixes, re-run all angles, not just the angle that found a problem.
+Fix→review loops until every required reviewer angle returns LGTM or the
+iteration budget is exhausted. Same-context review is a fallback only when
+reviewer sub-agents are explicitly unsupported by the host/runtime, explicitly
+forbidden by the user, or the selected reviewer/model is explicitly unavailable
+or at capacity; record the degradation reason.
 
 This is the designed-in correction step. An architecture that has not been torn apart by a skeptical reviewer is not ready to implement.
 
@@ -19,24 +26,26 @@ Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
 - Remaining text → additional focus areas to emphasize (e.g. "concurrency", "cost", "failure modes").
 
-## Runtime-Aware Agent Routing
+## Multi-Agent Review Routing
 
 Read `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Runtime-Aware Review Routing** contract. Use a runtime-native review
-sub-agent only when the host permits sub-agents and the current user/host policy
-authorizes delegation.
+**Multi-Agent Review Routing** contract. Launch independent reviewer agents by
+default in every round:
 
-- In Claude Code, keep the existing Codex adversarial reviewer
-  (`subagent_type: "codex:codex-rescue"`) when available and authorized.
-- Outside Claude Code, do not request Claude-only subagent types. Use the host
-  runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
-  role only when authorized. The review/fix loop, iteration cap, and output
-  contract stay the same.
-- If fallback is required, run a fresh adversarial pass in the main context and
-  state the fallback reason in `design-review.md`.
-- If the sub-agent request fails because the selected model is unavailable or
-  at capacity, treat that as fallback-required. Do not keep retrying the same
-  selected model. Continue in the main context and record the capacity fallback.
+- **Architecture correctness angle:** assumptions, failure modes, interfaces,
+  rollout, reversibility, and option tradeoffs.
+- **Implementation/testability angle:** stage slicing, repo fit, verification,
+  migration risk, and blast radius.
+- **UI/UX angle:** required when `interface-design.md` exists; checks flow,
+  component, responsive, accessibility, and visual QA preservation.
+
+If reviewer sub-agents are explicitly unsupported by the host/runtime, the user
+explicitly forbids reviewer sub-agents, or the selected reviewer/model is
+explicitly unavailable or at capacity, write `design-review.md` with `Result:
+degraded-same-context-review`, record the exact reason, and run the same
+per-angle adversarial review prompts in the main context. Degraded mode still
+preserves multi-angle and multi-round structure; it only loses independent
+agents.
 
 ## Workflow
 
@@ -54,23 +63,29 @@ authorizes delegation.
 
 Track iteration count starting at 1. Max 5 iterations.
 
-#### 2a — Runtime-Aware Review
+#### 2a — Multi-Agent Review Round
 
-Use the runtime-aware adversarial reviewer in a sub-agent only when authorized.
-In Claude Code this is the **Agent tool with
-`subagent_type: "codex:codex-rescue"`** when available and authorized; in
-non-Claude runtimes use the host's native sub-agent mechanism with role
-`ADVERSARIAL_REVIEWER` when authorized. Otherwise, run the same prompt as a
-fresh main-context adversarial pass and record the fallback reason. Construct
-the prompt:
+Launch the required reviewer agents in parallel when possible. Each reviewer
+gets the shared prompt plus its assigned angle. If fewer than the required
+reviewer agents can run because reviewer sub-agents are explicitly unsupported
+by the host/runtime, explicitly forbidden by the user, or the selected
+reviewer/model is explicitly unavailable or at capacity, continue as
+`degraded-same-context-review` using the same prompts in the main context and
+record the reason.
 
-If the host reports a capacity/model-selection error such as "Selected model is
-at capacity", stop attempting the sub-agent for this review iteration. Run the
-same adversarial prompt in the main context and record the reason as a capacity
-fallback in `design-review.md`.
+Each round must produce one verdict per required angle:
+
+| Angle | Required when | Execution |
+|---|---|---|
+| Architecture correctness | always | independent reviewer agent or degraded same-context pass |
+| Implementation/testability | always | independent reviewer agent or degraded same-context pass |
+| UI/UX | `interface-design.md` exists | independent reviewer agent or degraded same-context pass |
+
+Do not collapse angles into one generic review. If degraded, run the same
+angle prompts sequentially in the main context and label the route degraded.
 
 ```
-Adversarial architecture review (iteration <N>). Be blunt, Linus Torvalds style.
+Adversarial architecture review (iteration <N>, angle: <angle>). Be blunt.
 Your job is to find weaknesses — not to validate.
 
 REVIEW PRINCIPLES:
@@ -104,18 +119,20 @@ For each issue, report:
 - The problem, stated concretely
 - What specifically needs to change
 
-If you find no material issues, respond with exactly: LGTM
+If you find no material issues for your assigned angle, respond with exactly: LGTM
 ```
 
 #### 2b — Evaluate & Fix
 
-- If the reviewer returns **LGTM** → break, proceed to Step 3.
+- If all required reviewer angles return **LGTM** → break, proceed to Step 3.
 - Otherwise:
-  1. Print a 1-line summary: `Iteration N: X critical, Y warnings, Z nits.`
+  1. Print a 1-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits.`
   2. For each **critical** and **warning** issue: update `architecture.md` directly with Edit. Be concrete — change the recommendation, rewrite a section, add a failure mode, revise an interface. Do not just append a footnote.
   3. Skip **nits** unless trivially fixable while you're in the file.
   4. If a critical issue requires the user to decide (e.g. a tradeoff they haven't weighed in on), pause the loop and ask. Do not guess on user-owned decisions.
-  5. Go back to 2a.
+  5. Go back to 2a and start a new round. Re-run every required reviewer angle,
+     not just the angle that found the issue. A round is clean only when every
+     required angle returns LGTM in that round.
 
 #### 2c — Safety Limit
 
@@ -141,9 +158,11 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 
 **Slug:** <slug>
 **Date:** <YYYY-MM-DD>
-**Reviewer:** <runtime-aware adversarial reviewer used> + self-review
+**Reviewer:** multi-agent: <angle -> reviewer route>
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
+**Mode:** <multi-agent | degraded-same-context-review>
+**Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 
 ## Issues Raised & Resolution
 | # | Severity | Issue | Resolution |
@@ -151,14 +170,25 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 | 1 | critical | ... | fixed in architecture.md §... |
 | 2 | warning  | ... | user decision: <answer> |
 
+## Review Rounds
+| Round | Angle | Route | Verdict |
+|---|---|---|---|
+| 1 | architecture correctness | sub-agent / degraded | ... |
+| 1 | implementation testability | sub-agent / degraded | ... |
+| 1 | UI/UX | sub-agent / degraded / not applicable | ... |
+
 ## Residual Open Issues
 <Anything accepted as open. Empty is fine.>
 
 ## Design Drift
 <Any mismatch between architecture.md and interface-design.md, and whether it was fixed or accepted. Empty if clean.>
 
-## Reviewer's Final Verdict
-<Paste the reviewer's final LGTM or accepted summary.>
+## Reviewer Final Verdicts
+| Angle | Verdict |
+|---|---|
+| architecture correctness | LGTM / ... |
+| implementation testability | LGTM / ... |
+| UI/UX | LGTM / not applicable / ... |
 
 ## Self-Review Notes
 <What you noticed in the holistic pass. Empty is fine.>
@@ -180,8 +210,10 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 ## Notes
 
 - This skill writes to `architecture.md` (updates) and `design-review.md` (new). It does not touch source code.
-- If the configured adversarial reviewer is unavailable, fall back to a fresh
-  self-review pass with the same principles, and note the fallback in
-  `design-review.md`.
+- Fall back to same-context review only when reviewer sub-agents are explicitly
+  unsupported by the host/runtime, explicitly forbidden by the user, or the
+  selected reviewer/model is explicitly unavailable or at capacity. Record
+  `degraded-same-context-review` and do not present that result as independent
+  multi-agent review.
 - **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.

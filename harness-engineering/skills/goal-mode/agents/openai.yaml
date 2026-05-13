@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal Mode"
+  short_description: "Persistent goal loop for long-running agent work"
+  default_prompt: "Use $goal-mode to run this as a persistent long-horizon goal with checkpoints."

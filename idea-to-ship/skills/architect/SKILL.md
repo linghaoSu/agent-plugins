@@ -26,7 +26,8 @@ Parse:
 3. Read `requirements.md` fully.
 4. Read `interface-design.md` if present. Treat it as UI/UX and visual-system
    context that the technical design must preserve for user-facing surfaces.
-5. If `architecture.md` already exists, read it fully. This run is a revision
+5. Read `../../WORKFLOW-CONTRACTS.md`, especially **Cross-Skill Routing**.
+6. If `architecture.md` already exists, read it fully. This run is a revision
    unless the user explicitly approves starting over.
 
 ### Step 1.5: Architecture Ownership
@@ -64,6 +65,36 @@ exploration pass with the same questions and record the fallback in
 - Are there existing utilities or abstractions we should reuse instead of reinventing?
 
 Ask for a concise report with file paths. Do not proceed without this grounding — the design must fit the codebase, not an imagined one.
+
+### Step 2.5: Cross-Skill Architecture Routing
+
+Apply `../../WORKFLOW-CONTRACTS.md` § Cross-Skill Routing. Route only on
+concrete signals from `requirements.md`, `interface-design.md`, or codebase
+exploration:
+
+- Agent/pipeline/harness/state/evaluator/tool-output risks → run or recommend
+  `harness-engineering:harness-design` or
+  `harness-engineering:sprint-contract`.
+- Multi-context, checkpoint, resume, handoff, or memory-consolidation risks →
+  run or recommend `harness-engineering:resilience-plan` or
+  `harness-engineering:goal-mode`.
+- External dependency, data safety, irreversible side effect, fallback,
+  observability, or recovery risks → run or recommend
+  `antifragile:antifragile-system`.
+- Secrets, credentials, signing keys, auth config, webhooks, or generated
+  examples → add secret-storage/redaction/no-hardcoded-secret constraints; run
+  `secret-scanner:scan-secrets` only if files already changed.
+
+Record every route in `architecture.md` under `## Cross-Skill Routing` with:
+
+```markdown
+| Signal | Routed skill | Result | Design impact |
+|---|---|---|---|
+| ... | ... | ... | ... |
+```
+
+If no route is triggered, write one row: `None | none | no cross-skill signal
+found | none`.
 
 ### Step 3: Design — Multiple Alternatives
 
@@ -112,6 +143,11 @@ Pull from requirements.md; restate in design-relevant terms.
 
 ## Codebase Context
 <Key existing modules this will touch, with file paths. Conventions we must honor.>
+
+## Cross-Skill Routing
+| Signal | Routed skill | Result | Design impact |
+|---|---|---|---|
+| ... | ... | ... | ... |
 
 ## Alternatives Considered
 
@@ -171,7 +207,8 @@ Ordered, independently-shippable stages. Each stage should leave the system work
 
 ### Step 6: Hand-off
 
-1. Print a 5-bullet summary: chosen option, top tradeoff accepted, top risk, first stage, any open questions.
+1. Print a 5-bullet summary: chosen option, top tradeoff accepted, top risk,
+   routed cross-skill checks, first stage, any open questions.
 2. Tell the user: "Run `/review-design` next — the runtime-aware adversarial reviewer will tear this apart and we'll iterate."
 
 ## Anti-Patterns
@@ -192,6 +229,10 @@ These are hard stops. Do not proceed past a gate until its condition is met.
   heading, drafted around with `architecture.draft.md`, or explicitly approved
   for replacement before writing `architecture.md`.
 - **⛔ GATE after Step 2 (Explore):** You must have concrete file paths and module names from the actual codebase before designing anything. If Explore returned nothing useful, widen the search or ask the user — do not design against an imagined codebase.
+- **⛔ GATE after Step 2.5 (Cross-Skill Routing):** Architecture-stage routing
+  signals must be evaluated and recorded. If a required routed skill is
+  unavailable, record the missing route and local fallback instead of silently
+  omitting the risk.
 - **⛔ GATE after Step 3 (Design):** Each alternative must have Pros, Cons, and Risk filled in. If you can't articulate a Con for an option, you don't understand it well enough.
 - **⛔ GATE after Step 4 (Recommend):** The recommendation must name the tradeoff it accepts. "Option A is better in every way" is a sign you invented a straw-man — go back to Step 3.
 

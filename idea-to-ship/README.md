@@ -18,6 +18,7 @@ All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 ├── architecture.md       # from /architect
 ├── roadmap.md            # from /roadmap --slug <name>
 ├── design-review.md      # from /review-design
+├── tdd-log.md            # from /tdd for stage gates or backfill tests
 ├── implementation-log.md # from /implement
 ├── code-review.md        # from /review-code
 └── test-plan.md          # from /test
@@ -38,7 +39,9 @@ constraints, and success criteria are unambiguous. Writes `requirements.md`.
 ### `/architect [notes]`
 Reads `requirements.md`, explores the codebase, and produces `architecture.md`:
 goals, module breakdown, data flow, interfaces, tradeoffs of 2–3 alternatives,
-and a recommendation. Does not write code.
+and a recommendation. Routes to harness / antifragile / secret-handling skills
+when the requirements signal agent, resilience, or credential risk. Does not
+write code.
 
 ### `/ui-design [notes]`
 Reads `requirements.md`, `architecture.md` if present, existing UI code, and
@@ -60,25 +63,39 @@ priority approval, and overwrite safety gates are satisfied. Optional
 quarantined as lower-authority signals unless confirmed.
 
 ### `/review-design [focus]`
-Runtime-aware adversarial review of `architecture.md`. In Claude Code it uses
-Codex (`codex:codex-rescue`) when available; in other runtimes it uses the
-host's native adversarial reviewer role. Linus-style: blunt, skeptical, attacks
-weak assumptions. Iterates — each round updates `architecture.md` with fixes
-until the reviewer returns LGTM (max 5 iterations). Final verdict goes to
-`design-review.md`.
+Multi-agent, multi-angle, multi-round adversarial review of `architecture.md`. Independent
+reviewer agents check architecture correctness, implementation/testability, and
+UI/UX when `interface-design.md` exists. Iterates until every angle returns
+LGTM (max 5 rounds). Same-context review is only the recorded fallback when
+reviewer sub-agents are explicitly unsupported by the host/runtime, explicitly
+forbidden by the user, or the selected reviewer/model is explicitly unavailable
+or at capacity.
 
-### `/implement [--tdd] [stage]`
+### `/implement [stage]`
 Reads `architecture.md` and implements it as stage-by-stage local edits. Logs each stage
 (files touched, decisions, deviations from the design) to
-`implementation-log.md`. Stops between stages for your review. With `--tdd`,
-behavior-changing stages write failing story/acceptance tests before
-production code, then implement until those tests pass.
+`implementation-log.md`. Stops between stages for your review. Production-code
+and behavior-changing stages must call `/tdd` first: failing story/acceptance
+tests come before production code, then implementation continues until those
+tests pass. Stage verification includes signal-driven cross-skill checks such
+as secret scanning, harness audit, antifragile audit, and React checks when the
+diff warrants them.
+
+### `/tdd [--stage <N> | --backfill] [focus]`
+Creates the test gate for a stage before production code, writing stage-local
+evidence to `test-plan.md` and `tdd-log.md`. In `--backfill` mode, supplements
+missing tests for existing code or the current diff without pretending those
+passing tests are TDD. Does not write production code.
 
 ### `/review-code [focus]`
-Runtime-aware adversarial code review of the current diff, looping fix→review
-until clean. Similar to `issue-evaluator/review-fix` but scoped to this flow
-and aware of requirements, architecture, implementation logs, and test-plan
-traceability. Writes `code-review.md`.
+Multi-agent, multi-angle, multi-round adversarial code review of the current diff, looping
+fix→review until every required angle is clean. Similar to
+`issue-evaluator/review-fix` but scoped to this flow and aware of requirements,
+architecture, interface design, implementation logs, and test-plan traceability.
+Same-context review is only the recorded fallback when reviewer sub-agents are
+explicitly unsupported by the host/runtime, explicitly forbidden by the user, or
+the selected reviewer/model is explicitly unavailable or at capacity. Writes
+`code-review.md`.
 
 ### `/test [focus]`
 Produces `test-plan.md` from user stories, acceptance criteria, scenario
@@ -99,11 +116,11 @@ tests and runs them until green.
 /roadmap --goal "ship offline cache safely" --horizon "next 4 weeks"
 # writes a sourced roadmap brief/final roadmap depending on gates
 /review-design
-# runtime-aware adversarial reviewer tears it apart, you fix, loops until LGTM
+# multi-agent reviewers tear it apart, you fix, loops until every angle is LGTM
+/tdd --stage 1
+# writes the failing stage test gate
 /implement
-# staged implementation
-/implement --tdd 1
-# optional test-first implementation for one behavior-changing stage
+# staged TDD-first implementation for code-producing stages
 /test
 # story-driven test plan + implementation
 /review-code
@@ -133,14 +150,23 @@ If `requirements.md` is missing, downstream skills stop and send you back to
 - **Test traceability**: `/test` derives user stories, acceptance criteria,
   scenario matrices, and test cases before final review. `/review-code`
   flags behavior changes without requirement/story/scenario/test evidence.
-- **TDD mode**: `/implement --tdd` is opt-in. It is required to write a
-  failing test before production code for behavior-changing stages, or document
-  why the stage has no meaningful runtime behavior.
-- **Adversarial review uses sub-agents only when authorized** for
-  `/review-design` and `/review-code`. Claude Code uses `codex:codex-rescue`
-  when available and authorized; non-Claude runtimes use their native sub-agent
-  review mechanism when host/user policy permits it. Same-context adversarial
-  passes are recorded fallbacks.
+- **TDD-first implementation**: `/implement` defaults to TDD for production-code
+  and behavior-changing stages by calling `/tdd`. The TDD skill must write a
+  failing test before production code, or document why the stage has no
+  meaningful runtime behavior. `/tdd --backfill` is available for projects that
+  need missing tests added after code already exists.
+- **Multi-agent review**: `/review-design` and `/review-code` require multiple
+  independent reviewer agents, multiple angles, and multiple rounds by default.
+  Same-context adversarial passes are supported only when reviewer sub-agents
+  are explicitly unsupported by the host/runtime, explicitly forbidden by the
+  user, or the selected reviewer/model is explicitly unavailable or at
+  capacity; the artifact must record `degraded-same-context-review` and must
+  not present the result as independent multi-agent review.
+- **Cross-skill routing**: `/architect` and `/implement` may route to other
+  repo skills when their risk signal is present. Read-only or artifact-only
+  routes can run automatically; code/git/GitHub/deployment/credential mutations
+  require explicit user authorization. Routes and outcomes are recorded in
+  `architecture.md` or `implementation-log.md`.
 - **No auto-commit**: skills never commit or push. You control git.
 - **Artifact-first**: skills prefer updating the artifact over chatting.
   Read the file to see what they did.

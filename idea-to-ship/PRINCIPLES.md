@@ -13,7 +13,11 @@ Cite it when you push back on a request that violates it.
 
 Do not assume the host runtime is Claude Code.
 
-- **Delegation gate:** if a skill defines an independent reviewer, explorer, or
+- **Review delegation is pre-authorized:** invoking `/review-design`,
+  `/review-code`, or another review workflow is standing authorization to
+  launch reviewer sub-agents. Do not ask for fresh multi-agent authorization
+  and do not use its absence as a reason to review in the main context.
+- **Non-review delegation gate:** if a non-review skill defines an explorer or
   collection role, use a runtime-native sub-agent only when the host runtime
   permits sub-agents and the current user/host policy authorizes delegation.
   Otherwise, run separate sequential passes in the main context and record the
@@ -25,16 +29,26 @@ Do not assume the host runtime is Claude Code.
   and preserve the same roles: primary analysis, independent second opinion,
   adversarial review, executor, and final synthesis. Label outputs by role
   rather than model name.
-- If sub-agents are unavailable, host policy requires explicit delegation
-  approval that is absent, or the user forbids delegation, do not spawn a
-  sub-agent. Run separate sequential passes in the main context with fresh
-  prompts, record the fallback in the final artifact, and keep the same phase
-  gates.
-- Treat model-selection and capacity errors from a review/explorer sub-agent
-  request, including "Selected model is at capacity", as sub-agent
-  unavailability. Do not retry the same selected model in a loop. Fall back to
-  the main context, record the capacity fallback reason, and continue the
-  workflow.
+- Review workflows are multi-agent, multi-angle, and multi-round by default.
+  Preserve distinct reviewer angles and rerun required angles after fixes or
+  touchups.
+- Fall back to same-context review only when review sub-agents are explicitly
+  unsupported by the host/runtime, the user explicitly forbids reviewer
+  sub-agents, or the selected reviewer/model is explicitly unavailable or at
+  capacity. Record `degraded-same-context-review` and the exact reason, and do
+  not present the result as independent multi-agent review. Degraded mode still
+  preserves the same angles and rounds; it only loses independent agents.
+- If non-review explorer / collection sub-agents are unavailable, host policy
+  requires explicit delegation approval that is absent, or the user forbids
+  delegation, do not spawn a sub-agent. Run separate sequential passes in the
+  main context with fresh prompts, record the fallback in the final artifact,
+  and keep the same phase gates.
+- Treat explicit model-selection and capacity errors from a review/explorer
+  sub-agent request, including "Selected model is at capacity", as sub-agent
+  unavailability. Do not retry the same selected model in a loop. For review,
+  use the recorded same-context degradation above; for non-review exploration,
+  fall back to the main context, record the capacity fallback reason, and
+  continue the workflow.
 
 ## 1. Think before coding
 

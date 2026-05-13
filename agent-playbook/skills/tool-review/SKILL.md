@@ -1,8 +1,8 @@
 ---
 name: tool-review
-description: Review an agent tool, CLI, or MCP server against Anthropic's tool-writing principles - boundaries, consolidation, namespacing, token-efficient returns, error clarity, evaluation hooks. Accepts a tool name, file path, or OpenAPI/MCP schema. Read-only; writes a ranked punch-list.
+description: "Multi-agent review of an agent tool, CLI, or MCP server against tool-writing principles: boundaries, naming, token-efficient returns, errors, eval hooks. Read-only; writes a ranked punch-list."
 argument-hint: '[--slug <name>] <tool-name | path-to-schema | path-to-cli>'
-allowed-tools: [Read, Write, Glob, Grep, Bash]
+allowed-tools: [Read, Write, Glob, Grep, Bash, Agent]
 ---
 
 # Tool Review
@@ -23,6 +23,23 @@ Parse:
   - A path to an MCP server or its schema (`server.json`, `tools/*.ts`).
   - A path to CLI source (arg parser file, manpage, `README`).
   - An OpenAPI/JSON-schema file describing the tool.
+
+## Multi-Agent Review Routing
+
+This is a review workflow. Invocation is standing authorization to launch
+reviewer sub-agents. Run multi-agent, multi-angle, multi-round review by
+default:
+
+- `BOUNDARIES_NAMES`: purpose, scope, consolidation, namespacing
+- `IO_ERRORS_TOKENS`: input schema, output shape, token limits, error clarity
+- `EVAL_SAFETY`: CLI-vs-MCP fit, evaluation hooks, safety/read-only claims
+
+Fall back to same-context review only when reviewer sub-agents are explicitly
+unsupported by the host/runtime, the user explicitly forbids reviewer
+sub-agents, or the selected reviewer/model is explicitly unavailable or at
+capacity. If degraded, record `degraded-same-context-review` and the exact
+reason. Degraded mode still runs the same angles and rounds sequentially; it
+only loses independent agents.
 
 ## Workflow
 
@@ -55,9 +72,15 @@ code execution, and many CLIs do nontrivial work at import/startup. If
 This skill's promise is read-only on the target tool. Executing the
 target breaks that promise.
 
-### Step 2: Score against the checklist
+### Step 2: Round 1 Angle Reviews
 
-For each item, give `✅ / ⚠️ / ❌` plus a one-line reason.
+Launch one reviewer per required angle, in parallel when supported. Each
+reviewer scores only its assigned subset using the checklist below. If degraded,
+run the same angle prompts sequentially in the main context.
+
+For each checklist item, give `✅ / ⚠️ / ❌` plus a one-line reason.
+
+#### Checklist
 
 **Purpose & boundaries**
 - [ ] Single, well-named responsibility. If the name is `process_data`,
@@ -107,7 +130,14 @@ For each item, give `✅ / ⚠️ / ❌` plus a one-line reason.
 - [ ] Agent reasoning transcripts have been reviewed for confusion
       points (per Anthropic's evaluation-driven process).
 
-### Step 3: Write the punch-list
+### Step 3: Round 2 Synthesis + Round 3 Sanity Pass
+
+Synthesize the angle outputs into one ranked punch-list. Then run a final
+sanity pass against the source/schema to catch dropped severe findings,
+duplicate findings, or unsupported claims. If the final pass finds a material
+miss, update the punch-list and record the pass as Round 3.
+
+### Step 4: Write the punch-list
 
 `.agent-playbook/<slug>/tool-review-<tool-name>.md`:
 
@@ -117,6 +147,17 @@ For each item, give `✅ / ⚠️ / ❌` plus a one-line reason.
 **Date:** <YYYY-MM-DD>
 **Type:** <MCP | CLI | REST>
 **Source:** <path or repo>
+**Review mode:** <multi-agent | degraded-same-context-review>
+**Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
+
+## Review Rounds
+| Round | Angle / role | Verdict |
+|---|---|---|
+| 1 | BOUNDARIES_NAMES | ... |
+| 1 | IO_ERRORS_TOKENS | ... |
+| 1 | EVAL_SAFETY | ... |
+| 2 | Synthesis | ... |
+| 3 | Sanity pass | ... |
 
 ## Summary
 <One paragraph. Overall grade: A/B/C/D. Biggest issue in one sentence.>
@@ -151,7 +192,7 @@ deletion or consolidation with the existing tool.>
 <Decisions that look wrong at first glance but are intentional.>
 ```
 
-### Step 4: Hand-off
+### Step 5: Hand-off
 
 1. Print the top 3 fixes + any kill candidates inline.
 2. If this tool is part of a larger set, suggest running `/tool-review`
@@ -162,6 +203,10 @@ deletion or consolidation with the existing tool.>
 
 - **Read-only on the tool's source.** This skill never edits tool code;
   it writes only under `.agent-playbook/<slug>/`.
+- **Review mode matters.** Do not call same-context output independent
+  multi-agent review. Same-context is a recorded degradation only for explicit
+  unsupported runtime, user-forbidden delegation, or reviewer/model
+  unavailable/capacity cases.
 - **Be blunt.** If the tool should not exist, say so. "Already covered
   by `gh pr view`" is a valid verdict.
 - **Don't grade tools on what they can't fix.** If an MCP wraps a

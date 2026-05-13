@@ -26,8 +26,8 @@ This is one of:
 
 Before launching diagnosis or style-analysis agents, read
 `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Runtime-Aware Agent Routing** contract and the **Code Style Guide Lifecycle**
-contract.
+**Multi-Agent Review Routing** contract where this workflow invokes diagnosis
+review or `/review-fix`, and the **Code Style Guide Lifecycle** contract.
 
 ## Workflow
 
@@ -203,7 +203,7 @@ Present a concise summary:
 - <test run result, or "no test suite found">
 
 ### Next Steps
-- Run `/review-fix` to get a runtime-aware adversarial review against the repo's code style
+- Run `/review-fix` to get a runtime-aware multi-agent, multi-angle, multi-round adversarial review against the repo's code style
 - Review the changes: `cd <worktree-path> && git diff $BASE_BRANCH`
 - Push and create PR: `cd <worktree-path> && git push -u origin fix/issue-<number>`
 - To clean up later: `git worktree remove <worktree-path>`

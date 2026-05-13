@@ -16,7 +16,7 @@
     },
     {
       "name": "harness-engineering",
-      "description": "Design, audit, and harden the scaffolding around autonomous agents — the harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Commands: /harness-design, /harness-audit, /sprint-contract, /resilience-plan.",
+      "description": "Design, audit, harden, and run the scaffolding around autonomous agents — the harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Commands: /harness-design, /harness-audit, /sprint-contract, /resilience-plan, /goal-mode.",
       "source": "./harness-engineering"
     },
     {
@@ -26,7 +26,7 @@
     },
     {
       "name": "auto-updater",
-      "description": "SessionStart hook that auto-updates plugins installed from local directory marketplaces when the source repo has a newer commit.",
+      "description": "SessionStart hook that refreshes Claude and Codex plugins installed from local directory marketplaces when their source environment is available.",
       "source": "./auto-updater"
     },
     {

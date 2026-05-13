@@ -15,7 +15,12 @@ All artifacts land under `.harness-engineering/<slug>/` at the repo root:
 ├── harness-design.md     # from /harness-design
 ├── harness-audit.md      # from /harness-audit
 ├── sprint-contract.md    # from /sprint-contract
-└── resilience-plan.md    # from /resilience-plan
+├── resilience-plan.md    # from /resilience-plan
+└── goal/                 # from /goal-mode
+    ├── objective.md
+    ├── state.json
+    ├── iteration-log.md
+    └── handoff.md
 ```
 
 The default `<slug>` is `current`. Pass `--slug <name>` to any skill to switch.
@@ -47,6 +52,12 @@ Context Reset (save state → kill instance → relaunch fresh) and Memory
 Consolidation (periodic compression, dedup, contradiction resolution). Writes
 `resilience-plan.md`.
 
+### `/goal-mode [--slug <name>] [--resume|--status|--complete] [goal]`
+Run a long-horizon task as a persistent execution loop. Captures the objective,
+success criteria, current step, verification evidence, blockers, and compact
+handoff under `.harness-engineering/<slug>/goal/` so another session can resume
+without relying on chat history.
+
 ## Core principles (enforced by all skills)
 
 1. **Constrain, don't instruct.** A schema validator is a guarantee; a prompt
@@ -64,6 +75,7 @@ Consolidation (periodic compression, dedup, contradiction resolution). Writes
   arguments. If omitted, uses `current`.
 - **Artifact-first**: skills prefer updating the markdown artifact over
   chatting. Read the file to see what they did.
-- **No code generation by default**: these skills produce design / audit
-  documents. Implementing the harness is a separate step — hand the artifact
-  to your usual implementation flow (e.g. `idea-to-ship`'s `/implement`).
+- **Design first where appropriate**: `/harness-design`, `/harness-audit`,
+  `/sprint-contract`, and `/resilience-plan` produce design / audit artifacts.
+  `/goal-mode` is execution-oriented and checkpoints task progress while work
+  proceeds.

@@ -1,13 +1,21 @@
 ---
 name: review-code
-description: Runtime-aware adversarial code review of the current diff, looping fix->review until clean. Linus-style bluntness. Uses requirements.md, architecture.md, implementation-log.md, and test-plan.md as context to catch design drift and missing test traceability. Writes code-review.md.
+description: Multi-agent, multi-angle, multi-round code review of the current diff, looping fix->review until all angles are clean. Same-context fallback only for explicit unsupported/forbidden/capacity cases.
 argument-hint: '[--slug <name>] [extra focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a blunt, adversarial review of the current code changes (staged + unstaged). Uses a runtime-aware adversarial reviewer in a sub-agent only when the host permits sub-agents and the current user/host policy authorizes delegation. Otherwise it runs the same adversarial pass in the main context and records the fallback. Iterates fix→review until the reviewer returns LGTM or the iteration budget is spent. Anchored to the requirements, architecture, implementation log, and test plan for this slug so drift and missing verification are caught.
+Run a blunt, adversarial review of the current code changes (staged +
+unstaged) with multiple independent reviewer agents and multiple angles.
+Iterate fix→review until every required angle returns LGTM or the iteration
+budget is spent. Anchored to the requirements, architecture, interface design,
+implementation log, and test plan so drift and missing verification are caught.
+Same-context review is a fallback only when reviewer sub-agents are explicitly
+unsupported by the host/runtime, explicitly forbidden by the user, or the
+selected reviewer/model is explicitly unavailable or at capacity; record the
+degradation reason.
 
 ## Arguments
 
@@ -17,24 +25,27 @@ Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
 - Remaining text → extra focus areas (e.g. "concurrency", "error handling", "SQL injection").
 
-## Runtime-Aware Agent Routing
+## Multi-Agent Review Routing
 
 Read `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Runtime-Aware Review Routing** contract. Use a runtime-native review
-sub-agent only when the host permits sub-agents and the current user/host policy
-authorizes delegation.
+**Multi-Agent Review Routing** contract. Launch independent reviewer agents by
+default:
 
-- In Claude Code, keep the existing Codex adversarial reviewer
-  (`subagent_type: "codex:codex-rescue"`) when available and authorized.
-- Outside Claude Code, do not request Claude-only subagent types. Use the host
-  runtime's native sub-agent mechanism for the same `ADVERSARIAL_REVIEWER`
-  role only when authorized. The review/fix loop, iteration cap, and output
-  contract stay the same.
-- If fallback is required, run a fresh adversarial pass in the main context and
-  state the fallback reason in `code-review.md`.
-- If the sub-agent request fails because the selected model is unavailable or
-  at capacity, treat that as fallback-required. Do not keep retrying the same
-  selected model. Continue in the main context and record the capacity fallback.
+- **Correctness/security angle:** bugs, edge cases, data loss, concurrency,
+  auth, injection, serialization, shell, and other risky boundaries.
+- **Traceability/testability angle:** requirement/story/acceptance/scenario/test
+  trail, TDD evidence, regression coverage, and stage completeness.
+- **Maintainability/repo-fit angle:** local conventions, abstraction cost,
+  dead code, design drift, and surgical scope.
+- **UI/UX angle:** required when `interface-design.md` exists or the diff
+  touches UI; checks component, visual token, interaction-state, responsive,
+  accessibility, and visual QA expectations.
+
+If reviewer sub-agents are explicitly unsupported by the host/runtime, the user
+explicitly forbids reviewer sub-agents, or the selected reviewer/model is
+explicitly unavailable or at capacity, write `code-review.md` with `Result:
+degraded-same-context-review`, record the exact reason, and run the same
+adversarial review prompts in the main context.
 
 ## Workflow
 
@@ -71,23 +82,20 @@ current request documents why no test plan is applicable.
 
 Track iteration count starting at 1. Max 5 iterations.
 
-#### 3a — Runtime-Aware Review
+#### 3a — Multi-Agent Review
 
-Use the runtime-aware adversarial reviewer in a sub-agent only when authorized.
-In Claude Code this is the **Agent tool with
-`subagent_type: "codex:codex-rescue"`** when available and authorized; in
-non-Claude runtimes use the host's native sub-agent mechanism with role
-`ADVERSARIAL_REVIEWER` when authorized. Otherwise, run the same prompt as a
-fresh main-context adversarial pass and record the fallback reason. Prompt:
-
-If the host reports a capacity/model-selection error such as "Selected model is
-at capacity", stop attempting the sub-agent for this review iteration. Run the
-same adversarial prompt in the main context and record the reason as a capacity
-fallback in `code-review.md`.
+Launch the required reviewer agents in parallel when possible. Each reviewer
+gets the shared prompt plus its assigned angle. If fewer than the required
+reviewer agents can run because reviewer sub-agents are explicitly unsupported
+by the host/runtime, explicitly forbidden by the user, or the selected
+reviewer/model is explicitly unavailable or at capacity, continue as
+`degraded-same-context-review` using the same prompts in the main context and
+record the reason.
 
 ```
-Adversarial code review (iteration <N>). Linus Torvalds style — blunt, skeptical,
-no hedging. Find real bugs, security holes, bad abstractions, wrong-feeling code.
+Adversarial code review (iteration <N>, angle: <angle>). Be blunt, skeptical,
+no hedging. Find real bugs, security holes, bad abstractions, and wrong code
+within your assigned angle.
 
 SCOPE RULES (important):
 - Only report issues within the lines changed in this diff.
@@ -138,21 +146,22 @@ For each issue, report:
 - What is wrong and why it matters (be concrete)
 - Concrete fix
 
-If no material issues, reply with exactly: LGTM
+If no material issues exist for your assigned angle, reply with exactly: LGTM
 ```
 
 #### 3b — Evaluate & Fix
 
-- **LGTM** → break, proceed to Step 4.
+- **LGTM from every required reviewer angle** → break, proceed to Step 4.
 - Otherwise:
-  1. One-line summary: `Iteration N: X critical, Y warnings, Z nits (W skipped out-of-scope).`
+  1. One-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits (W skipped out-of-scope).`
   2. Filter before fixing:
      - Drop issues that are pure style/format in code the diff did not actually change.
      - Drop nits unless trivially co-located with a larger fix.
      - Keep criticals, warnings, and any design-drift issues.
   3. Fix each kept issue with Edit. Do not touch unrelated code.
   4. If a fix requires a user decision (tradeoff, spec ambiguity), pause and ask. Do not guess.
-  5. Loop back to 3a.
+  5. Loop back to 3a and re-run every required reviewer angle, not just the
+     angle that found the issue.
 
 #### 3c — Safety Limit
 
@@ -197,9 +206,11 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 # Code Review — <slug>
 
 **Date:** <YYYY-MM-DD>
-**Reviewer:** <runtime-aware adversarial reviewer used> + self-review
+**Reviewer:** multi-agent: <angle -> reviewer route>
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
+**Mode:** <multi-agent | degraded-same-context-review>
+**Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Diff size:** <files changed>, <+added/-removed>
 
 ## Issues Raised & Resolution
@@ -223,7 +234,12 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 <Empty if clean.>
 
 ## Final Verdict
-<Paste the final LGTM line, or the accepted summary.>
+| Angle | Verdict |
+|---|---|
+| correctness/security | LGTM / ... |
+| traceability/testability | LGTM / ... |
+| maintainability/repo-fit | LGTM / ... |
+| UI/UX | LGTM / not applicable / ... |
 ```
 
 ### Step 6: Hand-off
@@ -248,5 +264,8 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 
 - Scope rules matter. Reviewing surrounding unchanged code always produces noise and no value.
 - **Design drift is a first-class finding** (see `../../LANGUAGE.md`). If the implementation took a shortcut the architecture didn't sanction, either (a) fix the code, (b) update `architecture.md` with a documented reason, or (c) note it in `code-review.md`. Silent drift is forbidden.
-- If the configured adversarial reviewer is unavailable, do a fresh self-review
-  pass with the same prompt and note the fallback in the final log.
+- Fall back to same-context review only when reviewer sub-agents are explicitly
+  unsupported by the host/runtime, explicitly forbidden by the user, or the
+  selected reviewer/model is explicitly unavailable or at capacity. Record
+  `degraded-same-context-review` and do not present that result as independent
+  multi-agent review.

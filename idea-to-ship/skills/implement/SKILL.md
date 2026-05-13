@@ -1,20 +1,25 @@
 ---
 name: implement
-description: Implement the design in architecture.md as stage-by-stage local edits, optionally in --tdd mode that writes failing story/acceptance tests before production code. Stops between stages for user review. Logs decisions and deviations to implementation-log.md. Does not commit or push.
-argument-hint: '[--slug <name>] [--tdd] [stage-number | all]'
+description: Implement architecture.md as stage-by-stage local edits. For production-code or behavior-changing stages, requires $idea-to-ship:tdd to create the failing test gate before production code. Logs to implementation-log.md; no commit or push.
+argument-hint: '[--slug <name>] [stage-number | all]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Implement — Staged Build From Architecture
 
-Read `architecture.md` and build it. One stage at a time by default, so you can review and course-correct before the next stage. Every stage leaves the system in a working state. With `--tdd`, write the stage's failing story/acceptance tests before production code, then implement until they pass.
+Read `architecture.md` and build it. One stage at a time by default, so you can
+review and course-correct before the next stage. Every stage leaves the system
+in a working state. For any stage that writes production code or changes
+observable behavior, call `$idea-to-ship:tdd` first to create the failing test
+gate; then implement until that gate passes.
 
 This skill writes code. It does **not** commit, push, or run adversarial review — those are separate (`git` is yours; use `/review-code` when a stage is complete).
 
-**Before coding, read `../../PRINCIPLES.md` and `../../LANGUAGE.md` at the
-plugin root.** PRINCIPLES governs every line written here. LANGUAGE defines
-shared terms (vertical slice, staged implementation, design drift, seam,
-blast radius) — use them precisely.
+**Before coding, read `../../PRINCIPLES.md`, `../../LANGUAGE.md`, and
+`../../WORKFLOW-CONTRACTS.md` at the plugin root.** PRINCIPLES governs every
+line written here. LANGUAGE defines shared terms (vertical slice, staged
+implementation, design drift, seam, blast radius) — use them precisely.
+WORKFLOW-CONTRACTS defines cross-skill routing.
 
 ## Arguments
 
@@ -22,7 +27,8 @@ Raw: `$ARGUMENTS`
 
 Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
-- Optional `--tdd` flag → test-first mode for behavior-changing stages.
+- Optional `--tdd` flag is accepted for compatibility but is redundant; TDD is
+  already the default for production-code or behavior-changing stages.
 - Remaining: stage selector:
   - `<N>` → implement stage N only (e.g. `2`)
   - `all` → run every remaining stage sequentially, pausing between for user confirmation
@@ -36,8 +42,9 @@ Parse:
 2. Require `requirements.md`. If missing → stop, tell user to run `/brainstorm --slug <slug>`.
 3. Require `architecture.md`. If missing → stop, tell user to run `/architect --slug <slug>`.
 4. Read `requirements.md`, `architecture.md`, `interface-design.md` (if
-   present), project `DESIGN.md` (if present and the stage touches UI), and
-   `test-plan.md` (if present) fully.
+   present), project `DESIGN.md` (if present and the stage touches UI),
+   `test-plan.md` (if present), and `../../WORKFLOW-CONTRACTS.md` fully enough
+   to apply **Cross-Skill Routing**.
 5. Read or create `implementation-log.md`:
 
    ```markdown
@@ -90,37 +97,23 @@ Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
 4. If a simpler approach than the architecture's would work and you're
    confident, raise it and wait for confirmation. Do not silently substitute.
 
-### Step 3.6: TDD Setup (only with `--tdd`)
+### Step 3.6: TDD Gate (delegate to `$idea-to-ship:tdd`)
 
-If `--tdd` is set and the stage changes observable behavior:
+If the stage writes production code or changes observable behavior:
 
-1. Identify the user/system story slice for this stage from `requirements.md`,
-   `architecture.md`, `interface-design.md` if present, and `test-plan.md` if
-   present.
-2. Derive or update the stage's acceptance criteria and scenarios:
-   - happy path
-   - at least one edge/corner case or invalid-input path
-   - named failure modes from the architecture
-3. Write the minimal tests first, matching the repo's existing test style.
-   Prefer tests already listed in `test-plan.md`.
-   - If `test-plan.md` exists, update only the rows or `## Stage TDD Slices`
-     entries for this stage. Preserve existing story, acceptance, scenario, and
-     test IDs unless the source behavior changed.
-   - If no `test-plan.md` exists and the stage spans multiple stories or has
-     broad coverage implications, stop and tell the user to run `/test` first.
-   - If no `test-plan.md` exists and the stage is a small single-story slice,
-     create a minimal `test-plan.md` with a clearly labeled
-     `## Stage TDD Slices` section. Mark it stage-local, not full coverage.
-   - If the existing plan cannot be safely merged, write `test-plan.draft.md`
-     or ask before replacing `test-plan.md`.
-4. Run the new/targeted tests and confirm they fail for the expected reason.
-   A test that passes before implementation is not proving the new behavior;
-   rewrite it or explain why this stage is not suitable for TDD.
-5. Record the failing test command and expected failure in
-   `implementation-log.md`.
+1. Use `$idea-to-ship:tdd --slug <slug> --stage <N>` before writing production
+   code. The TDD skill owns test derivation, `test-plan.md` stage slices,
+   `tdd-log.md`, and the expected failing command.
+2. Require TDD evidence before Step 4:
+   - `test-plan.md` contains a `## Stage TDD Slices` entry for this stage.
+   - `tdd-log.md` records `Mode: stage-tdd`.
+   - The targeted test command failed for the expected reason.
+3. If `$idea-to-ship:tdd` blocks because the stage is too broad or the repo
+   lacks necessary test tooling, stop and surface that blocker. Do not inline a
+   weaker same-context TDD substitute inside `/implement`.
 
 If the stage is docs-only, metadata-only, or otherwise has no meaningful
-runtime behavior, do not fake TDD. Document why `--tdd` was skipped for this
+runtime behavior, do not fake TDD. Document why TDD is not applicable for this
 stage and continue with normal implementation.
 
 ### Step 4: Implement The Stage
@@ -136,9 +129,9 @@ Build it. Keep in mind:
   and project `DESIGN.md` for component choices, states, responsive behavior,
   accessibility, and visual QA. If implementation needs to diverge, stop or
   document the deviation in the log before coding around it.
-- **TDD mode:** if `--tdd` is active, do not write production code before the
-  stage's failing tests exist and fail for the expected reason, unless the
-  stage is explicitly documented as not TDD-suitable.
+- **TDD-first:** do not write production code before the stage's failing tests
+  exist and fail for the expected reason, unless the stage is explicitly
+  documented as not TDD-suitable because it has no meaningful runtime behavior.
 
 For each file touched:
 - Prefer Edit over rewrite.
@@ -154,9 +147,42 @@ Run whatever the repo uses to verify code is working:
 
 Report the results concisely. If anything is broken, fix it before moving on.
 
-Outside `--tdd`, do **not** write new tests in this skill — that's `/test`.
-But do not break existing tests either. In `--tdd` mode, run the failing tests
-again after implementation and require them to pass before the stage is done.
+For code-producing stages, rerun the targeted command from `tdd-log.md` after
+implementation and require it to pass before the stage is done. Do not expand
+into full-suite test planning here; broader traceability still belongs to
+`/test`.
+
+### Step 5.5: Cross-Skill Checks
+
+Apply `../../WORKFLOW-CONTRACTS.md` § Cross-Skill Routing to the current stage
+and diff. Run read-only or artifact-only routed skills when their signal is
+present; recommend anything that would mutate code, git, GitHub/GitLab,
+deployment state, credentials, or external systems unless the current request
+explicitly authorized that action.
+
+Use these implementation-stage routes:
+
+- Auth, credentials, `.env`, config, CI, deployment files, webhooks, signing,
+  examples, fixtures, or generated files → run
+  `secret-scanner:scan-secrets --mode working` or the repo's equivalent
+  deterministic secret scan.
+- Agent/pipeline/harness behavior, state persistence, retry, evaluator, or tool
+  middleware → run or recommend `harness-engineering:harness-audit`.
+- External APIs, data consistency, destructive operations, retries, fallback
+  paths, observability, or recovery → run or recommend
+  `antifragile:antifragile-system`.
+- React/UI code → run `react-doctor` when available and perform the relevant
+  UI verification from `interface-design.md`.
+- Long-running goal/pipeline state → use `harness-engineering:goal-mode` only
+  when this implementation stage itself needs persistent execution state.
+
+Record each route for Step 6:
+
+```markdown
+### Cross-Skill Checks
+- `<skill>` — triggered by <signal>; result: <clean | findings | skipped>;
+  impact: <fix applied | follow-up | accepted risk | not applicable>
+```
 
 ### Step 6: Update The Log
 
@@ -182,7 +208,10 @@ Append a section to `implementation-log.md`:
 - build: ok / fail (fixed: <what>)
 - lint:  ok / skipped / ...
 - tests: N passed, M skipped, 0 failed
-- tdd: skipped / failing test written then passed (`<command>`)
+- tdd: `tdd-log.md` entry <timestamp>, failing test then passed (`<command>`) / not applicable (`<reason>`)
+
+### Cross-Skill Checks
+- <skill or "none"> — <trigger/result/impact>
 ```
 
 Tick the stage's checkbox in the Stage Status list at the top.
@@ -208,8 +237,8 @@ Tick the stage's checkbox in the Stage Status list at the top.
 - **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
 - **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
 - **Fake TDD.** Writing tests after implementation and calling it TDD, or
-  writing tests that pass before the behavior exists. In `--tdd` mode, the
-  expected failing test is the gate.
+  writing tests that pass before the behavior exists. For code-producing
+  stages, `$idea-to-ship:tdd` and its expected failing test are the gate.
 
 ## Phase Gates
 
@@ -218,9 +247,15 @@ Tick the stage's checkbox in the Stage Status list at the top.
   around the mismatch. Surface it, get a decision (update the design artifact
   or proceed with documented deviation), then continue.
 - **⛔ GATE after Step 3.5 (Surface Assumptions):** Assumptions must be written down before any code is written. If an assumption has multiple plausible interpretations, you must pick one explicitly and log the pick. "I'll figure it out as I go" is not an option.
-- **⛔ GATE after Step 3.6 (`--tdd` only):** Behavior-changing stages must have failing tests for the stage story/acceptance criteria before production code is written. If TDD is skipped, the log must explain why the stage has no meaningful runtime behavior.
-- **⛔ GATE before touching `test-plan.md` (`--tdd` only):** Existing test-plan content must be preserved, updated by stable ID, drafted around, or explicitly approved for replacement. Stage-local TDD slices must not pretend to be a full `/test` plan.
+- **⛔ GATE after Step 3.6 (TDD):** Production-code and behavior-changing
+  stages must have `$idea-to-ship:tdd` evidence before production code is
+  written. If TDD is skipped, the log must explain why the stage has no
+  meaningful runtime behavior.
 - **⛔ GATE after Step 5 (Verify):** Build, lint, and existing tests must pass. If anything fails, fix it before declaring the stage done. Do not move to Step 6 with a broken build — a "mostly done" stage is worse than an unstarted one.
+- **⛔ GATE after Step 5.5 (Cross-Skill Checks):** Triggered cross-skill checks
+  must run, be explicitly skipped with a reason, or be recommended as
+  user-authorized follow-up. Do not mark a stage complete while a triggered
+  secret scan or safety check is silently omitted.
 
 ## Notes
 

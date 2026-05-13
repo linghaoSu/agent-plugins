@@ -1,7 +1,7 @@
 {
   "name": "auto-updater",
   "version": "0.1.0",
-  "description": "SessionStart hook that auto-updates plugins installed from local directory marketplaces when the source repo has a newer commit.",
+  "description": "SessionStart hook that refreshes Claude and Codex plugins installed from local directory marketplaces when their source environment is available.",
   "author": {
     "name": "linghao"
   },

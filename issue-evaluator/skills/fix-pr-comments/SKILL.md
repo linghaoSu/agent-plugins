@@ -1,6 +1,6 @@
 ---
 name: fix-pr-comments
-description: Triage GitHub PR review comments, apply accepted fixes as local unstaged edits, and draft rebuttals. Read-only on GitHub; no commits or pushes.
+description: Triage GitHub PR review comments, apply accepted fixes as local unstaged edits, then run multi-agent adversarial review. Read-only on GitHub.
 argument-hint: <pr-url-or-number> [--include-resolved]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -48,13 +48,22 @@ This should be one of:
 Optional flag:
 - `--include-resolved` — also evaluate comments on already-resolved threads (default: skip them)
 
-## Runtime-Aware Agent Routing
+## Multi-Agent Review Routing
 
 Before launching analysis, executor, or adversarial review agents, read
 `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Runtime-Aware Agent Routing** contract. The roles for this workflow are
-`ANALYST`, `RECONCILER`, `EXECUTOR`, and `ADVERSARIAL_REVIEWER`. Keep the
-human confirmation gate before edits and keep adversarial review read-only.
+**Multi-Agent Review Routing** contract for all review phases. The roles for
+this workflow are `ANALYST`, `RECONCILER`, `EXECUTOR`, and multiple
+`ADVERSARIAL_REVIEWER:<ANGLE>` roles. Keep the human confirmation gate before
+edits and keep adversarial review read-only.
+
+The adversarial review phase is pre-authorized for reviewer sub-agents. Fall
+back to same-context review only when reviewer sub-agents are explicitly
+unsupported by the host/runtime, the user explicitly forbids them, or the
+selected reviewer/model is explicitly unavailable or at capacity. In degraded
+mode, record `degraded-same-context-review`, run the same angle prompts
+sequentially in the main context, and do not present the result as independent
+multi-agent review.
 
 ## Workflow
 
@@ -446,11 +455,24 @@ Remember: NO commits, NO staging, NO pushes, NO GitHub writes. Just edits + repo
 
 Wait for the executor to finish. Collect the result as `EXECUTOR_REPORT`. Move any `INFEASIBLE` items into the final report's "Needs Your Input" section so the user knows why those comments weren't addressed.
 
-### Step 8: Adversarial Review of the Applied Fixes
+### Step 8: Multi-Angle Adversarial Review of the Applied Fixes
 
 After the executor has applied the edits, run an **adversarial review** over the resulting diff. This is the safety net: the reviewer is an independent pass after analysis and execution, and its job is to catch cases where the executor mis-applied a plan, the plan itself was subtly wrong, or a fix introduced a new bug.
 
-Launch an adversarial reviewer. In Claude Code, use a Codex agent via `subagent_type: "codex:codex-rescue"` if available. In non-Claude runtimes, use a fresh sub-agent with role `ADVERSARIAL_REVIEWER`:
+Launch multiple adversarial reviewers. In Claude Code, use Codex rescue and/or
+native review agents when available. In non-Claude runtimes, use fresh
+sub-agents with roles `ADVERSARIAL_REVIEWER:<ANGLE>`.
+
+Required angles:
+
+- `PLAN_TRACE_SCOPE`: every diff hunk traces to an approved thread/fix plan;
+  no scope creep
+- `CORRECTNESS_REGRESSION_SECURITY`: correctness, regressions, security, API
+  or data breakage
+- `COMPLETENESS_TESTS`: missed plan items, test coverage, verification gaps,
+  disputed upstream verdicts
+
+Use this prompt per angle:
 
 ```
 Adversarial review of the uncommitted edits applied for PR #<number>: "<pr-title>" review-comment fixes.
@@ -458,7 +480,7 @@ Adversarial review of the uncommitted edits applied for PR #<number>: "<pr-title
 You are the third reviewer in a multi-pass pipeline:
 - The analysis phase produced the verdicts and fix plans for each reviewer comment.
 - The executor applied the approved fix plans as uncommitted edits in a worktree.
-- You are reviewing the resulting diff for correctness, scope creep, missed edge cases, and regressions.
+- You are reviewing the resulting diff from the assigned angle: <ANGLE>.
 
 CRITICAL: This review is READ-ONLY.
 - Do NOT run `git commit`, `git add`, `git stash`, `git push`, or anything that records history.
@@ -486,7 +508,9 @@ git diff
 <EXECUTOR_REPORT>
 
 ## Your job
-For each change in the worktree diff, evaluate:
+For each change in the worktree diff, evaluate the checks in your assigned
+angle. Use the list below for shared context, but focus your findings on
+<ANGLE>:
 
 1. **Does the change actually address the cited reviewer comment?** Cross-reference each diff hunk against its `thread_id` in the fix plan. If a hunk doesn't trace back to a thread, that's scope creep — flag it.
 
@@ -527,9 +551,16 @@ Cases where, after reading the actual code, you believe the original verdict was
 - **CLEAN** — all fixes look correct, scoped, and complete. Safe for the user to commit as-is.
 - **NEEDS_TOUCHUP** — minor issues; list what the user should fix before committing.
 - **NEEDS_REWORK** — significant problems; recommend the user roll back specific files and re-run.
+
+### Section F — Angle
+<ANGLE>
 ```
 
-Wait for the adversarial reviewer. Collect as `ADVERSARIAL_REVIEW`. **Do not auto-apply any suggested corrections** — surface them in the final report and let the user decide. The whole skill is human-in-the-loop; the adversarial review is one more voice, not a closer.
+Wait for every adversarial review angle. Collect as `ADVERSARIAL_REVIEW`,
+grouped by angle, and synthesize the strictest verdict. **Do not auto-apply any
+suggested corrections** — surface them in the final report and let the user
+decide. The whole skill is human-in-the-loop; the adversarial review is one
+more safety round, not a closer.
 
 ### Step 9: Verify Locally (Optional, Read-Only)
 
@@ -547,7 +578,9 @@ If yes, try in order based on what the project uses: `npm test`, `pnpm test`, `y
 **PR**: #<number> by @<author> → <baseRefName> ← <headRefName>
 **State**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
 **Worktree**: `<FIX_WORKTREE>` (detached HEAD on `<short-sha>`)
-**Pipeline**: analysis → executor → adversarial review
+**Pipeline**: analysis → executor → multi-agent adversarial review
+**Review mode**: <multi-agent | degraded-same-context-review>
+**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Comments triaged**: <total> total → <actionable> actionable → <accepted> accepted, <rejected> rejected, <deferred> deferred, <answered> answered, <human> need-input
 **Adversarial review verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
 
@@ -591,6 +624,7 @@ For each REJECT verdict, here is the suggested reply you can paste into the disc
 
 ### Adversarial Review
 **Verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
+**Angles**: plan_trace_scope, correctness_regression_security, completeness_tests
 
 **Issues found by adversarial review** (none of these were auto-applied — review and decide):
 - **[critical|warning|nit]** `file:line` (thread <id> | scope creep | new bug) — <what's wrong> → <suggested correction>
@@ -617,7 +651,7 @@ For each REJECT verdict, here is the suggested reply you can paste into the disc
 
 ## Notes
 
-- **Three-role pipeline**: analysis produces verdicts and fix plans, execution applies approved fixes, and adversarial review checks the result. In Claude Code these roles map to Opus, Sonnet, and Codex respectively; in non-Claude runtimes they map to native sub-agents with the same responsibilities. The split is deliberate — analysis is load-bearing, execution is mechanical, and adversarial review needs an independent voice that wasn't part of either previous step.
+- **Three-phase pipeline**: analysis produces verdicts and fix plans, execution applies approved fixes, and multi-angle adversarial review checks the result. In Claude Code these roles map to Opus, Sonnet, and reviewer agents respectively; in non-Claude runtimes they map to native sub-agents with the same responsibilities. The split is deliberate — analysis is load-bearing, execution is mechanical, and adversarial review needs independent voices across multiple angles.
 - **Read-only on GitHub, no commits locally.** Both rules are central to this skill — they're what make it safe to run on a PR you're not yet ready to update. Every sub-agent must obey both.
 - **The user is the arbiter** — Step 6 is mandatory. Never silently auto-implement without showing the triage table. Adversarial review findings in Step 8 are surfaced for the user, never auto-applied.
 - **Be honest in evaluation** — don't ACCEPT a bad comment to be polite, don't REJECT a good one to avoid work. Rigorous, justifiable triage is the entire point.
