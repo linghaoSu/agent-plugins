@@ -35,7 +35,9 @@ Parse:
 1. Resolve `.idea-to-ship/<slug>/`.
 2. Require `requirements.md`. If missing → stop, tell user to run `/brainstorm --slug <slug>`.
 3. Require `architecture.md`. If missing → stop, tell user to run `/architect --slug <slug>`.
-4. Read `requirements.md`, `architecture.md`, and `test-plan.md` (if present) fully.
+4. Read `requirements.md`, `architecture.md`, `interface-design.md` (if
+   present), project `DESIGN.md` (if present and the stage touches UI), and
+   `test-plan.md` (if present) fully.
 5. Read or create `implementation-log.md`:
 
    ```markdown
@@ -65,16 +67,20 @@ Before writing any code:
 
 1. Re-read the stage's subsection in `architecture.md`.
 2. Check the current codebase with Grep/Glob/Read to confirm the assumed pre-stage state (are the files mentioned where the doc claims, with roughly the shape it assumed?).
-3. If the codebase has drifted from what the architecture assumed, **stop and surface the mismatch** rather than guessing. Ask the user whether to update the architecture doc first or proceed with a documented deviation.
+3. If the codebase has drifted from what the architecture or
+   `interface-design.md` assumed, **stop and surface the mismatch** rather than
+   guessing. Ask the user whether to update the design artifact first or
+   proceed with a documented deviation.
 
 ### Step 3.5: Surface Assumptions, Then Push Back If Needed
 
 Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
 
 1. Write down the assumptions this stage is making that aren't already
-   spelled out in `architecture.md`. Things like: "will use existing `X`
-   helper", "will place the file at `Y`", "will rely on library `Z` version
-   ≥ N".
+   spelled out in `architecture.md` or, for UI stages, `interface-design.md`.
+   Things like: "will use existing `X` helper", "will place the file at `Y`",
+   "will rely on library `Z` version ≥ N", or "will use component variant `A`
+   because the design system has no exact `B` state".
 2. If any assumption has multiple plausible interpretations, **list them and
    pick one explicitly** in the log instead of picking silently.
 3. If the stage itself looks wrong now that you're in the code — e.g. the
@@ -89,7 +95,8 @@ Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
 If `--tdd` is set and the stage changes observable behavior:
 
 1. Identify the user/system story slice for this stage from `requirements.md`,
-   `architecture.md`, and `test-plan.md` if present.
+   `architecture.md`, `interface-design.md` if present, and `test-plan.md` if
+   present.
 2. Derive or update the stage's acceptance criteria and scenarios:
    - happy path
    - at least one edge/corner case or invalid-input path
@@ -125,6 +132,10 @@ Build it. Keep in mind:
 - **No speculative error handling.** Validate at system boundaries only. Don't wrap internal calls in defensive try/except that swallows real bugs.
 - **No scope creep.** If you spot an adjacent bug or cleanup opportunity, note it in the log; do not fix it in this stage.
 - **Keep it working.** At the end of the stage the build, type-checker, and existing tests must pass. Run them. If something fails, fix it before declaring the stage done.
+- **Respect interface contracts.** For UI stages, follow `interface-design.md`
+  and project `DESIGN.md` for component choices, states, responsive behavior,
+  accessibility, and visual QA. If implementation needs to diverge, stop or
+  document the deviation in the log before coding around it.
 - **TDD mode:** if `--tdd` is active, do not write production code before the
   stage's failing tests exist and fail for the expected reason, unless the
   stage is explicitly documented as not TDD-suitable.
@@ -161,8 +172,8 @@ Append a section to `implementation-log.md`:
 ### Decisions made during implementation
 - <decision>: <reasoning>
 
-### Deviations from architecture.md
-- <none | or: "did X instead of Y because Z">
+### Deviations from design artifacts
+- <none | or: "did X instead of architecture.md/interface-design.md because Z">
 
 ### Adjacent issues noticed (NOT fixed here)
 - <bullet or "none">
@@ -187,7 +198,13 @@ Tick the stage's checkbox in the Stage Status list at the top.
 ## Anti-Patterns
 
 - **Big-bang implementation.** Implementing all stages at once, or treating "all" mode as permission to skip the pause between stages. Each stage must leave the system working. If you find yourself thinking "I'll fix the breakage in stage 3" while in stage 2, you're doing it wrong — stage 2 must work on its own.
-- **Silent deviation.** The architecture says X, you do Y because it's "obviously better." This is design drift (see `../../LANGUAGE.md`). Either push back and update the architecture first, or document the deviation in the log. Never just do it.
+- **Silent deviation.** The architecture or interface design says X, you do Y
+  because it's "obviously better." This is design drift (see
+  `../../LANGUAGE.md`). Either push back and update the design artifact first,
+  or document the deviation in the log. Never just do it.
+- **Visual freelancing.** A UI contract exists, but the implementation invents
+  colors, spacing, components, or states because they "look better." Update the
+  contract or document the deviation; do not silently fork the design system.
 - **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
 - **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
 - **Fake TDD.** Writing tests after implementation and calling it TDD, or
@@ -196,7 +213,10 @@ Tick the stage's checkbox in the Stage Status list at the top.
 
 ## Phase Gates
 
-- **⛔ GATE after Step 3 (Sanity Check):** If the codebase has drifted from what `architecture.md` assumed, STOP. Do not improvise around the mismatch. Surface it, get a decision (update architecture or proceed with documented deviation), then continue.
+- **⛔ GATE after Step 3 (Sanity Check):** If the codebase has drifted from what
+  `architecture.md` or `interface-design.md` assumed, STOP. Do not improvise
+  around the mismatch. Surface it, get a decision (update the design artifact
+  or proceed with documented deviation), then continue.
 - **⛔ GATE after Step 3.5 (Surface Assumptions):** Assumptions must be written down before any code is written. If an assumption has multiple plausible interpretations, you must pick one explicitly and log the pick. "I'll figure it out as I go" is not an option.
 - **⛔ GATE after Step 3.6 (`--tdd` only):** Behavior-changing stages must have failing tests for the stage story/acceptance criteria before production code is written. If TDD is skipped, the log must explain why the stage has no meaningful runtime behavior.
 - **⛔ GATE before touching `test-plan.md` (`--tdd` only):** Existing test-plan content must be preserved, updated by stable ID, drafted around, or explicitly approved for replacement. Stage-local TDD slices must not pretend to be a full `/test` plan.

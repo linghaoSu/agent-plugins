@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Design"
+  short_description: "Write interface design contracts."
+  default_prompt: "Use $idea-to-ship:ui-design to turn the current idea-to-ship requirements into an implementable UI/UX design contract."

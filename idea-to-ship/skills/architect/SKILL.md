@@ -24,7 +24,9 @@ Parse:
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
 2. Require `requirements.md` to exist. If it doesn't, stop and tell the user to run `/brainstorm --slug <slug>` first.
 3. Read `requirements.md` fully.
-4. If `architecture.md` already exists, read it fully. This run is a revision
+4. Read `interface-design.md` if present. Treat it as UI/UX and visual-system
+   context that the technical design must preserve for user-facing surfaces.
+5. If `architecture.md` already exists, read it fully. This run is a revision
    unless the user explicitly approves starting over.
 
 ### Step 1.5: Architecture Ownership
@@ -100,7 +102,7 @@ Template:
 **Slug:** <slug>
 **Date:** <YYYY-MM-DD>
 **Status:** draft
-**References:** requirements.md
+**References:** requirements.md, interface-design.md (if present)
 
 ## Summary
 <One paragraph. What we're building and the chosen approach in plain English.>

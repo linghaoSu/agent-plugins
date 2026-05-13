@@ -45,7 +45,10 @@ authorizes delegation.
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
 2. Require `requirements.md` to exist. If missing, stop and tell the user to run `/brainstorm --slug <slug>` first.
 3. Require `architecture.md` to exist. If missing, stop and tell the user to run `/architect --slug <slug>` first.
-4. Read `architecture.md` and `requirements.md`. If the architecture's recommended option contradicts requirements, flag it before even calling the adversarial reviewer.
+4. Read `architecture.md`, `requirements.md`, and `interface-design.md` if
+   present. If the architecture's recommended option contradicts requirements
+   or a UI-facing architecture contradicts `interface-design.md`, flag it as
+   design drift before even calling the adversarial reviewer.
 
 ### Step 2: Review Loop
 
@@ -76,6 +79,9 @@ REVIEW PRINCIPLES:
   that will hurt callers.
 - If the recommended option is weaker than a rejected alternative for the
   stated requirements, say so.
+- If `interface-design.md` is provided, check whether UI-facing architecture
+  decisions preserve the interface contract: flows, component expectations,
+  responsive behavior, accessibility, and visual QA gates.
 - Do not invent work. If a concern is out of scope per the requirements,
   say so and move on.
 - Do not pile on stylistic nits. Design-level issues only.
@@ -85,6 +91,9 @@ REVIEW PRINCIPLES:
 
 ## Architecture Under Review
 <full content of architecture.md>
+
+## Interface Design (if present)
+<full content of interface-design.md, or "not provided">
 
 ## Extra Focus From User
 <extra focus text, or "none">
@@ -119,6 +128,8 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 1. Re-read the updated `architecture.md`.
 2. Ask yourself:
    - Does the chosen option still make sense after all the revisions? (Sometimes fixes shift the balance — a rejected alternative may now be better.)
+   - If `interface-design.md` exists, does the architecture still preserve the
+     UI/UX contract or explicitly explain any accepted design drift?
    - Are the staged implementation steps actually independently shippable?
    - Is there anything a new engineer reading this could not act on?
 3. If problems remain, do one more targeted edit. Otherwise proceed.
@@ -142,6 +153,9 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 
 ## Residual Open Issues
 <Anything accepted as open. Empty is fine.>
+
+## Design Drift
+<Any mismatch between architecture.md and interface-design.md, and whether it was fixed or accepted. Empty if clean.>
 
 ## Reviewer's Final Verdict
 <Paste the reviewer's final LGTM or accepted summary.>

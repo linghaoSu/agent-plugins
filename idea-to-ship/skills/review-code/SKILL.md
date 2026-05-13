@@ -42,8 +42,8 @@ authorizes delegation.
 
 1. Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`. If missing,
    stop and tell the user to run `/brainstorm --slug <slug>` first. Read
-   `requirements.md`, plus `architecture.md`, `implementation-log.md`, and
-   `test-plan.md` if present.
+   `requirements.md`, plus `architecture.md`, `interface-design.md`,
+   `implementation-log.md`, and `test-plan.md` if present.
 2. Check that there's a diff to review:
    ```bash
    git diff --shortstat
@@ -98,6 +98,10 @@ SCOPE RULES (important):
 - Check the diff against the architecture. If the implementation deviates from
   the design in a way the implementation-log does not justify, flag it as a
   "design drift" issue.
+- If `interface-design.md` is provided and the diff touches UI, check component
+  choices, visual tokens, interaction states, responsive behavior,
+  accessibility, and visual QA expectations against it. Undocumented
+  divergence is design drift.
 - Check the diff against the test plan. If a behavior-changing implementation
   lacks traceability from requirement -> story -> acceptance criterion ->
   scenario -> test, flag it as a verification gap. For fixes or user-visible
@@ -112,6 +116,9 @@ SCOPE RULES (important):
 
 ## Architecture (context, may be empty)
 <architecture.md or "not provided">
+
+## Interface Design (context, may be empty)
+<interface-design.md or "not provided">
 
 ## Implementation Log (context, may be empty)
 <implementation-log.md or "not provided">
@@ -171,10 +178,10 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
    - **Simplicity first** — any speculative abstraction, unused config knob,
      error handling for impossible states, or "if 200 lines could be 50"
      smell? Flag and trim.
-   - **Surgical changes** — does every changed line trace to a requirement
-     or to `architecture.md`? Any drive-by refactors, adjacent-code
-     improvements, or formatting fixes in untouched territory? Revert
-     anything that can't cite its reason.
+   - **Surgical changes** — does every changed line trace to a requirement,
+     `architecture.md`, or `interface-design.md`? Any drive-by refactors,
+     adjacent-code improvements, or formatting fixes in untouched territory?
+     Revert anything that can't cite its reason.
    - **Goal-driven execution** — is each functional requirement observably
      satisfied by something runnable (test, command, behavior), not just
      "the code looks right"? If not, flag for `/test`.
@@ -204,8 +211,9 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 <Pre-existing style nits etc., for visibility — not fixed.>
 
 ## Design Drift
-<Any place the implementation departed from architecture.md, and whether it was
-reconciled (fix implementation / update architecture / accept as documented deviation).>
+<Any place the implementation departed from architecture.md or
+interface-design.md, and whether it was reconciled (fix implementation / update
+design artifact / accept as documented deviation).>
 
 ## Test Traceability
 <Requirement/story/acceptance/scenario/test gaps. Include missing happy path,

@@ -14,6 +14,7 @@ All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 ```
 .idea-to-ship/<slug>/
 ├── requirements.md       # from /brainstorm
+├── interface-design.md   # from /ui-design for UI/UX-heavy work
 ├── architecture.md       # from /architect
 ├── roadmap.md            # from /roadmap --slug <name>
 ├── design-review.md      # from /review-design
@@ -38,6 +39,14 @@ constraints, and success criteria are unambiguous. Writes `requirements.md`.
 Reads `requirements.md`, explores the codebase, and produces `architecture.md`:
 goals, module breakdown, data flow, interfaces, tradeoffs of 2–3 alternatives,
 and a recommendation. Does not write code.
+
+### `/ui-design [notes]`
+Reads `requirements.md`, `architecture.md` if present, existing UI code, and
+project `DESIGN.md` if present. Produces `interface-design.md`: UX brief,
+design-system map, visual contract, interaction spec, component states,
+responsive behavior, accessibility contract, and visual QA plan. With
+`--write-design-md`, creates or updates project-level `DESIGN.md` as a reusable
+visual-system contract. Does not write production code.
 
 ### `/roadmap [options]`
 Builds or refreshes an evidence-backed roadmap. Defaults to the portfolio
@@ -83,6 +92,8 @@ tests and runs them until green.
 ```bash
 /brainstorm "I want to add an offline cache to the API client"
 # answers questions, writes requirements.md
+/ui-design
+# optional for UI-heavy work, writes interface-design.md
 /architect
 # writes architecture.md with 2 options + recommendation
 /roadmap --goal "ship offline cache safely" --horizon "next 4 weeks"
@@ -113,6 +124,9 @@ If `requirements.md` is missing, downstream skills stop and send you back to
 - **Roadmap scope**: `/roadmap` defaults to portfolio mode
   (`.idea-to-ship/roadmap.md`). With `--slug <name>`, it writes the feature
   roadmap for that slug.
+- **UI design contract**: `/ui-design` is optional for backend-only work and
+  expected for UI-heavy work. `interface-design.md` is the slug-level contract;
+  project `DESIGN.md` is only written when explicitly requested.
 - **Roadmap safety**: final Now/Next/Later lanes require explicit goal,
   horizon, sourced candidate items, and overwrite safety. Weak signals such as
   TODOs and mined issues never enter `Now` automatically.

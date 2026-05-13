@@ -26,8 +26,8 @@ Parse:
 1. Resolve `.idea-to-ship/<slug>/`.
 2. Require `requirements.md`. If missing, stop and tell the user to run
    `/brainstorm --slug <slug>` first. Read `requirements.md`, plus whichever
-   of these exist: `architecture.md`, `implementation-log.md`,
-   `code-review.md`, `test-plan.md`.
+   of these exist: `architecture.md`, `interface-design.md`,
+   `implementation-log.md`, `code-review.md`, `test-plan.md`.
 3. Identify the changed files:
    ```bash
    git diff --name-only HEAD
@@ -119,6 +119,9 @@ For each behavior, identify:
 - **Error paths**: what failure modes are named in `architecture.md § Failure Modes`? Each needs a test that proves the handling works.
 - **Integration seams**: the boundaries where this code talks to other systems — DB, HTTP, filesystem, time, randomness. These need either real integration tests or carefully-scoped mocks.
 - **Regression hooks**: any adjacent-bug or design-drift notes from `implementation-log.md` / `code-review.md` that map to a test.
+- **UI contracts**: if `interface-design.md` exists, include relevant
+  accessibility, responsive, interaction-state, and visual QA checks in the
+  appropriate unit / integration / e2e layer.
 
 **Do not test what you don't own.** Framework behavior, library internals, and trivial getters are noise. Test the behavior your change added.
 
@@ -273,6 +276,10 @@ Do not chase a coverage percentage — chase meaningful behavior coverage. A 100
 - **⛔ GATE after Step 2 (Stories):** Every functional requirement must map to at least one user/system story or be explicitly marked untestable/out of scope.
 - **⛔ GATE after Step 3 (Scenarios):** Every acceptance criterion must map to at least one scenario. Every core story must have a happy path plus at least one edge, invalid-input, alternate, or failure-mode scenario, unless a documented reason says no such path exists.
 - **⛔ GATE after Step 4 (Test Cases):** You must have at least one test case per acceptance criterion. If a criterion has no corresponding test case, either the criterion is untestable (flag it) or you missed something (go back).
+- **⛔ GATE after Step 4 (UI Contracts):** If `interface-design.md` exists,
+  every relevant accessibility, responsive, interaction-state, and visual QA
+  contract must map to a scenario/test or be explicitly listed in
+  `Out Of Scope` with a reason.
 - **⛔ GATE after Step 7 (Implement):** All new tests must run and pass before proceeding to Step 8. Do not write 20 tests and then debug them all at once — write a few, run, fix, repeat.
 
 ## Notes

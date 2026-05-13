@@ -54,6 +54,17 @@ ARCHITECTURE_CORE_HEADINGS = (
     "## Chosen Design",
     "## Staged Implementation Plan",
 )
+INTERFACE_DESIGN_CORE_HEADINGS = (
+    "## Summary",
+    "## UX Brief",
+    "## Existing UI / Design System Map",
+    "## Visual Contract",
+    "## Interaction Spec",
+    "## Component Spec",
+    "## Responsive Spec",
+    "## Accessibility Contract",
+    "## Visual QA Plan",
+)
 
 
 CHECKS: tuple[ContractCheck, ...] = (
@@ -116,6 +127,47 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "ui-design-artifact-contract",
+        "idea-to-ship/skills/ui-design/SKILL.md",
+        (
+            InvariantGroup("requires requirements", (r"Require `requirements\.md`",)),
+            InvariantGroup("interface design artifact", (r"interface-design\.md",)),
+            InvariantGroup("project design md boundary", (r"--write-design-md", r"DESIGN\.md")),
+            InvariantGroup("design system map", (r"Design System Map",)),
+            InvariantGroup("do dont constraints", (r"Do / Don't",)),
+            InvariantGroup("accessibility contract", (r"Accessibility Contract",)),
+            InvariantGroup("visual qa", (r"Visual QA Plan",)),
+            InvariantGroup("known gaps", (r"Known gaps",)),
+            InvariantGroup("decision rationale", (r"Design Decisions", r"Tradeoff")),
+            InvariantGroup("phase gates", (r"Phase Gates", r"Design System Map", r"Verification Plan")),
+        ),
+    ),
+    ContractCheck(
+        "ui-design-rerun-preservation-contract",
+        "idea-to-ship/skills/ui-design/SKILL.md",
+        (
+            InvariantGroup("interface design ownership", (r"Interface Design Ownership",)),
+            InvariantGroup("human content preservation", (r"human notes", r"human-owned")),
+            InvariantGroup("draft fallback", (r"interface-design\.draft\.md",)),
+            InvariantGroup("replacement approval", (r"explicit approval",)),
+        ),
+    ),
+    ContractCheck(
+        "ui-design-runtime-metadata-contract",
+        "idea-to-ship/skills/ui-design/agents/openai.yaml",
+        (
+            InvariantGroup("plugin qualified default prompt", (r"\$idea-to-ship:ui-design",)),
+        ),
+    ),
+    ContractCheck(
+        "ui-design-figma-routing-contract",
+        "idea-to-ship/skills/ui-design/SKILL.md",
+        (
+            InvariantGroup("figma route", (r"route through the available Figma skill",)),
+            InvariantGroup("figma fallback", (r"tooling is unavailable", r"Known Gaps")),
+        ),
+    ),
+    ContractCheck(
         "test-requires-brainstorm-contract",
         "idea-to-ship/skills/test/SKILL.md",
         (
@@ -131,6 +183,42 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("requires requirements", (r"Require `requirements\.md`",)),
             InvariantGroup("run brainstorm when missing", (r"/brainstorm --slug <slug>",)),
             InvariantGroup("required context", (r"Requirements \(required context\)",)),
+        ),
+    ),
+    ContractCheck(
+        "downstream-interface-design-contract",
+        "idea-to-ship/skills/implement/SKILL.md",
+        (
+            InvariantGroup("implement reads interface design", (r"interface-design\.md",)),
+            InvariantGroup("implement reads project design", (r"DESIGN\.md",)),
+            InvariantGroup("ui contract drift", (r"design drift", r"document the deviation")),
+        ),
+    ),
+    ContractCheck(
+        "review-design-interface-design-contract",
+        "idea-to-ship/skills/review-design/SKILL.md",
+        (
+            InvariantGroup("review reads interface design", (r"interface-design\.md",)),
+            InvariantGroup("architecture ui contradiction", (r"contradicts `interface-design\.md`", r"design drift")),
+            InvariantGroup("prompt includes interface design", (r"## Interface Design",)),
+            InvariantGroup("drift output", (r"## Design Drift",)),
+        ),
+    ),
+    ContractCheck(
+        "review-code-interface-design-contract",
+        "idea-to-ship/skills/review-code/SKILL.md",
+        (
+            InvariantGroup("review reads interface design", (r"interface-design\.md",)),
+            InvariantGroup("component visual responsive a11y", (r"component.{0,80}visual.{0,120}responsive.{0,120}accessibility",)),
+            InvariantGroup("drift artifact", (r"departed from architecture\.md or\s+interface-design\.md",)),
+        ),
+    ),
+    ContractCheck(
+        "test-interface-design-contract",
+        "idea-to-ship/skills/test/SKILL.md",
+        (
+            InvariantGroup("test reads interface design", (r"interface-design\.md",)),
+            InvariantGroup("ui contract test mapping", (r"UI Contracts", r"scenario/test", r"Out Of Scope")),
         ),
     ),
     ContractCheck(
@@ -401,6 +489,25 @@ def run_artifact_fixtures(root: Path) -> list[tuple[str, str | None]]:
                 (
                     "architecture-draft-fallback-artifact",
                     f"expected architecture.draft.md, got {architecture_target.name}",
+                )
+            )
+
+        malformed_interface_design = artifact_dir / "interface-design.md"
+        malformed_interface_design.write_text(
+            "# Human Interface Notes\n\nManual visual notes.\n", encoding="utf-8"
+        )
+        interface_design_target = resolve_structured_artifact_write_target(
+            malformed_interface_design,
+            "interface-design.draft.md",
+            INTERFACE_DESIGN_CORE_HEADINGS,
+        )
+        if interface_design_target.name == "interface-design.draft.md":
+            results.append(("interface-design-draft-fallback-artifact", None))
+        else:
+            results.append(
+                (
+                    "interface-design-draft-fallback-artifact",
+                    f"expected interface-design.draft.md, got {interface_design_target.name}",
                 )
             )
 
