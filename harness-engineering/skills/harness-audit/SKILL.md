@@ -1,6 +1,6 @@
 ---
 name: harness-audit
-description: Audit an existing autonomous agent or pipeline against the 7-layer harness stack and the four canonical anti-patterns (self-grading illusion, optimizing for illusion of correctness, context anxiety, memory bloat). Scores each layer, flags concrete gaps, and prescribes minimum-invasive fixes. Writes .harness-engineering/<slug>/harness-audit.md.
+description: Audit an existing autonomous agent or pipeline against the 7-layer harness stack and canonical anti-patterns. Writes .harness-engineering/<slug>/harness-audit.md.
 argument-hint: '[--slug <name>] [path/glob or description of the agent code to audit]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 ---

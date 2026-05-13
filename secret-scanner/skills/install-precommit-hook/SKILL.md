@@ -1,6 +1,6 @@
 ---
 name: install-precommit-hook
-description: Install secret-scanner as a git pre-commit hook in the current repo. Copies scan.py into .secret-scanner/ so the repo is self-sufficient, then writes .git/hooks/pre-commit. Asks before overwriting any existing hook. Supports a --framework pre-commit mode that adds a .pre-commit-hooks entry instead for teams using the pre-commit tool.
+description: Install secret-scanner as a repo-local git pre-commit hook, with overwrite confirmation and native or pre-commit framework modes.
 argument-hint: '[--framework native|pre-commit] [--abort-on-findings|--warn-only]'
 allowed-tools: [Read, Write, Edit, Bash, Glob]
 ---

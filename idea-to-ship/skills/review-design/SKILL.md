@@ -21,9 +21,10 @@ Parse:
 
 ## Runtime-Aware Agent Routing
 
-Read `../../PRINCIPLES.md` and apply its **Runtime-aware agent routing**
-section. Use a runtime-native review sub-agent only when the host permits
-sub-agents and the current user/host policy authorizes delegation.
+Read `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
+**Runtime-Aware Review Routing** contract. Use a runtime-native review
+sub-agent only when the host permits sub-agents and the current user/host policy
+authorizes delegation.
 
 - In Claude Code, keep the existing Codex adversarial reviewer
   (`subagent_type: "codex:codex-rescue"`) when available and authorized.

@@ -44,6 +44,7 @@ Advisory checks report risk without changing the release gate exit code.
 
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
+| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
 | `idea-to-ship-fixtures` | `all` | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` |
 | `agent-playbook-fixtures` | `all` | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook instruction contracts and skill metadata fixtures stay intact. | `WARN` |
 
@@ -69,7 +70,7 @@ Blocking
   PASS secret-scan: secret scan passed
 
 Advisory
-  <none>
+  PASS skill-hygiene: skill hygiene checks passed
 
 Skipped
   SKIP idea-to-ship-fixtures: runs only in --mode all
@@ -80,6 +81,7 @@ In `--mode all`, fixture checks appear under Advisory:
 
 ```text
 Advisory
+  PASS skill-hygiene: skill hygiene checks passed
   PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
   PASS agent-playbook-fixtures: agent-playbook fixture checks passed
 ```
@@ -95,7 +97,6 @@ Exit codes:
 
 The current gate intentionally excludes:
 
-- runtime-aware wording advisory scans.
 - hook robustness advisory scans.
 - hook installation.
 - CI wiring.

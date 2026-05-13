@@ -518,6 +518,33 @@ check_agent_playbook_fixtures() {
   fi
 }
 
+check_skill_hygiene() {
+  command_text="python3 scripts/skill-hygiene-check.py --mode $MODE ."
+
+  if [ ! -f "scripts/skill-hygiene-check.py" ]; then
+    add_result "advisory" "warn" "skill-hygiene" \
+      "skill hygiene checker is missing" \
+      "scripts/skill-hygiene-check.py" "$command_text" 2
+    return
+  fi
+
+  output="$(python3 scripts/skill-hygiene-check.py --mode "$MODE" . 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "skill-hygiene" \
+      "skill hygiene checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "skill-hygiene" \
+      "skill hygiene checks reported issues" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "skill-hygiene" \
+      "skill hygiene checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -588,6 +615,7 @@ check_skill_frontmatter
 check_skill_metadata
 check_diff_whitespace
 check_secret_scan
+check_skill_hygiene
 check_idea_to_ship_fixtures
 check_agent_playbook_fixtures
 

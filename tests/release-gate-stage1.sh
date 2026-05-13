@@ -3,6 +3,7 @@ set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE_SRC="$ROOT/scripts/release-gate.sh"
+HYGIENE_SRC="$ROOT/scripts/skill-hygiene-check.py"
 SCANNER_SRC="$ROOT/secret-scanner/scripts/scan.py"
 TMP_ROOT="$(mktemp -d)"
 FAILURES=0
@@ -54,6 +55,7 @@ make_fixture_repo() {
   mkdir -p "$repo/demo/skills/example"
 
   cp "$GATE_SRC" "$repo/scripts/release-gate.sh"
+  cp "$HYGIENE_SRC" "$repo/scripts/skill-hygiene-check.py"
   cp "$SCANNER_SRC" "$repo/secret-scanner/scripts/scan.py"
   chmod +x "$repo/scripts/release-gate.sh"
 
@@ -119,6 +121,7 @@ test_valid_repo_passes() {
   assert_contains "$repo/out.txt" "PASS skill-metadata" "valid repo"
   assert_contains "$repo/out.txt" "PASS diff-whitespace" "valid repo"
   assert_contains "$repo/out.txt" "PASS secret-scan" "valid repo"
+  assert_contains "$repo/out.txt" "PASS skill-hygiene" "valid repo"
   assert_contains "$repo/out.txt" "SKIP idea-to-ship-fixtures" "valid repo"
   assert_contains "$repo/out.txt" "SKIP agent-playbook-fixtures" "valid repo"
 }
@@ -258,6 +261,29 @@ test_staged_secret_fails() {
   assert_contains "$repo/out.txt" "FAIL secret-scan" "staged secret"
 }
 
+test_new_skill_missing_metadata_warns() {
+  repo="$(make_fixture_repo new_skill_missing_metadata)"
+  mkdir -p "$repo/demo/skills/new-skill"
+  cat >"$repo/demo/skills/new-skill/SKILL.md" <<'MD'
+---
+name: new-skill
+description: New skill fixture.
+allowed-tools: [Read]
+---
+
+# New Skill
+MD
+  (
+    cd "$repo" &&
+      git add demo/skills/new-skill/SKILL.md
+  )
+  run_gate "$repo" --mode staged
+  code="$?"
+  assert_exit "$code" 0 "new skill missing metadata advisory"
+  assert_contains "$repo/out.txt" "WARN skill-hygiene" "new skill missing metadata advisory"
+  assert_contains "$repo/out.txt" "missing-openai-metadata" "new skill missing metadata advisory"
+}
+
 test_invalid_mode_exits_2() {
   repo="$(make_fixture_repo invalid_mode)"
   run_gate "$repo" --mode banana
@@ -295,6 +321,11 @@ if [ ! -f "$GATE_SRC" ]; then
   exit 1
 fi
 
+if [ ! -f "$HYGIENE_SRC" ]; then
+  fail "missing skill hygiene script at $HYGIENE_SRC"
+  exit 1
+fi
+
 if [ ! -f "$SCANNER_SRC" ]; then
   fail "missing secret scanner at $SCANNER_SRC"
   exit 1
@@ -309,6 +340,7 @@ test_malformed_skill_metadata_fails
 test_staged_whitespace_fails
 test_working_whitespace_fails
 test_staged_secret_fails
+test_new_skill_missing_metadata_warns
 test_invalid_mode_exits_2
 test_missing_secret_scanner_exits_2
 test_all_mode_missing_idea_to_ship_fixture_is_advisory
