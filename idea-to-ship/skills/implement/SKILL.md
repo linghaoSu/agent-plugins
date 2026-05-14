@@ -44,7 +44,9 @@ Parse:
 4. Read `requirements.md`, `architecture.md`, `interface-design.md` (if
    present), project `DESIGN.md` (if present and the stage touches UI),
    `test-plan.md` (if present), and `../../WORKFLOW-CONTRACTS.md` fully enough
-   to apply **Cross-Skill Routing**.
+   to apply **Cross-Skill Routing**. Do not treat a missing
+   `interface-design.md` as harmless until the selected stage has been checked
+   for UI work in Step 3.
 5. Read or create `implementation-log.md`:
 
    ```markdown
@@ -73,8 +75,18 @@ If all stages are already complete, tell the user and stop.
 Before writing any code:
 
 1. Re-read the stage's subsection in `architecture.md`.
-2. Check the current codebase with Grep/Glob/Read to confirm the assumed pre-stage state (are the files mentioned where the doc claims, with roughly the shape it assumed?).
-3. If the codebase has drifted from what the architecture or
+2. Determine whether the selected stage touches UI. Treat it as a UI stage if
+   it changes a user-visible screen, component, layout, style, visual asset,
+   interaction state, accessibility behavior, responsive behavior, route/page,
+   form, table, chart, navigation, or frontend state that directly changes what
+   a user sees. Do not count frontend-only tests, build config, or internal
+   data plumbing as UI work unless they alter the visible interface.
+3. If the selected stage touches UI and `.idea-to-ship/<slug>/interface-design.md`
+   is missing, **stop before coding** and tell the user to run
+   `/ui-design --slug <slug>` first. Implementation must consume the UI design
+   contract; it must not create one implicitly.
+4. Check the current codebase with Grep/Glob/Read to confirm the assumed pre-stage state (are the files mentioned where the doc claims, with roughly the shape it assumed?).
+5. If the codebase has drifted from what the architecture or
    `interface-design.md` assumed, **stop and surface the mismatch** rather than
    guessing. Ask the user whether to update the design artifact first or
    proceed with a documented deviation.
@@ -234,6 +246,9 @@ Tick the stage's checkbox in the Stage Status list at the top.
 - **Visual freelancing.** A UI contract exists, but the implementation invents
   colors, spacing, components, or states because they "look better." Update the
   contract or document the deviation; do not silently fork the design system.
+- **Implicit UI design.** A stage touches UI but no `interface-design.md`
+  exists, so the implementer designs from screenshots, vague notes, or taste
+  during implementation. Stop and run `/ui-design --slug <slug>` first.
 - **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
 - **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
 - **Fake TDD.** Writing tests after implementation and calling it TDD, or
@@ -246,6 +261,10 @@ Tick the stage's checkbox in the Stage Status list at the top.
   `architecture.md` or `interface-design.md` assumed, STOP. Do not improvise
   around the mismatch. Surface it, get a decision (update the design artifact
   or proceed with documented deviation), then continue.
+- **⛔ GATE after Step 3 (UI Contract):** If the selected stage touches UI and
+  `.idea-to-ship/<slug>/interface-design.md` is missing, STOP and run
+  `/ui-design --slug <slug>` first. Do not infer UI layout, components,
+  responsive behavior, or visual treatment inside `/implement`.
 - **⛔ GATE after Step 3.5 (Surface Assumptions):** Assumptions must be written down before any code is written. If an assumption has multiple plausible interpretations, you must pick one explicitly and log the pick. "I'll figure it out as I go" is not an option.
 - **⛔ GATE after Step 3.6 (TDD):** Production-code and behavior-changing
   stages must have `$idea-to-ship:tdd` evidence before production code is

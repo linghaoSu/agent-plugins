@@ -239,6 +239,8 @@ CHECKS: tuple[ContractCheck, ...] = (
         (
             InvariantGroup("implement reads interface design", (r"interface-design\.md",)),
             InvariantGroup("implement reads project design", (r"DESIGN\.md",)),
+            InvariantGroup("ui stage missing contract stops", (r"touches UI", r"/ui-design --slug <slug>", r"stop before coding")),
+            InvariantGroup("implicit ui design anti pattern", (r"Implicit UI design",)),
             InvariantGroup("ui contract drift", (r"design drift", r"document the deviation")),
         ),
     ),

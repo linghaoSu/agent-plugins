@@ -165,7 +165,8 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   roadmap for that slug.
 - **UI design contract**: `/ui-design` is optional for backend-only work and
   expected for UI-heavy work. `interface-design.md` is the slug-level contract;
-  project `DESIGN.md` is only written when explicitly requested.
+  project `DESIGN.md` is only written when explicitly requested. `/implement`
+  stops before UI stages when `interface-design.md` is missing.
 - **Roadmap safety**: final Now/Next/Later lanes require explicit goal,
   horizon, sourced candidate items, and overwrite safety. Weak signals such as
   TODOs and mined issues never enter `Now` automatically.
