@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commercialize"
+  short_description: "Turn commercial strategy into roadmap input"
+  default_prompt: "Use $commercialize to analyze product commercialization and turn the conclusions into idea-to-ship roadmap inputs."

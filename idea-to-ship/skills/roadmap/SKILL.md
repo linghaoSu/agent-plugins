@@ -64,17 +64,19 @@ Use this precedence when evidence conflicts:
 
 1. Explicit user goal / instruction in the current request
 2. Accepted `requirements.md`
-3. Reviewed `architecture.md` / `design-review.md`
-4. `implementation-log.md`
-5. `test-plan.md`, test results, `code-review.md`
-6. Repo docs and manifests
-7. GitHub milestones explicitly tied to the goal (only with `--include-github`)
-8. Active GitHub PRs explicitly tied to the goal (only with `--include-github`)
-9. Labeled/current GitHub issues explicitly tied to the goal (only with
+3. Accepted `commercialization.md` for ICP, monetization, packaging,
+   commercial gates, and feature-to-business-impact prioritization
+4. Reviewed `architecture.md` / `design-review.md`
+5. `implementation-log.md`
+6. `test-plan.md`, test results, `code-review.md`
+7. Repo docs and manifests
+8. GitHub milestones explicitly tied to the goal (only with `--include-github`)
+9. Active GitHub PRs explicitly tied to the goal (only with `--include-github`)
+10. Labeled/current GitHub issues explicitly tied to the goal (only with
    `--include-github`)
-10. Recent git history (only with `--include-git`)
-11. TODO/FIXME (only with `--include-todos`)
-12. Stale, unlabeled, or generic GitHub issues (only with `--include-github`)
+11. Recent git history (only with `--include-git`)
+12. TODO/FIXME (only with `--include-todos`)
+13. Stale, unlabeled, or generic GitHub issues (only with `--include-github`)
 
 Recent git history confirms freshness, completion, and drift. It does not
 override explicit goal-tied planning signals unless those signals are stale or
@@ -86,9 +88,9 @@ go to `Unverified Signals`, not `Now` or `Next`.
 
 ## Confidence Rules
 
-- **High:** explicit user request, accepted requirements, reviewed
-  architecture, active implementation artifact, or milestone/issue explicitly
-  linked to the goal.
+- **High:** explicit user request, accepted requirements, accepted
+  commercialization brief, reviewed architecture, active implementation
+  artifact, or milestone/issue explicitly linked to the goal.
 - **Medium:** repo docs, manifests, recent commits, active PRs, current labeled
   issues, or TODOs tied to active files with direct citations.
 - **Low:** inferred gaps, generic TODO/FIXME, stale issue, pattern matching,
@@ -114,7 +116,7 @@ Controlled values:
 - `Status`: `Committed`, `Planned`, `Candidate`, `Blocked`, `Done`,
   `Deferred`, `Needs Revalidation`
 - `Work Type`: `Feature`, `Maintenance`, `Spike`, `Bug`, `Docs`, `Release`
-- `Evidence Class`: `Explicit`, `Artifact`, `Repo`, `Git`, `TODO`,
+- `Evidence Class`: `Explicit`, `Commercial`, `Artifact`, `Repo`, `Git`, `TODO`,
   `GitHubMilestone`, `GitHubPR`, `GitHubIssue`, `Inferred`
 
 For every item promoted to `Now`, `Next`, `Later`, a milestone, or a release
@@ -124,7 +126,7 @@ gate, use this lane item template verbatim:
 ### <ID> — <Title>
 **Status:** <Committed|Planned|Candidate|Blocked|Done|Deferred|Needs Revalidation>
 **Work Type:** <Feature|Maintenance|Spike|Bug|Docs|Release>
-**Evidence Class:** <Explicit|Artifact|Repo|Git|TODO|GitHubMilestone|GitHubPR|GitHubIssue|Inferred>
+**Evidence Class:** <Explicit|Commercial|Artifact|Repo|Git|TODO|GitHubMilestone|GitHubPR|GitHubIssue|Inferred>
 **Confidence:** <High|Medium|Low|Unknown>
 **Source Anchors:** <path:line | artifact heading | commit SHA | issue/PR URL | user statement>
 **Why Now / Why Next / Why Later:** <prioritization rationale>
@@ -196,7 +198,7 @@ List included and excluded sources before reading deeply.
 
 Default source budgets:
 - Slug artifacts: all files in `.idea-to-ship/<slug>/` (or all slug dirs in
-  portfolio mode)
+  portfolio mode), including `commercialization.md` when present
 - Repo docs/manifests: README, plugin manifests, package manifests, and docs
   directly relevant to the goal
 - Git (`--include-git`): last 30 commits max
@@ -223,6 +225,9 @@ Collect source notes with anchors:
 
 - `.idea-to-ship/*/requirements.md`: functional requirements, success criteria,
   open questions.
+- `.idea-to-ship/*/commercialization.md`: ICP, buyer/user split, monetization
+  model, pricing/packaging hypotheses, commercial gates, feature-to-business
+  impact, validation metrics, and open commercial decisions.
 - `.idea-to-ship/*/architecture.md`: recommendation, staged implementation,
   hard dependencies.
 - `.idea-to-ship/*/design-review.md`: unresolved design risks.

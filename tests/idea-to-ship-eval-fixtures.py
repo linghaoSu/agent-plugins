@@ -102,6 +102,30 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "commercialize-artifact-contract",
+        "idea-to-ship/skills/commercialize/SKILL.md",
+        (
+            InvariantGroup("commercialization artifact", (r"commercialization\.md",)),
+            InvariantGroup("pre requirements mode", (r"pre-requirements",)),
+            InvariantGroup("scenario expansion", (r"Commercial Scenario Expansion", r"CS-001", r"fuzzy idea")),
+            InvariantGroup("commercial analysis", (r"ICP", r"Monetization Model", r"Feature-To-Business Impact")),
+            InvariantGroup("multi angle review", (r"Multi-Angle Commercial Review", r"Review Rounds")),
+            InvariantGroup("roadmap handoff", (r"Handoff To Roadmap", r"/roadmap --slug <slug>")),
+        ),
+    ),
+    ContractCheck(
+        "commercialize-requirements-boundary",
+        "idea-to-ship/skills/commercialize/SKILL.md",
+        (
+            InvariantGroup("requirements boundary", (r"cannot replace\s+`requirements\.md`",)),
+            InvariantGroup("brainstorm next when missing", (r"/brainstorm --slug <slug>",)),
+            InvariantGroup("no weak now", (r"Weak`, `Unknown`, and `Speculative` items cannot be recommended as `Now`",)),
+            InvariantGroup("reject costly low return", (r"Rejected / Costly Low-Return Ideas", r"High-cost low-return")),
+            InvariantGroup("no user pleasing", (r"Do not flatter the user", r"User-pleasing summaries")),
+            InvariantGroup("scenario disqualifier", (r"Disqualifier", r"One-scenario anchoring")),
+        ),
+    ),
+    ContractCheck(
         "architect-requires-brainstorm-contract",
         "idea-to-ship/skills/architect/SKILL.md",
         (
@@ -137,6 +161,9 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("do dont constraints", (r"Do / Don't",)),
             InvariantGroup("accessibility contract", (r"Accessibility Contract",)),
             InvariantGroup("visual qa", (r"Visual QA Plan",)),
+            InvariantGroup("visual reference intake", (r"Visual Reference Intake", r"Visual References", r"Image-Derived Constraints")),
+            InvariantGroup("image reference roles", (r"target", r"inspiration", r"competitor", r"avoid")),
+            InvariantGroup("mood board anti pattern", (r"Mood-board averaging",)),
             InvariantGroup("known gaps", (r"Known gaps",)),
             InvariantGroup("decision rationale", (r"Design Decisions", r"Tradeoff")),
             InvariantGroup("phase gates", (r"Phase Gates", r"Design System Map", r"Verification Plan")),

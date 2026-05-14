@@ -1,6 +1,6 @@
 {
   "name": "idea-to-ship",
-  "description": "End-to-end flow from a vague idea to shipped code: Socratic requirement mining, UI/UX design contracts, architecture design, evidence-backed roadmap planning, multi-agent adversarial design review, dedicated TDD gates and test backfill, staged implementation, multi-agent traceability-aware code review, and story-driven test strategy. Each stage lands a markdown artifact under .idea-to-ship/ so stages compose and can resume.",
+  "description": "End-to-end flow from a vague idea to shipped code: Socratic requirement mining, commercialization strategy, UI/UX design contracts, architecture design, evidence-backed roadmap planning, multi-agent adversarial design review, dedicated TDD gates and test backfill, staged implementation, multi-agent traceability-aware code review, and story-driven test strategy. Each stage lands a markdown artifact under .idea-to-ship/ so stages compose and can resume.",
   "author": {
     "name": "linghao"
   }

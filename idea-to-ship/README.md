@@ -3,7 +3,8 @@
 A plugin for taking a fuzzy idea all the way to shipped, tested code. Each stage
 produces a markdown artifact on disk so you can stop, edit, and resume anywhere.
 Every new idea-to-ship slug starts with `/brainstorm`; downstream stages require
-the resulting `requirements.md`.
+the resulting `requirements.md`. Commercialization planning can run before or
+after `/brainstorm`, but it does not replace requirements for build stages.
 
 All skills that write or review code apply the four principles in
 [`PRINCIPLES.md`](./PRINCIPLES.md): Think Before Coding · Simplicity First ·
@@ -14,6 +15,7 @@ All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 ```
 .idea-to-ship/<slug>/
 ├── requirements.md       # from /brainstorm
+├── commercialization.md  # from /commercialize
 ├── interface-design.md   # from /ui-design for UI/UX-heavy work
 ├── architecture.md       # from /architect
 ├── roadmap.md            # from /roadmap --slug <name>
@@ -35,6 +37,19 @@ For a fresh slug, run `/brainstorm --slug <name>` first.
 Mandatory first stage. Turns a vague idea into a concrete requirements document
 via Socratic Q&A. Asks clarifying questions in batches until the problem, users,
 constraints, and success criteria are unambiguous. Writes `requirements.md`.
+
+### `/commercialize [options]`
+Expands fuzzy product ideas into concrete commercialization scenarios, then
+turns business-model conclusions into roadmap inputs. Covers ICP, buyer/user
+split, monetization model, pricing/packaging hypotheses, paid/free boundaries,
+commercial blockers, feature-to-business impact, validation metrics,
+adversarial multi-angle review, explicit rejection of impractical or costly
+low-return ideas, and open commercial decisions. Writes `commercialization.md`.
+
+This can run before `/brainstorm` for a rough commercial thesis, but the result
+is marked `pre-requirements` until `requirements.md` exists. `/roadmap` treats
+`commercialization.md` as prioritization evidence, not as a replacement for
+requirements.
 
 ### `/architect [notes]`
 Reads `requirements.md`, explores the codebase, and produces `architecture.md`:
@@ -109,6 +124,8 @@ tests and runs them until green.
 ```bash
 /brainstorm "I want to add an offline cache to the API client"
 # answers questions, writes requirements.md
+/commercialize --goal "find the first paid path" --horizon "next 6 weeks"
+# writes commercialization.md with ICP, pricing/packaging hypotheses, commercial gates
 /ui-design
 # optional for UI-heavy work, writes interface-design.md
 /architect
@@ -138,6 +155,11 @@ If `requirements.md` is missing, downstream skills stop and send you back to
 - **Mandatory brainstorm**: every new slug begins with `/brainstorm`, which
   owns `requirements.md`. Roadmaps can sequence work, but they do not replace
   brainstormed requirements for design, implementation, test, or review.
+- **Commercialization input**: `/commercialize` owns `commercialization.md`.
+  It can run before `/brainstorm` as a business hypothesis, but downstream
+  build stages still require `requirements.md`. `/roadmap` may use
+  `commercialization.md` to prioritize commercial gates, packaging work, and
+  validation experiments.
 - **Roadmap scope**: `/roadmap` defaults to portfolio mode
   (`.idea-to-ship/roadmap.md`). With `--slug <name>`, it writes the feature
   roadmap for that slug.

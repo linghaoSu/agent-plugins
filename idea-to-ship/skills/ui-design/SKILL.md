@@ -86,6 +86,55 @@ If the requirements are too thin to identify users, tasks, or success criteria,
 stop and send the user back to `/brainstorm --slug <slug>`. Do not invent a
 persona or workflow to make the artifact look complete.
 
+### Step 2.5: Visual Reference Intake
+
+When the user supplies screenshots, image files, mood boards, competitor
+captures, exported mockups, or a folder of visual assets, turn them into
+structured evidence before designing. A pile of images is not a design spec.
+
+If images are attached or available by local path, inspect them with the
+available image-viewing or screenshot tooling. If images are only described but
+not accessible, ask for paths, a zip/folder location, or a short inventory.
+Do not infer fine visual details from inaccessible images.
+
+Create a visual reference inventory:
+
+```markdown
+| ID | Source | Type | Intended Role | Relevant Surface / State | Extracted Constraints | Conflicts / Limits |
+|---|---|---|---|---|---|---|
+| VR-001 | <file/path or attachment label> | target|inspiration|brand|competitor|current-ui|asset|avoid | <must-match|borrow|avoid|reuse|background> | <screen/state> | <layout, density, color role, type, component, imagery> | <why limited> |
+```
+
+Use these roles:
+- `target`: the user wants this matched closely for a specific surface.
+- `current-ui`: existing product screenshot; treat as shipped UI evidence.
+- `brand`: visual identity, tone, logo, photography, or campaign direction.
+- `competitor`: market convention reference, not something to copy blindly.
+- `inspiration`: aesthetic direction only; lower authority than repo UI.
+- `asset`: an image to reuse directly, such as logo, product photo, icon, or
+  illustration.
+- `avoid`: a negative reference; preserve what not to do.
+
+For each image, extract only implementable constraints:
+- Layout: grid, region hierarchy, density, alignment, whitespace, aspect ratios.
+- Components: buttons, inputs, tabs, cards, tables, charts, navigation, dialogs.
+- States: hover, focus, selected, disabled, empty, loading, error, success.
+- Color: token role or semantic usage; raw hex only when no token exists.
+- Typography: scale, weight, hierarchy, line length, casing.
+- Imagery/icons: style, crop, subject matter, reuse rights or asset path.
+- Motion/depth: only if the image implies a state transition or layer model.
+
+Conflict rules:
+- Project `DESIGN.md` and shipped UI outrank loose inspiration images.
+- A user-labeled `target` image outranks generic inspiration for the named
+  surface only.
+- Do not average incompatible images into a collage style. Cluster references
+  by role and choose one dominant direction per surface.
+- If references conflict, record the conflict and make a recommendation instead
+  of silently mixing styles.
+- If an image is beautiful but irrelevant to the task model, classify it as
+  `inspiration` or `avoid`; do not let it drive component choices.
+
 ### Step 3: Design System Map
 
 Map what the implementation should reuse:
@@ -161,6 +210,17 @@ Write or update:
 **Components to reuse:** <component -> role>
 **States available:** <state inventory>
 **Known gaps:** <uncertain or missing design-system evidence>
+
+## Visual References
+| ID | Source | Type | Intended Role | Relevant Surface / State | Extracted Constraints | Conflicts / Limits |
+|---|---|---|---|---|---|---|
+| ... | ... | target/inspiration/brand/competitor/current-ui/asset/avoid | must-match/borrow/avoid/reuse/background | ... | ... | ... |
+
+## Image-Derived Constraints
+**Must match:** <constraints from target/current-ui references>
+**May borrow:** <constraints from inspiration/brand/competitor references>
+**Must avoid:** <negative references or rejected image patterns>
+**Unusable / unclear references:** <images that could not be inspected or mapped>
 
 ## Visual Contract
 **Style archetype:** <quiet SaaS / dense ops / editorial / commerce / etc.>
@@ -242,6 +302,10 @@ project-level design contract:
 - **⛔ GATE after Step 2 (UX Brief):** Users, primary tasks, context of use,
   success criteria, and falsifiable UX hypotheses must be concrete enough to
   design against. If not, stop and send the user back to `/brainstorm`.
+- **⛔ GATE after Step 2.5 (Visual Reference Intake):** If images were supplied,
+  every image must be inventoried with a role, extracted constraints, and either
+  a mapped surface/state or a reason it is not usable. Conflicting references
+  must be resolved or recorded before writing the Visual Contract.
 - **⛔ GATE after Step 3 (Design System Map):** The design must cite concrete
   UI evidence paths, reusable tokens, reusable components, states, and known
   gaps. If no UI system exists, say that explicitly and define the smallest
@@ -260,6 +324,8 @@ project-level design contract:
   beautiful" without tokens, components, states, or constraints.
 - **Screenshot cosplay.** Copying the look of a famous product while ignoring
   this repo's existing components, density, data model, and user tasks.
+- **Mood-board averaging.** Treating a pile of unrelated images as one coherent
+  direction. Assign roles, cluster references, and reject conflicts explicitly.
 - **Static-only design.** Specifying only the happy-path screen and omitting
   loading, empty, error, disabled, focus, and responsive states.
 - **Decorative drift.** Adding gradients, oversized cards, hero layouts, or
