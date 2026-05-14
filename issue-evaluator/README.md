@@ -43,6 +43,27 @@ Evaluates a GitHub issue against the current codebase.
 /evaluate-issue #123
 ```
 
+### `/fix-issue [--compete|--tournament] <issue-url-or-number|description>`
+
+Implements a GitHub issue fix from a prior evaluation report, a live GitHub
+issue, or a free-form fix description. It creates or reuses an isolated
+worktree, writes a verifiable done check before coding, applies the minimal fix,
+runs relevant tests, and commits inside the fix worktree.
+
+With `--compete` or `--tournament`, it routes through
+`agent-playbook/implementation-tournament` before normal implementation:
+multiple independent candidate fixes are produced in isolated worktrees,
+verified against the same done check, reviewed independently, and only the
+selected patch is applied back to the active fix worktree. If no candidate
+wins, the workflow stops instead of writing a fallback fix.
+
+**Usage:**
+```bash
+/fix-issue https://github.com/owner/repo/issues/123
+/fix-issue --compete 123
+/fix-issue --tournament "fix intermittent 401 during token refresh"
+```
+
 ### `/review-pr <pr-url-or-number>`
 
 Reviews a GitHub pull request locally without posting any comments or modifications to the PR.

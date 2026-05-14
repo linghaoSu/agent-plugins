@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation Tournament"
+  short_description: "Compare independent fixes before choosing one"
+  default_prompt: "Use $implementation-tournament to run independent implementation candidates, review them, and select the best patch."

@@ -113,6 +113,18 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("fix log artifact", (r"vibe-fix-log\.md",)),
         ),
     ),
+    ContractCheck(
+        "implementation-tournament-contract",
+        "agent-playbook/skills/implementation-tournament/SKILL.md",
+        (
+            InvariantGroup("explicit only", (r"explicitly asks", r"--compete", r"--tournament")),
+            InvariantGroup("isolated worktrees", (r"isolated candidate worktrees", r"same base commit")),
+            InvariantGroup("objective verification", (r"same checks", r"failing candidate cannot win")),
+            InvariantGroup("review angles", (r"Correctness / contract fit", r"Minimality / blast radius", r"Maintainability / readability")),
+            InvariantGroup("no winner", (r"No Winner", r"do not apply any candidate patch")),
+            InvariantGroup("no commit push", (r"Do not commit or push",)),
+        ),
+    ),
 )
 
 

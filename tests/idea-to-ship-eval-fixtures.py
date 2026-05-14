@@ -255,6 +255,16 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "implement-optional-tournament-contract",
+        "idea-to-ship/skills/implement/SKILL.md",
+        (
+            InvariantGroup("compete flag", (r"--compete", r"--tournament")),
+            InvariantGroup("routes to tournament", (r"\$agent-playbook:implementation-tournament",)),
+            InvariantGroup("artifact path", (r"implementation-tournament\.md",)),
+            InvariantGroup("no winner stops", (r"No Winner", r"fallback")),
+        ),
+    ),
+    ContractCheck(
         "review-design-interface-design-contract",
         "idea-to-ship/skills/review-design/SKILL.md",
         (

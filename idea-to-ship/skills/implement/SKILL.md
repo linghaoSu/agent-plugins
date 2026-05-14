@@ -29,6 +29,9 @@ Parse:
 - Optional leading `--slug <name>`. Default slug: `current`.
 - Optional `--tdd` flag is accepted for compatibility but is redundant; TDD is
   already the default for production-code or behavior-changing stages.
+- Optional `--compete` or `--tournament` -> before normal implementation, run
+  `$agent-playbook:implementation-tournament` for this stage and adopt only the
+  selected candidate patch.
 - Remaining: stage selector:
   - `<N>` → implement stage N only (e.g. `2`)
   - `all` → run every remaining stage sequentially, pausing between for user confirmation
@@ -127,6 +130,28 @@ If the stage writes production code or changes observable behavior:
 If the stage is docs-only, metadata-only, or otherwise has no meaningful
 runtime behavior, do not fake TDD. Document why TDD is not applicable for this
 stage and continue with normal implementation.
+
+### Step 3.7: Optional Implementation Tournament
+
+If `--compete`, `--tournament`, or an explicit user request for competing
+implementations is present, route to `$agent-playbook:implementation-tournament`
+before Step 4.
+
+Pass the tournament skill:
+- Caller: `implement`
+- Slug and stage number
+- `requirements.md`, `architecture.md`, `interface-design.md` if present,
+  `DESIGN.md` if relevant, `test-plan.md`, and `tdd-log.md`
+- The selected stage subsection and non-goals
+- The expected failing-then-passing TDD command, if applicable
+- Verification commands and cross-skill checks known so far
+- Artifact path: `.idea-to-ship/<slug>/implementation-tournament.md`
+
+The tournament must run candidates in isolated worktrees, verify every
+candidate with the same checks, and apply only the selected patch back to the
+active worktree. If it returns `No Winner`, stop and update
+`implementation-log.md` with the tournament outcome instead of writing a
+fallback implementation in the same turn.
 
 ### Step 4: Implement The Stage
 
@@ -249,6 +274,9 @@ Tick the stage's checkbox in the Stage Status list at the top.
 - **Implicit UI design.** A stage touches UI but no `interface-design.md`
   exists, so the implementer designs from screenshots, vague notes, or taste
   during implementation. Stop and run `/ui-design --slug <slug>` first.
+- **Tournament by default.** Multiple implementations are expensive. Use
+  `$agent-playbook:implementation-tournament` only when explicitly requested by
+  `--compete`, `--tournament`, or the user.
 - **Speculative scaffolding.** Adding config knobs, feature flags, abstraction layers, or "flexibility" that no stage calls for. This stage is about doing the described thing — nothing more.
 - **Horizontal slicing.** Writing all the models first, then all the handlers, then all the tests. Each stage should be a vertical slice — end-to-end through all layers, delivering one observable behavior. If you're implementing "the database layer" as a stage, the architecture is sliced wrong — push back.
 - **Fake TDD.** Writing tests after implementation and calling it TDD, or
@@ -270,6 +298,10 @@ Tick the stage's checkbox in the Stage Status list at the top.
   stages must have `$idea-to-ship:tdd` evidence before production code is
   written. If TDD is skipped, the log must explain why the stage has no
   meaningful runtime behavior.
+- **⛔ GATE after Step 3.7 (Tournament):** If tournament mode is enabled,
+  `$agent-playbook:implementation-tournament` must return an adopted patch,
+  merged patch, or `No Winner`. Do not continue with an unreviewed same-context
+  fallback after `No Winner`.
 - **⛔ GATE after Step 5 (Verify):** Build, lint, and existing tests must pass. If anything fails, fix it before declaring the stage done. Do not move to Step 6 with a broken build — a "mostly done" stage is worse than an unstarted one.
 - **⛔ GATE after Step 5.5 (Cross-Skill Checks):** Triggered cross-skill checks
   must run, be explicitly skipped with a reason, or be recommended as

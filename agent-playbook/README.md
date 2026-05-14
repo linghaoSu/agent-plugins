@@ -67,6 +67,15 @@ finding, applies safe local cleanup when explicitly authorized, and writes
 `.agent-playbook/<slug>/vibe-fix-log.md`. It routes domain-specific or unsafe
 work to the owning skill instead of becoming a generic autopilot.
 
+### `/implementation-tournament [--slug <name>] [--candidates N]`
+Runs an explicit best-of-N implementation tournament. It creates isolated
+candidate worktrees, asks independent workers to implement the same fixed
+contract, verifies every candidate with the same checks, runs independent
+review angles, and adopts, merges, or rejects candidates with reasons. This is
+optional high-cost mode used by workflows such as `idea-to-ship/implement` and
+`issue-evaluator/fix-issue` only when the user asks for competing
+implementations.
+
 ### `/commit-changes [message, scope, or draft PR request]`
 Create a local git commit after reading the current repo's commit
 requirements. Verifies the intended diff, runs required pre-commit checks,
@@ -82,8 +91,11 @@ trailers.
 - **Read-only by default.** `/context-audit` and `/tool-review` never
   mutate your repo; `/bootstrap-project-memory` writes only after showing
   you the proposed file. `/vibe-coding-fix` applies only bounded local cleanup
-  from a prior health check when explicitly authorized. `/commit-changes`
-  mutates git history and creates GitHub draft PRs only when the user asks and
-  the repo's checks pass.
+  from a prior health check when explicitly authorized.
+  `/implementation-tournament` mutates only when explicitly invoked: it creates
+  isolated candidate worktrees and applies the selected patch back to the
+  caller worktree, but it does not commit or push. `/commit-changes` mutates
+  git history and creates GitHub draft PRs only when the user asks and the
+  repo's checks pass.
 - **Cite sources.** Every recommendation points at the specific article
   and section so you can sanity-check before applying.
