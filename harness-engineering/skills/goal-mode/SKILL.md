@@ -1,6 +1,6 @@
 ---
 name: goal-mode
-description: Run long-horizon work as a persistent goal loop: define objective, externalize state, choose one next step, verify progress, checkpoint, and resume across sessions. Use when the user asks for goal mode, continuous iteration, long-running tasks, or multi-turn execution. Writes .harness-engineering/<slug>/goal/.
+description: "Run long-horizon work as a persistent goal loop: define objective, externalize state, choose one next step, verify progress, checkpoint, and resume across sessions. Use when the user asks for goal mode, continuous iteration, long-running tasks, or multi-turn execution. Writes .harness-engineering/<slug>/goal/."
 argument-hint: '[--slug <name>] [--resume|--status|--complete] [goal text]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 ---
