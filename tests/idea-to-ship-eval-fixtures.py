@@ -126,6 +126,53 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "commercialize-template-reference-contract",
+        "idea-to-ship/skills/commercialize/SKILL.md",
+        (
+            InvariantGroup("scenario template reference", (r"commercial-scenario\.md",)),
+            InvariantGroup("review hypothesis template reference", (r"commercial-review-and-hypothesis\.md",)),
+            InvariantGroup("artifact template reference", (r"commercialization\.md", r"templates/commercialization")),
+            InvariantGroup("generated marker policy retained", (r"idea-to-ship:commercialize generated:start",)),
+        ),
+    ),
+    ContractCheck(
+        "commercial-scenario-template-contract",
+        "idea-to-ship/templates/commercial-scenario.md",
+        (
+            InvariantGroup("scenario id", (r"CS-001",)),
+            InvariantGroup("target segment", (r"Target segment",)),
+            InvariantGroup("buyer blocker", (r"User / buyer / blocker",)),
+            InvariantGroup("trigger event", (r"Trigger event",)),
+            InvariantGroup("current alternative", (r"Current alternative",)),
+            InvariantGroup("monetizable pain", (r"Monetizable pain",)),
+            InvariantGroup("value metric", (r"Value metric",)),
+            InvariantGroup("paid boundary", (r"First paid boundary",)),
+            InvariantGroup("disqualifier", (r"Disqualifier",)),
+        ),
+    ),
+    ContractCheck(
+        "commercial-review-hypothesis-template-contract",
+        "idea-to-ship/templates/commercial-review-and-hypothesis.md",
+        (
+            InvariantGroup("reviewer table", (r"Keep / Change / Reject", r"Cost Concern", r"Roadmap Implication")),
+            InvariantGroup("hypothesis ids", (r"CH-001", r"CH-002")),
+            InvariantGroup("hypothesis table", (r"Hypothesis", r"Revenue Lever", r"Validation Check", r"Stop Condition")),
+        ),
+    ),
+    ContractCheck(
+        "commercialization-template-contract",
+        "idea-to-ship/templates/commercialization.md",
+        (
+            InvariantGroup("human owned sections", (r"Human-Owned Sections",)),
+            InvariantGroup("generated markers", (r"idea-to-ship:commercialize generated:start", r"idea-to-ship:commercialize generated:end")),
+            InvariantGroup("review rounds", (r"Review Rounds", r"Round 0", r"Round 3")),
+            InvariantGroup("commercial hypotheses", (r"Commercial Hypotheses",)),
+            InvariantGroup("feature impact", (r"Feature-To-Business Impact",)),
+            InvariantGroup("rejected ideas", (r"Rejected / Costly Low-Return Ideas",)),
+            InvariantGroup("handoff", (r"Handoff To Roadmap",)),
+        ),
+    ),
+    ContractCheck(
         "architect-requires-brainstorm-contract",
         "idea-to-ship/skills/architect/SKILL.md",
         (
@@ -192,6 +239,37 @@ CHECKS: tuple[ContractCheck, ...] = (
         (
             InvariantGroup("figma route", (r"route through the available Figma skill",)),
             InvariantGroup("figma fallback", (r"tooling is unavailable", r"Known Gaps")),
+        ),
+    ),
+    ContractCheck(
+        "ui-design-template-reference-contract",
+        "idea-to-ship/skills/ui-design/SKILL.md",
+        (
+            InvariantGroup("visual reference template", (r"visual-reference-inventory\.md",)),
+            InvariantGroup("interface template", (r"interface-design\.md", r"templates/interface-design")),
+            InvariantGroup("visual references retained", (r"Visual References", r"Image-Derived Constraints")),
+            InvariantGroup("verification sections retained", (r"Accessibility Contract", r"Visual QA Plan")),
+        ),
+    ),
+    ContractCheck(
+        "visual-reference-template-contract",
+        "idea-to-ship/templates/visual-reference-inventory.md",
+        (
+            InvariantGroup("inventory columns", (r"Source", r"Intended Role", r"Extracted Constraints", r"Conflicts / Limits")),
+            InvariantGroup("roles", (r"target", r"inspiration", r"competitor", r"current-ui", r"avoid")),
+            InvariantGroup("role actions", (r"must-match", r"borrow", r"avoid", r"reuse")),
+        ),
+    ),
+    ContractCheck(
+        "interface-design-template-contract",
+        "idea-to-ship/templates/interface-design.md",
+        (
+            InvariantGroup("core headings", (r"## Summary", r"## UX Brief", r"## Existing UI / Design System Map")),
+            InvariantGroup("visual references", (r"## Visual References", r"## Image-Derived Constraints")),
+            InvariantGroup("visual contract", (r"## Visual Contract", r"Do / Don't")),
+            InvariantGroup("interaction component responsive", (r"## Interaction Spec", r"## Component Spec", r"## Responsive Spec")),
+            InvariantGroup("accessibility visual qa", (r"## Accessibility Contract", r"## Visual QA Plan")),
+            InvariantGroup("decisions questions", (r"## Design Decisions", r"## Open Questions")),
         ),
     ),
     ContractCheck(
@@ -338,6 +416,51 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "roadmap-template-reference-contract",
+        "idea-to-ship/skills/roadmap/SKILL.md",
+        (
+            InvariantGroup("item schema template reference", (r"roadmap-item-schema\.md",)),
+            InvariantGroup("candidate brief template reference", (r"roadmap-candidate-brief\.md",)),
+            InvariantGroup("final template reference", (r"roadmap-final\.md",)),
+            InvariantGroup("generated marker policy retained", (r"idea-to-ship:roadmap generated:start",)),
+        ),
+    ),
+    ContractCheck(
+        "roadmap-item-schema-template-contract",
+        "idea-to-ship/templates/roadmap-item-schema.md",
+        (
+            InvariantGroup("stable ids", (r"ITS-ROADMAP-001", r"ITS-<slug>-001")),
+            InvariantGroup("candidate table", (r"Status", r"Work Type", r"Evidence Class", r"Source Anchors")),
+            InvariantGroup("lane fields", (r"\*\*Release Gate:\*\*", r"\*\*Evidence Required:\*\*", r"\*\*Dependencies:\*\*", r"\*\*Risk:\*\*")),
+            InvariantGroup("no loose substitutes", (r"Do not substitute looser fields",)),
+        ),
+    ),
+    ContractCheck(
+        "roadmap-candidate-brief-template-contract",
+        "idea-to-ship/templates/roadmap-candidate-brief.md",
+        (
+            InvariantGroup("candidate brief", (r"Candidate Brief",)),
+            InvariantGroup("source plan", (r"Source Plan",)),
+            InvariantGroup("candidate work", (r"Candidate Work",)),
+            InvariantGroup("unverified signals", (r"Unverified Signals",)),
+            InvariantGroup("conflicts", (r"Conflicts",)),
+            InvariantGroup("open decisions", (r"Open Decisions",)),
+            InvariantGroup("rejected", (r"Rejected / Not Roadmap-Relevant",)),
+        ),
+    ),
+    ContractCheck(
+        "roadmap-final-template-contract",
+        "idea-to-ship/templates/roadmap-final.md",
+        (
+            InvariantGroup("frontmatter", (r"goal:", r"horizon:", r"repo_head:", r"source_scope:")),
+            InvariantGroup("human owned sections", (r"Human-Owned Sections",)),
+            InvariantGroup("generated markers", (r"idea-to-ship:roadmap generated:start", r"idea-to-ship:roadmap generated:end")),
+            InvariantGroup("lanes", (r"## Now", r"## Next", r"## Later")),
+            InvariantGroup("milestones", (r"## Milestones", r"Release Gate", r"Risk Level")),
+            InvariantGroup("open decisions", (r"## Open Decisions",)),
+        ),
+    ),
+    ContractCheck(
         "test-story-traceability-contract",
         "idea-to-ship/skills/test/SKILL.md",
         (
@@ -359,6 +482,39 @@ CHECKS: tuple[ContractCheck, ...] = (
                 (r"invalid / abnormal input", r"invalid-input", r"malformed input"),
             ),
             InvariantGroup("failure modes", (r"failure modes", r"failure-mode")),
+        ),
+    ),
+    ContractCheck(
+        "test-template-reference-contract",
+        "idea-to-ship/skills/test/SKILL.md",
+        (
+            InvariantGroup("test plan template", (r"test-plan\.md", r"templates/test-plan")),
+            InvariantGroup("results template", (r"test-results-summary\.md",)),
+            InvariantGroup("traceability retained", (r"user stories", r"acceptance\s+criteria", r"scenario matrix", r"test matrix")),
+            InvariantGroup("test layer retained", (r"unit / integration / e2e",)),
+        ),
+    ),
+    ContractCheck(
+        "test-plan-template-contract",
+        "idea-to-ship/templates/test-plan.md",
+        (
+            InvariantGroup("user stories", (r"## User Stories", r"Story ID", r"Actor", r"Expected Outcome")),
+            InvariantGroup("acceptance criteria", (r"## Acceptance Criteria", r"Verification Method")),
+            InvariantGroup("scenario matrix", (r"## Scenario Matrix", r"invalid-input", r"Failure Signal")),
+            InvariantGroup("test layers", (r"### Unit", r"### Integration", r"### E2E")),
+            InvariantGroup("traceability", (r"## Traceability", r"Requirement", r"Scenarios", r"Tests")),
+            InvariantGroup("stage tdd slices", (r"## Stage TDD Slices",)),
+        ),
+    ),
+    ContractCheck(
+        "test-results-template-contract",
+        "idea-to-ship/templates/test-results-summary.md",
+        (
+            InvariantGroup("results heading", (r"## Results",)),
+            InvariantGroup("completed timestamp", (r"\*\*Completed:\*\* <YYYY-MM-DD HH:MM>",)),
+            InvariantGroup("pass status", (r"All pass: yes / no",)),
+            InvariantGroup("coverage", (r"Changed-file line coverage",)),
+            InvariantGroup("production fixes", (r"Production fixes triggered by tests",)),
         ),
     ),
     ContractCheck(

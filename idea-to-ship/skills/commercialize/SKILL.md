@@ -113,22 +113,9 @@ Generate 2-4 candidate scenarios unless the user explicitly asks for one. Each
 scenario is a business-context story, not a feature spec. Use stable IDs:
 `CS-001`, `CS-002`, etc.
 
-Each scenario must include:
-
-```markdown
-### CS-001 - <scenario name>
-**Target segment:** <who has the pain>
-**User / buyer / blocker:** <roles>
-**Trigger event:** <why this becomes urgent now>
-**Current alternative:** <spreadsheet, manual service, incumbent, doing nothing>
-**Monetizable pain:** <cost, revenue, risk, time, compliance, quality>
-**Value metric:** <seat, usage, volume, risk exposure, saved labor, revenue lift>
-**Likely buying motion:** <self-serve|PLG|sales-led|partner-led|services-led|hybrid>
-**Required product promise:** <what must be true for this scenario to work>
-**First paid boundary:** <what is free vs paid in this scenario>
-**Cheapest validation:** <interview, concierge test, landing page, pilot, data query>
-**Disqualifier:** <what evidence would kill this scenario>
-```
+Each scenario must use `../../templates/commercial-scenario.md`, including the
+trigger event, current alternative, monetizable pain, value metric, first paid
+boundary, cheapest validation, and Disqualifier fields.
 
 Scenario quality rules:
 - Prefer buyer pain over feature imagination.
@@ -204,13 +191,9 @@ Optional angles, only when signaled:
 - **Risk / Compliance Reviewer:** security, legal, privacy, regulated buyer
   requirements.
 
-Do not ask every angle to do the same job. Each reviewer must return this
-schema:
-
-```markdown
-| Idea | Keep / Change / Reject | Rationale | Evidence | Cost Concern | Missing Proof | Roadmap Implication |
-|---|---|---|---|---|---|---|
-```
+Do not ask every angle to do the same job. Each reviewer must return the
+reviewer findings table in
+`../../templates/commercial-review-and-hypothesis.md`.
 
 #### Review Rounds
 
@@ -258,10 +241,9 @@ Map product work to business impact. Use stable commercial hypothesis IDs:
 
 Each hypothesis must include:
 
-```markdown
-| ID | Hypothesis | Revenue Lever | Evidence | Confidence | Validation Check | Roadmap Impact | Stop Condition |
-|---|---|---|---|---|---|---|---|
-```
+Use the commercial hypothesis table in
+`../../templates/commercial-review-and-hypothesis.md`, with `CH-001`,
+`CH-002`, etc.
 
 Revenue levers:
 - `Activation`
@@ -292,97 +274,11 @@ Rules:
 
 ### Step 7: Write `commercialization.md`
 
-Template:
-
-```markdown
-# Commercialization - <product or portfolio>
-
-**Slug:** <slug or portfolio>
-**Date:** <YYYY-MM-DD>
-**Status:** <pre-requirements|draft|reviewed>
-**Commercial Goal:** <goal>
-**Horizon:** <horizon>
-**References:** <requirements.md if present, roadmap.md if present, user statement>
-
-## Human-Owned Sections
-
-### Manual Commercial Assumptions
-<preserve human edits>
-
-### Markets / Segments Explicitly Out Of Scope
-<preserve human edits>
-
-<!-- idea-to-ship:commercialize generated:start -->
-
-## Source Plan
-<included/excluded sources, evidence freshness, repo HEAD if relevant>
-
-## Commercial Positioning
-<ICP, buyer/user split, buying motion, budget owner, adoption trigger>
-
-## Commercial Scenario Candidates
-<2-4 CS items when starting from a fuzzy idea; otherwise state why existing requirements already define the scenario>
-
-## Monetization Model
-<recommended model and 1-2 rejected alternatives with reasons>
-
-## Packaging / Pricing Hypotheses
-<free/paid boundary, tiers, entitlement, metering, expansion path>
-
-## Review Setup
-<reviewer angles used, whether subagents or degraded-same-context-review were used, and why>
-
-## Review Rounds
-### Round 0 - Normalized Ideas
-<all scenarios, ideas, and assumptions being judged>
-
-### Round 1 - Independent Reviewer Findings
-<tables from each reviewer angle>
-
-### Round 2 - Adversarial Pruning
-<direct challenges, cheapest validation, failure modes, cost concerns>
-
-### Round 3 - Synthesis Decisions
-| Idea | Verdict | Deciding Reason | Overruled Objections | Evidence Needed | Roadmap Impact |
-|---|---|---|---|---|---|
-
-## Commercial Hypotheses
-<table using CH IDs>
-
-## Feature-To-Business Impact
-| Candidate | Classification | Revenue Lever | Evidence | Confidence | Roadmap Recommendation |
-|---|---|---|---|---|---|
-
-## Commercial Roadmap Inputs
-### Now Candidates
-<max 3; must be Strong/Medium or explicitly approved>
-
-### Next Candidates
-<max 5; valuable but not the immediate commercial gate>
-
-### Later / Backlog
-<valuable but weak, dependent, or not horizon-relevant>
-
-## Rejected / Costly Low-Return Ideas
-| Idea | Verdict | Why Not | Cost Driver | Missing Evidence | Reconsider If |
-|---|---|---|---|---|---|
-
-## Experiments And Metrics
-| Experiment | Hypothesis | Metric | Pass Threshold | Decision If Passes | Decision If Fails |
-|---|---|---|---|---|---|
-
-## Open Decisions
-| Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
-|---|---|---|---|---|---|
-
-## Unverified Signals
-<weak/uncited assumptions that must not drive Now/Next automatically>
-
-## Handoff To Roadmap
-<exact suggested /roadmap command and priority notes>
-
-<!-- idea-to-ship:commercialize generated:end -->
-```
+Use `../../templates/commercialization.md`. Preserve Human-Owned Sections, use
+the commercialize generated markers, include Review Rounds, Commercial
+Hypotheses, Feature-To-Business Impact, Rejected / Costly Low-Return Ideas,
+Experiments And Metrics, Open Decisions, Unverified Signals, and Handoff To
+Roadmap.
 
 ### Step 8: Hand-Off
 

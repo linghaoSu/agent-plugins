@@ -105,50 +105,12 @@ explicitly approves them.
 Use stable item IDs so reruns can update instead of rewriting:
 `ITS-ROADMAP-001` for portfolio items, or `ITS-<slug>-001` for slug items.
 
-Each candidate item records:
-
-```markdown
-| ID | Title | Status | Work Type | Evidence Class | Confidence | Source Anchors | Suggested Action |
-|---|---|---|---|---|---|---|---|
-```
-
-Controlled values:
-- `Status`: `Committed`, `Planned`, `Candidate`, `Blocked`, `Done`,
-  `Deferred`, `Needs Revalidation`
-- `Work Type`: `Feature`, `Maintenance`, `Spike`, `Bug`, `Docs`, `Release`
-- `Evidence Class`: `Explicit`, `Commercial`, `Artifact`, `Repo`, `Git`, `TODO`,
-  `GitHubMilestone`, `GitHubPR`, `GitHubIssue`, `Inferred`
-
-For every item promoted to `Now`, `Next`, `Later`, a milestone, or a release
-gate, use this lane item template verbatim:
-
-```markdown
-### <ID> — <Title>
-**Status:** <Committed|Planned|Candidate|Blocked|Done|Deferred|Needs Revalidation>
-**Work Type:** <Feature|Maintenance|Spike|Bug|Docs|Release>
-**Evidence Class:** <Explicit|Commercial|Artifact|Repo|Git|TODO|GitHubMilestone|GitHubPR|GitHubIssue|Inferred>
-**Confidence:** <High|Medium|Low|Unknown>
-**Source Anchors:** <path:line | artifact heading | commit SHA | issue/PR URL | user statement>
-**Why Now / Why Next / Why Later:** <prioritization rationale>
-**Owner:** <owner or Unassigned>
-**Decision Owner:** <owner or None>
-**Release Gate:** <entry criteria; exit criteria; evidence required; no-go conditions>
-**Evidence Required:** <test, review, artifact, command, user decision>
-**Dependencies:** <hard dependencies with evidence; otherwise None>
-**Risk:** <low|medium|high — concrete failure mode>
-```
-
-The lane item template is the source of truth. Do not substitute looser fields
-such as `Gate` or `Evidence`.
-
-Each lane item must include:
-- `Why Now` / `Why Next`
-- `Owner` or `Unassigned`
-- `Decision Owner` if a human decision is required
-- `Release Gate`
-- `Evidence Required`
-- `Dependencies`
-- `Risk`
+Use `../../templates/roadmap-item-schema.md` for the candidate item table,
+controlled values, and verbatim lane item template. The lane item template is
+the source of truth. Do not substitute looser fields such as `Gate` or
+`Evidence`; every promoted lane item must include `Why Now / Why Next`,
+`Owner`, `Decision Owner`, `Release Gate`, `Evidence Required`,
+`Dependencies`, and `Risk`.
 
 ## Workflow
 
@@ -252,27 +214,9 @@ Step 1.5.
 
 Required sections:
 
-```markdown
-## Candidate Brief
-
-### Source Plan
-<included/excluded sources, source budgets, freshness, repo HEAD>
-
-### Candidate Work
-<table using the Item Schema>
-
-### Unverified Signals
-<items with weak/no anchors; never promoted automatically>
-
-### Conflicts
-<source disagreements that block prioritization>
-
-### Open Decisions
-| Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
-
-### Rejected / Not Roadmap-Relevant
-<noisy TODOs/issues/docs with reason>
-```
+Use `../../templates/roadmap-candidate-brief.md`. It must include Source Plan,
+Candidate Work, Unverified Signals, Conflicts, Open Decisions, and Rejected /
+Not Roadmap-Relevant sections.
 
 After writing the brief, stop unless the user has explicitly approved candidate
 priorities or the current request provides unambiguous priority instructions.
@@ -318,88 +262,11 @@ Preserve human edits:
   `<!-- idea-to-ship:roadmap generated:start -->` and
   `<!-- idea-to-ship:roadmap generated:end -->`.
 
-Template:
-
-```markdown
----
-goal: <explicit goal>
-horizon: <date/release/effort horizon>
-generated_at: <YYYY-MM-DD HH:MM>
-repo_head: <sha>
-dirty_worktree: <yes/no>
-mode: <portfolio|slug>
-source_scope: <local|local+git|local+todos|local+github|...>
----
-
-# Roadmap — <goal or slug>
-
-## Human-Owned Sections
-
-### Strategic Objective
-<user-owned objective; preserve edits>
-
-### Manual Overrides
-<human priority overrides; preserve edits>
-
-### Out of Scope / Non-Goals
-<focus protection>
-
-<!-- idea-to-ship:roadmap generated:start -->
-
-## What Changed Since Last Roadmap
-- Added:
-- Removed:
-- Promoted:
-- Demoted:
-- Completed:
-- Needs Revalidation:
-
-## Inputs
-<included/excluded sources with freshness and anchors>
-
-## Now
-<max 3 items using the lane item template>
-
-## Next
-<max 5 items using the lane item template>
-
-## Later
-<valuable but not blocking; use the lane item template>
-
-## Milestones
-### Milestone 1 — <name>
-**Target:** <date/release/effort offset>
-**Scope:** <items>
-**Owner:** <owner or Unassigned>
-**Dependencies:** <hard dependencies only>
-**Release Gate:** <entry/exit criteria, required evidence, no-go conditions>
-**Risk Level:** <low|medium|high>
-
-<For milestone work items, use the same lane item template.>
-
-## Dependency Order
-<hard dependencies with evidence>
-
-## Dependency Hypotheses
-<inferred dependencies needing validation>
-
-## Critical Path
-<only validated hard-dependency chain>
-
-## Risks / Spikes
-<risks with spike or decision needed>
-
-## Status By Feature
-| Slug/ID | Status | Next Action | Blockers | Evidence |
-
-## Candidate Backlog
-<items not in Now/Next/Later; grouped by theme>
-
-## Open Decisions
-| Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
-
-<!-- idea-to-ship:roadmap generated:end -->
-```
+Use `../../templates/roadmap-final.md` for the full roadmap artifact. It must
+preserve Human-Owned Sections, wrap generated content in the roadmap generated
+markers, and use the lane item template from
+`../../templates/roadmap-item-schema.md` for Now, Next, Later, and milestone
+work items.
 
 ### Step 7: Refresh Behavior
 
