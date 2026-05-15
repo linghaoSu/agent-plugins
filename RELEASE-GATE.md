@@ -47,6 +47,8 @@ Advisory checks report risk without changing the release gate exit code unless
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
 | `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, oversized `SKILL.md` files, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
+| `skill-hygiene-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-check-fixtures.sh` so checker snapshot and existing-check regression fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
+| `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
 | `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
@@ -84,6 +86,8 @@ In `--mode all`, fixture checks appear under Advisory:
 ```text
 Advisory
   PASS skill-hygiene: skill hygiene checks passed
+  PASS skill-hygiene-fixtures: skill hygiene fixture checks passed
+  PASS skill-hygiene-release-gate-fixtures: skill hygiene release-gate fixture self-check passed
   PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
   PASS agent-playbook-fixtures: agent-playbook fixture checks passed
 ```
@@ -107,6 +111,28 @@ The current gate intentionally excludes:
 
 Those belong to later roadmap stages after the blocking gate and first advisory
 fixture path stay stable.
+
+## Skill Hygiene Fixtures
+
+Skill hygiene checker fixtures have two offline commands:
+
+```bash
+bash tests/skill-hygiene-check-fixtures.sh
+bash tests/skill-hygiene-release-gate-fixtures.sh
+```
+
+`skill-hygiene-fixtures` runs the checker fixture command in
+`scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
+diff touches skill hygiene infrastructure: `scripts/skill-hygiene-check.py`,
+`scripts/release-gate.sh`, `tests/skill-hygiene-*`, or `RELEASE-GATE.md`.
+
+`skill-hygiene-release-gate-fixtures` runs only
+`bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` from inside
+the release gate. That self-check validates release-gate wiring and expected
+advisory IDs without invoking `scripts/release-gate.sh`, so it cannot recurse.
+The full `bash tests/skill-hygiene-release-gate-fixtures.sh` command may invoke
+the real release gate and is intended for explicit implementation and final
+regression verification.
 
 ## Idea-To-Ship Contract Fixtures
 

@@ -592,6 +592,80 @@ check_skill_hygiene() {
   fi
 }
 
+check_skill_hygiene_fixtures() {
+  command_text="bash tests/skill-hygiene-check-fixtures.sh"
+
+  if ! diff_touches_any \
+    "scripts/skill-hygiene-check.py" \
+    "scripts/release-gate.sh" \
+    "tests/skill-hygiene-*" \
+    "RELEASE-GATE.md"; then
+    add_result "skipped" "skip" "skill-hygiene-fixtures" \
+      "no $MODE diff touches skill hygiene fixture scope" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/skill-hygiene-check-fixtures.sh" ]; then
+    add_result "advisory" "warn" "skill-hygiene-fixtures" \
+      "skill hygiene fixture command is missing" \
+      "tests/skill-hygiene-check-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/skill-hygiene-check-fixtures.sh 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "skill-hygiene-fixtures" \
+      "skill hygiene fixture checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "skill-hygiene-fixtures" \
+      "skill hygiene fixture checks reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "skill-hygiene-fixtures" \
+      "skill hygiene fixture checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
+check_skill_hygiene_release_gate_fixtures() {
+  command_text="bash tests/skill-hygiene-release-gate-fixtures.sh --self-check"
+
+  if ! diff_touches_any \
+    "scripts/skill-hygiene-check.py" \
+    "scripts/release-gate.sh" \
+    "tests/skill-hygiene-*" \
+    "RELEASE-GATE.md"; then
+    add_result "skipped" "skip" "skill-hygiene-release-gate-fixtures" \
+      "no $MODE diff touches skill hygiene fixture scope" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/skill-hygiene-release-gate-fixtures.sh" ]; then
+    add_result "advisory" "warn" "skill-hygiene-release-gate-fixtures" \
+      "skill hygiene release-gate fixture command is missing" \
+      "tests/skill-hygiene-release-gate-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/skill-hygiene-release-gate-fixtures.sh --self-check 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "skill-hygiene-release-gate-fixtures" \
+      "skill hygiene release-gate fixture self-check passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "skill-hygiene-release-gate-fixtures" \
+      "skill hygiene release-gate fixture self-check reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "skill-hygiene-release-gate-fixtures" \
+      "skill hygiene release-gate fixture self-check could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -663,6 +737,8 @@ check_skill_metadata
 check_diff_whitespace
 check_secret_scan
 check_skill_hygiene
+check_skill_hygiene_fixtures
+check_skill_hygiene_release_gate_fixtures
 check_idea_to_ship_fixtures
 check_agent_playbook_fixtures
 
