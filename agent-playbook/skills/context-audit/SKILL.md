@@ -8,7 +8,16 @@ allowed-tools: [Read, Write, Glob, Grep, Bash]
 # Context Audit
 
 Find what's wrong with this repo's agent setup — before it bites you mid-
-session. Read-only scan + ranked fix list. Cites `../../PRINCIPLES.md`.
+session. Read-only scan + ranked fix list. Cites `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`.
+
+Read-only means this skill never changes target repo behavior, git state,
+GitHub state, hooks, or installed tools. It may write only the documented local
+report under `.agent-playbook/<slug>/`.
+
+Apply the shared output, token, error, and safety checklist from
+`../../WORKFLOW-CONTRACTS.md`; set `truncated: true` if repo-wide inventory
+caps are hit.
 
 ## Arguments
 
@@ -113,6 +122,7 @@ one-line reason. Follow Principles 1–6 and the anti-pattern table in
 
 **Date:** <YYYY-MM-DD>
 **Focus:** <full | memory | tools | workflow>
+**Contract:** status=<success|needs_user|terminal|degraded>; mode=audit; outputs_written=<this file>; truncated=<true|false>
 
 ## Summary
 <One paragraph. Top 3 issues, overall hygiene grade: A/B/C/D.>

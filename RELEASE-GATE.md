@@ -4,6 +4,7 @@ Use the release gate before committing or releasing plugin marketplace changes:
 
 ```bash
 scripts/release-gate.sh --mode staged
+scripts/release-gate.sh --mode all --strict
 ```
 
 The release gate is local, offline, and non-mutating. It does not install hooks,
@@ -19,8 +20,8 @@ change git state, call GitHub, or update plugin files.
   diff whitespace relative to `HEAD`. Use this before publishing a plugin
   release or doing push-time hardening.
 
-`--strict` is accepted for forward compatibility. Advisory checks remain
-non-blocking in the current gate.
+`--strict` upgrades advisory warnings to failures. Use it before publishing or
+when a staged/working diff touches skill contracts.
 
 `--json` emits the same check results as machine-readable JSON, including
 blocking, advisory, and skipped checks.
@@ -40,13 +41,14 @@ non-runnable blocking checker also returns exit `2`.
 
 ## Advisory Checks
 
-Advisory checks report risk without changing the release gate exit code.
+Advisory checks report risk without changing the release gate exit code unless
+`--strict` is set.
 
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
 | `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
-| `idea-to-ship-fixtures` | `all` | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` |
-| `agent-playbook-fixtures` | `all` | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook instruction contracts and skill metadata fixtures stay intact. | `WARN` |
+| `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
+| `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
 ## Secret Scan Hook Decision
 
@@ -73,8 +75,8 @@ Advisory
   PASS skill-hygiene: skill hygiene checks passed
 
 Skipped
-  SKIP idea-to-ship-fixtures: runs only in --mode all
-  SKIP agent-playbook-fixtures: runs only in --mode all
+  SKIP idea-to-ship-fixtures: no staged diff touches idea-to-ship fixture scope
+  SKIP agent-playbook-fixtures: no staged diff touches agent-playbook fixture scope
 ```
 
 In `--mode all`, fixture checks appear under Advisory:
@@ -89,7 +91,8 @@ Advisory
 Exit codes:
 
 - `0`: all blocking checks passed.
-- `1`: at least one blocking check failed.
+- `1`: at least one blocking check failed, or an advisory warning was upgraded
+  by `--strict`.
 - `2`: usage error, missing required command, or a blocking checker could not
   run.
 
@@ -113,13 +116,15 @@ Critical idea-to-ship skill contracts have a separate offline fixture command:
 bash tests/idea-to-ship-eval-fixtures.sh
 ```
 
-This command is also run as the non-blocking `idea-to-ship-fixtures` advisory
-check in `scripts/release-gate.sh --mode all`. It validates that the
+This command is also run as the `idea-to-ship-fixtures` advisory check in
+`scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
+diff touches `idea-to-ship/` or its fixture files. It validates that the
 `/roadmap`, `/test`, and `/review-code` skill instructions still contain the
 required safety and traceability contracts, and that current roadmap/test-plan
 artifacts satisfy the generated-marker, draft-fallback, lane-schema, and
-traceability fixture checks. It does not prove that a future live model run
-will obey those instructions.
+traceability fixture checks. With `--strict`, fixture regressions block the
+gate. It does not prove that a future live model run will obey those
+instructions.
 
 ## Agent-Playbook Contract Fixtures
 
@@ -130,9 +135,12 @@ command:
 bash tests/agent-playbook-eval-fixtures.sh
 ```
 
-This command is also run as the non-blocking `agent-playbook-fixtures`
-advisory check in `scripts/release-gate.sh --mode all`. It validates that the
-`/vibe-coding-health-check` skill keeps its scorecard dimensions, safe routing,
-stop rules, untracked-file handling, and artifact ownership contract, and that
-skill `agents/openai.yaml` metadata follows the repo's expected interface
-shape.
+This command is also run as the `agent-playbook-fixtures` advisory check in
+`scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
+diff touches agent-playbook fixture scope: `agent-playbook/`, `antifragile/`,
+`issue-evaluator/`, `skill-stats/`, `worktree-cleaner/`, or the fixture files.
+It validates that `/vibe-coding-health-check` keeps its scorecard dimensions,
+safe routing, stop rules, untracked-file handling, and artifact ownership
+contract; that cross-plugin safety gates remain documented; and that skill
+`agents/openai.yaml` metadata follows the repo's expected interface shape. With
+`--strict`, fixture regressions block the gate.

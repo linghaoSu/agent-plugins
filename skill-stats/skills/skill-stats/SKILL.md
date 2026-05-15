@@ -1,6 +1,6 @@
 ---
 name: skill-stats
-description: Display skill usage statistics — call counts, last used, and identify unused skills.
+description: Read local skill usage JSONL and report call counts, recency, unused skills, and truncation status. Conversation-only; writes no files.
 allowed-tools:
   - Bash
   - Read
@@ -9,6 +9,31 @@ allowed-tools:
 # Skill Usage Statistics
 
 Read the local usage log at `~/.claude/skill-stats.jsonl` and present a summary.
+This skill is read-only and conversation-only: it never edits the log, plugin
+files, or shell config.
+
+## Output, Token, And Error Contract
+
+End with:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: read-only
+inputs_resolved:
+  log: ~/.claude/skill-stats.jsonl
+outputs_written: []
+skipped:
+  - <item>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or decision>
+truncated: true | false
+```
+
+Token budget: report top 20 skills by usage, top 20 stale skills, and at most
+50 never-called skills. If the installed skill list or log is larger, set
+`truncated: true` and explain how to narrow the result.
 
 ## Steps
 

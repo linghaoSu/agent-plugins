@@ -35,6 +35,53 @@ The invariant is independent skeptical review from multiple agents, multiple
 angles, and multiple rounds. Same-context review is only the recorded
 degradation path for the explicit unsupported cases above.
 
+## Output, Token, And Error Contract
+
+Idea-to-ship skills that read requirements, architecture, diffs, test output,
+commercial evidence, roadmap candidates, UI references, or review transcripts
+must end with a compact contract block:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: <brainstorm | architecture | roadmap | tdd | test | review | implement>
+inputs_resolved:
+  slug: <slug>
+  artifacts: <requirements/architecture/test-plan/etc.>
+outputs_written:
+  - <artifact or source file path>
+skipped:
+  - <item>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command, skill, or decision>
+truncated: true | false
+```
+
+Error categories:
+
+| Type | Meaning |
+|---|---|
+| `retryable` | A transient command, render, test, network, or evidence-fetch failure. |
+| `terminal` | A required upstream artifact is missing or the stage cannot continue safely. |
+| `needs_user` | Product intent, priority approval, destructive overwrite, or scope needs a human decision. |
+| `degraded` | The workflow continued with partial evidence, missing optional tools, or same-context review fallback. |
+
+Default token budget unless a skill declares a stricter one:
+
+- Artifact reads: summarize after 300 lines per artifact unless exact text is
+  needed for an edit.
+- Diff/source reads: 25 files and 400 changed lines per file.
+- Roadmap/commercial evidence: 30 candidates, 10 sources per candidate, and a
+  one-sentence source anchor in the final artifact.
+- Review transcripts: 5 rounds and 100 findings/comments per round.
+- Test output: include failing test names and first actionable stack frame;
+  omit repetitive logs.
+
+If data exceeds the budget, set `truncated: true`, name omitted artifacts,
+files, candidates, or logs, and put the continuation command or next skill in
+`next_action`.
+
 ## Review Loop Shape
 
 1. Verify required artifacts first. Missing `requirements.md` sends the user

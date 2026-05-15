@@ -1,22 +1,53 @@
 ---
 name: clean-worktrees
-description: List all git worktrees, check PR status for each branch, and remove worktrees whose PRs are merged or closed. Optionally inspect and remove no-PR worktrees.
-argument-hint: [--all | --dry-run]
+description: Report stale git worktrees with PR and local-change safety checks. Dry-run by default; requires --apply before any removal.
+argument-hint: [--apply] [--all] [--force]
 allowed-tools: [Bash, Read]
 ---
 
 # Clean Git Worktrees
 
-Remove stale git worktrees whose corresponding PRs have been merged or closed.
+Report stale git worktrees whose corresponding PRs have been merged or closed.
+This skill is **report-only by default**. It removes worktrees only when the
+user passes `--apply`, reviews the per-worktree safety summary, and confirms
+the removal plan.
 
 ## Arguments
 
 The user provided: `$ARGUMENTS`
 
 Supported flags:
-- `--all` — Also remove worktrees with no associated PR (after showing their contents).
-- `--dry-run` — Only report what would be removed, do not actually delete anything.
-- No arguments — Remove merged/closed PR worktrees, report no-PR worktrees for user decision.
+- `--apply` — Allow removal after the safety summary and user confirmation.
+- `--all` — Include worktrees with no associated PR in the candidate report.
+  This still requires `--apply` and confirmation before removal.
+- `--force` — Permit `git worktree remove --force` only for candidates the
+  user has explicitly confirmed after seeing the safety summary.
+- `--dry-run` — Explicit report-only mode. This is also the default.
+- No arguments — Report candidates only; remove nothing.
+
+## Output, Token, And Error Contract
+
+Use this compact result contract in the final response:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: dry-run | apply
+inputs_resolved:
+  repo: <path>
+outputs_written: []
+skipped:
+  - <worktree path>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or decision>
+truncated: true | false
+```
+
+Token budget: inspect at most 100 worktrees. For each candidate, show at most
+20 changed-file stat lines and 5 commit subjects. If the budget is exceeded,
+set `truncated: true`, summarize what was omitted, and tell the user to rerun
+with a narrower repo path or inspect the named worktree manually.
 
 ## Workflow
 
@@ -28,7 +59,8 @@ git worktree list
 
 Parse the output to extract each worktree path and branch name. Skip:
 - The **main worktree** (the primary working directory).
-- Any worktree on a **detached HEAD** — report it separately but do not auto-remove.
+- Any worktree on a **detached HEAD** — report it separately and do not remove
+  unless the user explicitly confirms that exact path in `--apply` mode.
 
 ### Step 2: Check PR Status for Each Branch
 
@@ -40,56 +72,88 @@ gh pr list --head "<branch>" --state all --json state,number --jq '.[0] | "\(.nu
 
 Classify each worktree into one of:
 - **MERGED** — PR exists and is merged.
-- **CLOSED** — PR exists and is closed (not merged).
+- **CLOSED_NOT_MERGED** — PR exists and is closed without merge.
 - **OPEN** — PR exists and is still open. Do NOT remove.
 - **NO_PR** — No PR found for this branch.
 - **DETACHED** — Detached HEAD, no branch.
 
-### Step 3: Report Summary
+### Step 3: Inspect Local Safety For Every Candidate
+
+For every `MERGED`, `CLOSED_NOT_MERGED`, `NO_PR`, or `DETACHED` worktree,
+inspect local state before recommending any action:
+
+```bash
+git -C "<worktree-path>" status --short
+git -C "<worktree-path>" diff --stat HEAD
+git -C "<worktree-path>" log --oneline --decorate --max-count=5 @{u}..HEAD
+git -C "<worktree-path>" log --oneline --decorate --max-count=5 HEAD..@{u}
+```
+
+If the upstream ref is missing, classify the branch as `NO_UPSTREAM` and treat
+unpushed-commit status as unknown. Also check whether the branch has a PR, and
+whether a closed PR was merged. Never treat `CLOSED_NOT_MERGED`, `NO_PR`,
+`DETACHED`, `NO_UPSTREAM`, uncommitted changes, or unpushed commits as safe for
+automatic deletion.
+
+Candidate actions:
+
+| Status / local state | Default action |
+|---|---|
+| `OPEN` | Keep |
+| `MERGED` with clean tree and no unpushed commits | Candidate for normal removal |
+| `MERGED` with uncommitted changes or unpushed commits | Needs user decision |
+| `CLOSED_NOT_MERGED` | Needs user decision |
+| `NO_PR` | Needs user decision |
+| `DETACHED` | Needs user decision |
+| `NO_UPSTREAM` or unknown branch state | Needs user decision |
+
+### Step 4: Report Summary
 
 Present a table to the user:
 
-| Worktree | Branch | PR | Status | Action |
-|---|---|---|---|---|
-| path | branch-name | #123 | MERGED | Will remove |
-| path | branch-name | — | NO_PR | Needs review |
+| Worktree | Branch | PR | Status | Local state | Action |
+|---|---|---|---|---|---|
+| path | branch-name | #123 | MERGED | clean, pushed | Candidate: remove with `git worktree remove` |
+| path | branch-name | #124 | CLOSED_NOT_MERGED | clean | Needs explicit confirmation |
+| path | branch-name | — | NO_PR | modified files | Needs explicit confirmation |
 
-### Step 4: Inspect NO_PR Worktrees
+In dry-run mode, stop here and report `next_action` with the exact `--apply`
+command the user can run if they want removal.
 
-For each NO_PR worktree, show:
+### Step 5: Confirm Before Removal
+
+If `--apply` is present, ask the user to confirm the exact list of worktree
+paths to remove. The user must have seen, for each path:
+
+- PR status, including `MERGED` vs `CLOSED_NOT_MERGED`.
+- Uncommitted change summary.
+- Unpushed commit summary or `NO_UPSTREAM`.
+- Whether removal would require `--force`.
+
+Do not infer confirmation from `--apply` alone. `--apply` only permits entering
+the confirmation gate.
+
+### Step 6: Remove Confirmed Worktrees
+
+For confirmed candidates with a clean local state, prefer normal removal:
 
 ```bash
-git -C "<worktree-path>" diff --stat HEAD
-git -C "<worktree-path>" log main..HEAD --oneline | head -5
+git worktree remove "<worktree-path>"
 ```
 
-Report whether the worktree has:
-- **No changes, no commits** — empty, safe to remove.
-- **Uncommitted changes** — describe what files are modified.
-- **Unpushed commits** — list the commit messages.
+Use `git worktree remove --force "<worktree-path>"` only when all of these are
+true:
 
-### Step 5: Remove Worktrees
+- The user passed `--force`.
+- The user saw the per-worktree safety summary.
+- The user explicitly confirmed force removal for that exact worktree.
 
-**For MERGED and CLOSED worktrees:**
-Remove immediately with `--force` (to handle uncommitted changes in stale worktrees):
+Never remove:
+- The main worktree.
+- An open-PR worktree.
+- A worktree whose status or local state could not be determined.
 
-```bash
-git worktree remove --force "<worktree-path>"
-```
-
-**For NO_PR worktrees:**
-- If `--all` flag is set: remove them all with `--force`.
-- Otherwise: present the inspection results from Step 4 and ask the user whether to remove each one (or all at once).
-
-**For OPEN worktrees:**
-Never remove. Report them as "kept (PR still open)".
-
-**For DETACHED worktrees:**
-Report and ask the user whether to remove.
-
-If `--dry-run` is set, skip all removals and only report what would happen.
-
-### Step 6: Final Verification
+### Step 7: Final Verification
 
 Run `git worktree list` again and present the final state.
 
@@ -99,7 +163,8 @@ Report:
 
 ## Notes
 
-- Always use `git worktree remove --force` for stale worktrees — they may have leftover uncommitted changes from abandoned work.
+- Default mode is dry-run/report-only.
+- Never use `git worktree remove --force` as the default.
 - Never remove the main worktree.
 - Batch the `gh pr list` calls efficiently — if there are many branches, run them in a single loop rather than spawning parallel agents.
 - If `gh` is not available or not authenticated, report the error and abort gracefully.

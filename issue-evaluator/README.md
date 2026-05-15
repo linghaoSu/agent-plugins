@@ -17,6 +17,9 @@ report the pipeline by role instead of model name.
 
 Shared runtime routing, code-style-guide, GitHub read-only, and adversarial
 review-loop contracts live in [`WORKFLOW-CONTRACTS.md`](./WORKFLOW-CONTRACTS.md).
+That contract also defines shared `status`, `mode`, `outputs_written`,
+`errors[]`, `next_action`, and `truncated` fields for skills that read large
+diffs, comments, logs, or repo-wide data.
 
 ## Commands
 
@@ -48,7 +51,9 @@ Evaluates a GitHub issue against the current codebase.
 Implements a GitHub issue fix from a prior evaluation report, a live GitHub
 issue, or a free-form fix description. It creates or reuses an isolated
 worktree, writes a verifiable done check before coding, applies the minimal fix,
-runs relevant tests, and commits inside the fix worktree.
+runs relevant tests, stages only files touched by this fix, and commits inside
+the fix worktree. If isolated worktree setup fails, the workflow stops instead
+of falling back to the user's current directory.
 
 With `--compete` or `--tournament`, it routes through
 `agent-playbook/implementation-tournament` before normal implementation:

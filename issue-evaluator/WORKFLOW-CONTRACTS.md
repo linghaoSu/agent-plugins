@@ -37,6 +37,52 @@ The invariant is independent skeptical review from multiple agents, multiple
 angles, and multiple rounds. Same-context review is only the recorded
 degradation path for the explicit unsupported cases above.
 
+## Output, Token, And Error Contract
+
+Every issue-evaluator skill that reads GitHub metadata, PR diffs, review
+comments, logs, or repo-wide data must end with a compact contract block:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: <id | description | read-only-review | comment-triage | scan>
+inputs_resolved:
+  repo: <owner/repo or local path>
+  target: <issue, PR, or scan window>
+outputs_written:
+  - <local file or worktree path, empty when conversation-only>
+skipped:
+  - <item>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or user decision>
+truncated: true | false
+```
+
+Error categories:
+
+| Type | Meaning |
+|---|---|
+| `retryable` | A transient command, network, auth-refresh, or rate-limit problem where rerunning may succeed. |
+| `terminal` | The workflow cannot safely continue without a different repo state, target, or command result. |
+| `needs_user` | The next step requires a user decision, confirmation, or missing business/product context. |
+| `degraded` | The workflow continued with a weaker path, such as diff-only review after worktree setup failed. |
+
+Token and size budgets are explicit safety rules, not hints:
+
+- PR diff: default cap 25 changed files and 400 diff lines per file.
+- Review comments: default cap 100 inline comments, 100 review summaries, and
+  100 issue conversation comments. Prefer unresolved human comments first.
+- Issue scan: default cap 100 issues per window and top 15 results in the
+  final table.
+- Repo search: default cap 20 hits per query and 80 surrounding lines per file.
+- Logs and command output: default cap 240 rendered characters per evidence
+  item unless a skill-specific fixture needs more.
+
+If a budget is exceeded, set `truncated: true`, state exactly what was omitted,
+and provide the continuation query, command, page, or narrower filter in
+`next_action`. Never silently truncate data that affects a verdict.
+
 ## Code Style Guide Lifecycle
 
 The repo-specific code style guide is the shared context for issue evaluation,

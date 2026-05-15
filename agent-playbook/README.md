@@ -28,7 +28,8 @@ Synthesized from:
   [Peekaboo 2.0 (CLI > MCP)](https://steipete.me/posts/2025/peekaboo-2-freeing-the-cli-from-its-mcp-shackles).
 
 Distilled principles live in [`PRINCIPLES.md`](./PRINCIPLES.md). All skills
-cite it.
+cite it. Shared output, token, error, safety, and evaluation contracts live in
+[`WORKFLOW-CONTRACTS.md`](./WORKFLOW-CONTRACTS.md).
 
 ## Commands
 
@@ -89,7 +90,8 @@ trailers.
 - **Artifact-first.** Reports land under `.agent-playbook/<slug>/` so you
   can diff changes over time. Default slug: `current`.
 - **Read-only by default.** `/context-audit` and `/tool-review` never
-  mutate your repo; `/bootstrap-project-memory` writes only after showing
+  mutate your repo or external systems, but they may write their documented
+  local report artifacts. `/bootstrap-project-memory` writes only after showing
   you the proposed file. `/vibe-coding-fix` applies only bounded local cleanup
   from a prior health check when explicitly authorized.
   `/implementation-tournament` mutates only when explicitly invoked: it creates

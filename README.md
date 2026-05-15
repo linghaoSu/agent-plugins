@@ -10,10 +10,29 @@ Run the release gate before committing or publishing plugin changes:
 
 ```bash
 scripts/release-gate.sh --mode staged
-scripts/release-gate.sh --mode all
+scripts/release-gate.sh --mode all --strict
 ```
 
 See `RELEASE-GATE.md` for mode details.
+
+`--strict` turns advisory skill hygiene and eval fixture regressions into
+blocking failures. In `staged` and `working` mode, the gate also runs the
+agent-playbook or idea-to-ship fixture suite when the corresponding plugin or
+fixture files are touched.
+
+## Naming And Boundaries
+
+Use plugin-qualified names in docs and handoffs, for example
+`$agent-playbook:tool-review` and `$issue-evaluator:review-pr`.
+
+For new flat/global skill names, use `<domain>-<verb>` or `<resource>-<verb>`
+so the responsibility is obvious without plugin context. Existing public
+entries keep their current names for compatibility.
+
+Every read-only skill must say what "read-only" means: no target mutation, no
+GitHub mutation, no git mutation, and whether it writes a local artifact. Skills
+that read large diffs, comments, logs, or repo-wide data must declare token
+budgets and report `truncated: true` when caps are hit.
 
 ## Skill Catalog
 
@@ -36,7 +55,7 @@ Use skills through their plugin-qualified names, for example
 
 | Skill | Purpose |
 |---|---|
-| [`antifragile-agent`](antifragile/skills/antifragile-agent/SKILL.md) | Audit agent plugin, hook, and skill infrastructure for robustness gaps. |
+| [`antifragile-agent`](antifragile/skills/antifragile-agent/SKILL.md) | Read-only stdout audit of agent plugin, hook, and skill infrastructure for robustness gaps. |
 | [`antifragile-system`](antifragile/skills/antifragile-system/SKILL.md) | Audit a target project for resilience gaps such as weak fallbacks, unsafe state, missing observability, and single points of failure. |
 
 ### harness-engineering
@@ -60,8 +79,8 @@ Use skills through their plugin-qualified names, for example
 | [`review-code`](idea-to-ship/skills/review-code/SKILL.md) | Multi-agent, multi-angle, multi-round review/fix loop for the current implementation diff. |
 | [`review-design`](idea-to-ship/skills/review-design/SKILL.md) | Multi-agent, multi-angle, multi-round adversarial review of `architecture.md`. |
 | [`roadmap`](idea-to-ship/skills/roadmap/SKILL.md) | Build or refresh an evidence-backed Now/Next/Later roadmap for a slug or portfolio. |
-| [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create failing tests before implementation for a stage, or backfill missing tests for existing code. |
-| [`test`](idea-to-ship/skills/test/SKILL.md) | Produce a story-driven test plan, implement tests, and run them until green. |
+| [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create the stage-local red-first gate for `/implement`, or explicitly backfill missing tests without production-code edits. |
+| [`test`](idea-to-ship/skills/test/SKILL.md) | Produce the full story-driven test plan, implement tests, and run them until green. |
 | [`ui-design`](idea-to-ship/skills/ui-design/SKILL.md) | Design the UI/UX contract from requirements, architecture, existing UI, design-system evidence, and structured visual references. |
 
 ### issue-evaluator
@@ -69,11 +88,11 @@ Use skills through their plugin-qualified names, for example
 | Skill | Purpose |
 |---|---|
 | [`evaluate-issue`](issue-evaluator/skills/evaluate-issue/SKILL.md) | Evaluate a GitHub issue or free-form bug description against the current repo and produce diagnosis plus fix plan. |
-| [`fix-issue`](issue-evaluator/skills/fix-issue/SKILL.md) | Implement a GitHub issue fix from an evaluation report or issue description, optionally routing `--compete` to implementation tournament. |
+| [`fix-issue`](issue-evaluator/skills/fix-issue/SKILL.md) | Implement a GitHub issue fix in an isolated worktree with scoped staging; stops if worktree setup fails. |
 | [`fix-pr-comments`](issue-evaluator/skills/fix-pr-comments/SKILL.md) | Triage PR review comments, apply accepted fixes as local unstaged edits, and run multi-agent review. |
 | [`review-fix`](issue-evaluator/skills/review-fix/SKILL.md) | Multi-agent review/fix loop for current code changes, ending with a holistic review. |
 | [`review-pr`](issue-evaluator/skills/review-pr/SKILL.md) | Local multi-agent PR review for bugs, security, issue coverage, and repo-specific style. |
-| [`scan-issues`](issue-evaluator/skills/scan-issues/SKILL.md) | Scan the current project for high-value unattended GitHub issues. |
+| [`scan-issues`](issue-evaluator/skills/scan-issues/SKILL.md) | Conversation-only read-only scan for high-value unattended GitHub issues. |
 | [`update-code-style`](issue-evaluator/skills/update-code-style/SKILL.md) | Regenerate the repo-specific code style guide from source and PR review comments. |
 
 ### secret-scanner
@@ -87,13 +106,13 @@ Use skills through their plugin-qualified names, for example
 
 | Skill | Purpose |
 |---|---|
-| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Display local skill usage statistics, including call counts, last used time, and unused skills. |
+| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Conversation-only read of local skill usage statistics, including call counts, last-used time, and unused skills. |
 
 ### worktree-cleaner
 
 | Skill | Purpose |
 |---|---|
-| [`clean-worktrees`](worktree-cleaner/skills/clean-worktrees/SKILL.md) | List git worktrees, check PR status, and remove worktrees whose PRs are merged or closed. |
+| [`clean-worktrees`](worktree-cleaner/skills/clean-worktrees/SKILL.md) | Report stale git worktrees with PR and local-change safety checks; dry-run by default and requires `--apply` plus confirmation before removal. |
 
 ## Hook-Only Plugins
 

@@ -60,3 +60,69 @@ Frontmatter descriptions are routing hints, not manuals. Keep them short:
 - Include one or two disambiguating trigger phrases.
 - Keep long safety rules, workflow steps, and implementation details in the
   skill body or this shared contract.
+
+## Output, Token, And Error Contract
+
+Agent-playbook skills that read diffs, comments, logs, repo-wide data, hook
+state, or external tool output must end with a compact result contract:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: <read-only | apply | audit | review>
+inputs_resolved:
+  target: <path, repo, PR, or artifact>
+outputs_written:
+  - <local artifact path, empty when conversation-only>
+skipped:
+  - <item>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or decision>
+truncated: true | false
+```
+
+Error categories:
+
+| Type | Meaning |
+|---|---|
+| `retryable` | A transient command, filesystem, auth, or network failure where rerunning may succeed. |
+| `terminal` | Continuing would violate the skill boundary or produce untrustworthy output. |
+| `needs_user` | A destructive action, ownership question, or missing requirement needs user confirmation. |
+| `degraded` | The workflow continued with weaker evidence, fewer reviewers, or partial data. |
+
+Default token budget unless a skill sets a stricter one:
+
+- Diff or patch reads: 25 files and 400 changed lines per file.
+- Repo-wide scans: 100 files, 20 hits per query, and 80 surrounding lines per
+  file.
+- Comments/review threads/logs: 100 items, with each item summarized to the
+  smallest actionable sentence.
+- Command output evidence: 240 rendered characters per item in release-gate
+  style summaries.
+
+If a budget is exceeded, do not silently truncate. Set `truncated: true`, name
+what was omitted, and put the continuation command, narrowed query, or next
+artifact path in `next_action`.
+
+## Shared Safety And Evaluation Checklist
+
+Use this checklist from `tool-review`, `context-audit`, `antifragile-agent`,
+and `vibe-coding-health-check --deep` instead of copying slightly different
+rules into each skill:
+
+- **Boundary truth:** distinguish read-only-on-target, local artifact writes,
+  git mutations, GitHub mutations, and external-system mutations.
+- **Human gate:** require explicit current-turn authorization before
+  destructive cleanup, force removal, commits, pushes, publishing, or global
+  installation changes.
+- **Token honesty:** declare input caps, set `truncated: true` when caps are
+  hit, and provide a continuation path.
+- **Error shape:** classify every failure as `retryable`, `terminal`,
+  `needs_user`, or `degraded`.
+- **Evaluation realism:** keep regex fixtures as contract smoke tests, but do
+  not call them sufficient behavioral evaluation. Add scenario fixtures for
+  safety gates that can cause writes, deletes, or misleading reviews.
+- **Local report ownership:** read-only audit/review skills may write only
+  their documented local artifact path. Conversation-only skills must set
+  `outputs_written: []`.

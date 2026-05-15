@@ -1,6 +1,6 @@
 ---
 name: antifragile-agent
-description: Audit the agent plugin/hook/skill infrastructure for robustness — find fragile hooks, missing guards, state pollution, and single points of failure.
+description: Read-only audit of agent plugin/hook/skill infrastructure for fragile hooks, missing guards, state pollution, and recovery gaps. Outputs stdout only.
 allowed-tools:
   - Bash
   - Read
@@ -10,6 +10,36 @@ allowed-tools:
 # Antifragile Agent Audit
 
 Audit the Claude Code plugin/hook/skill ecosystem for fragility. Produce a graded report with actionable fixes.
+
+This skill is read-only against the target infrastructure and writes no local
+artifact by default; the report goes to stdout/conversation. Apply the shared
+safety checklist from `agent-playbook/WORKFLOW-CONTRACTS.md` when comparing
+with agent-playbook audits: boundary truth, human gates for destructive
+changes, token honesty, typed errors, and realistic scenario fixtures.
+
+## Output, Token, And Error Contract
+
+End with:
+
+```yaml
+status: success | needs_user | terminal | degraded
+mode: audit
+inputs_resolved:
+  target: <repo or plugin root>
+outputs_written: []
+skipped:
+  - <path or dimension>: <reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or decision>
+truncated: true | false
+```
+
+Token budget: inspect at most 100 hook/script/skill files in one pass, cap
+per-file evidence at 80 surrounding lines, and summarize repeated dependency
+findings by pattern. If the scan exceeds the budget, set `truncated: true` and
+name the omitted paths or dimensions.
 
 ## Audit Dimensions
 

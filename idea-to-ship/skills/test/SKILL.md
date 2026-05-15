@@ -1,6 +1,6 @@
 ---
 name: test
-description: Produce test-plan.md from user stories, acceptance criteria, scenario sequences, and unit/integration/e2e test matrices, then implement the tests and run them until green. Covers happy paths, edge/corner cases, invalid inputs, and failure modes for this slug.
+description: Full story-driven test plan and implementation for an idea-to-ship slug: stories, acceptance criteria, scenario matrix, tests, and green verification.
 argument-hint: '[--slug <name>] [focus e.g. "edge cases" "concurrency"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---

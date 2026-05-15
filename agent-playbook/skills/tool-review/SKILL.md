@@ -10,7 +10,9 @@ allowed-tools: [Read, Write, Glob, Grep, Bash, Agent]
 Review one tool against the tool-writing checklist from
 [Anthropic](https://www.anthropic.com/engineering/writing-tools-for-agents),
 plus CLI-vs-MCP sanity from [Peekaboo 2.0](https://steipete.me/posts/2025/peekaboo-2-freeing-the-cli-from-its-mcp-shackles).
-Cites `../../PRINCIPLES.md` Principle 4.
+Cites `../../PRINCIPLES.md` Principle 4 and
+`../../WORKFLOW-CONTRACTS.md` for output, token, error, safety, and evaluation
+contracts.
 
 ## Arguments
 
@@ -71,6 +73,10 @@ code execution, and many CLIs do nontrivial work at import/startup. If
 
 This skill's promise is read-only on the target tool. Executing the
 target breaks that promise.
+
+Apply the shared token budget from `../../WORKFLOW-CONTRACTS.md`. If the tool
+schema/source is too large, set `truncated: true`, name the omitted files or
+sections, and include the next static inspection command in the hand-off.
 
 ### Step 2: Round 1 Angle Reviews
 
@@ -149,6 +155,7 @@ miss, update the punch-list and record the pass as Round 3.
 **Source:** <path or repo>
 **Review mode:** <multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
+**Contract:** status=<success|needs_user|terminal|degraded>; mode=review; outputs_written=<this file>; truncated=<true|false>
 
 ## Review Rounds
 | Round | Angle / role | Verdict |

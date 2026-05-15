@@ -93,6 +93,12 @@ add_result() {
   command_text="${6:-}"
   exit_code="${7:-0}"
 
+  if [ "$STRICT" = "true" ] && [ "$category" = "advisory" ] && [ "$status" = "warn" ]; then
+    status="fail"
+    message="$message (strict mode)"
+    BLOCKING_FAILURE=1
+  fi
+
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$category" "$status" "$id" "$message" "$evidence" "$command_text" "$exit_code" \
     >>"$RESULTS_FILE"
@@ -452,12 +458,46 @@ check_secret_scan() {
   fi
 }
 
+changed_paths_for() {
+  target="$1"
+
+  case "$MODE" in
+    staged)
+      git diff --cached --name-only -- "$target"
+      ;;
+    working)
+      git diff --name-only HEAD -- "$target"
+      git ls-files --others --exclude-standard -- "$target"
+      ;;
+    all)
+      printf '%s\n' "$target"
+      ;;
+  esac
+}
+
+diff_touches_any() {
+  if [ "$MODE" = "all" ]; then
+    return 0
+  fi
+
+  for target in "$@"; do
+    if [ -n "$(changed_paths_for "$target")" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 check_idea_to_ship_fixtures() {
   command_text="bash tests/idea-to-ship-eval-fixtures.sh"
 
-  if [ "$MODE" != "all" ]; then
+  if ! diff_touches_any \
+    "idea-to-ship" \
+    "tests/idea-to-ship-eval-fixtures.py" \
+    "tests/idea-to-ship-eval-fixtures.sh"; then
     add_result "skipped" "skip" "idea-to-ship-fixtures" \
-      "runs only in --mode all" "" "$command_text" 0
+      "no $MODE diff touches idea-to-ship fixture scope" "" "$command_text" 0
     return
   fi
 
@@ -488,9 +528,16 @@ check_idea_to_ship_fixtures() {
 check_agent_playbook_fixtures() {
   command_text="bash tests/agent-playbook-eval-fixtures.sh"
 
-  if [ "$MODE" != "all" ]; then
+  if ! diff_touches_any \
+    "agent-playbook" \
+    "antifragile" \
+    "issue-evaluator" \
+    "skill-stats" \
+    "worktree-cleaner" \
+    "tests/agent-playbook-eval-fixtures.py" \
+    "tests/agent-playbook-eval-fixtures.sh"; then
     add_result "skipped" "skip" "agent-playbook-fixtures" \
-      "runs only in --mode all" "" "$command_text" 0
+      "no $MODE diff touches agent-playbook fixture scope" "" "$command_text" 0
     return
   fi
 

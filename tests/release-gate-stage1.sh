@@ -284,6 +284,29 @@ MD
   assert_contains "$repo/out.txt" "missing-openai-metadata" "new skill missing metadata advisory"
 }
 
+test_strict_advisory_fails() {
+  repo="$(make_fixture_repo strict_advisory)"
+  mkdir -p "$repo/demo/skills/new-skill"
+  cat >"$repo/demo/skills/new-skill/SKILL.md" <<'MD'
+---
+name: new-skill
+description: New skill fixture.
+allowed-tools: [Read]
+---
+
+# New Skill
+MD
+  (
+    cd "$repo" &&
+      git add demo/skills/new-skill/SKILL.md
+  )
+  run_gate "$repo" --mode staged --strict
+  code="$?"
+  assert_exit "$code" 1 "strict advisory"
+  assert_contains "$repo/out.txt" "FAIL skill-hygiene" "strict advisory"
+  assert_contains "$repo/out.txt" "strict mode" "strict advisory"
+}
+
 test_invalid_mode_exits_2() {
   repo="$(make_fixture_repo invalid_mode)"
   run_gate "$repo" --mode banana
@@ -341,6 +364,7 @@ test_staged_whitespace_fails
 test_working_whitespace_fails
 test_staged_secret_fails
 test_new_skill_missing_metadata_warns
+test_strict_advisory_fails
 test_invalid_mode_exits_2
 test_missing_secret_scanner_exits_2
 test_all_mode_missing_idea_to_ship_fixture_is_advisory

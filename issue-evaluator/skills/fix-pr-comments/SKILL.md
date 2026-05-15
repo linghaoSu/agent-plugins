@@ -14,6 +14,10 @@ After a GitHub pull request has accumulated review comments, walk through every 
 
 This skill is **strictly read-only with respect to GitHub** and **never creates a commit**. The user is the one who decides whether to commit, push, or post anything.
 
+Local write boundary: this skill may create a detached scratch worktree and
+leave unstaged edits there after the user confirms the triage plan. It does not
+write reports to the repository, stage files, commit, push, or mutate GitHub.
+
 ## CRITICAL SAFETY RULES
 
 **1. Never write to GitHub.** This means:
@@ -52,8 +56,9 @@ Optional flag:
 
 Before launching analysis, executor, or adversarial review agents, read
 `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Multi-Agent Review Routing** contract for all review phases. The roles for
-this workflow are `ANALYST`, `RECONCILER`, `EXECUTOR`, and multiple
+**Multi-Agent Review Routing** contract and the shared **Output, Token, And
+Error Contract** for all review phases. The roles for this workflow are
+`ANALYST`, `RECONCILER`, `EXECUTOR`, and multiple
 `ADVERSARIAL_REVIEWER:<ANGLE>` roles. Keep the human confirmation gate before
 edits and keep adversarial review read-only. The local 12-rule execution
 contract in `PRINCIPLES.md` is binding for every role: surface assumptions and
@@ -141,6 +146,13 @@ multi-agent review.
      }'
    ```
    Use this to know which inline comments belong to a **resolved** thread so they can be filtered (unless `--include-resolved` is set).
+
+   Token budget: by default, pass analysts at most 100 inline comments, 100
+   review summaries, 100 conversation comments, 25 changed files, and 400 diff
+   lines per file. If the PR is larger, prioritize unresolved human review
+   threads, comments on executable code, security-sensitive paths, and comments
+   with explicit change requests. Set `truncated: true`, list omitted pages or
+   files, and include the exact continuation query in `next_action`.
 
 3. If the PR is closed or merged, note it in the report but proceed — the user may still want to triage stale feedback.
 
@@ -589,6 +601,15 @@ If yes, try in order based on what the project uses: `npm test`, `pnpm test`, `y
 **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Comments triaged**: <total> total → <actionable> actionable → <accepted> accepted, <rejected> rejected, <deferred> deferred, <answered> answered, <human> need-input
 **Adversarial review verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
+**Contract**:
+status: success | needs_user | terminal | degraded
+mode: comment-triage
+inputs_resolved: <repo + PR number + include-resolved flag>
+outputs_written: <scratch worktree path or [] when report-only>
+skipped: <filtered comments, skipped edits, skipped checks>
+errors: <retryable | terminal | needs_user | degraded entries>
+next_action: <one command or decision>
+truncated: true | false
 
 > **No commits were made. No changes were posted to GitHub.** All edits are uncommitted modifications in the worktree above. All rebuttal text is below — you decide whether to post any of it.
 

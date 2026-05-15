@@ -1,6 +1,6 @@
 ---
 name: fix-issue
-description: Fix a GitHub issue based on evaluation results - implements the fix following repo code style, then optionally runs adversarial review. Accepts an issue URL/number OR a free-form description of what to fix.
+description: Fix a GitHub issue or concrete bug description in an isolated worktree, following repo style and scoped staging only.
 argument-hint: <issue-url-or-number | description>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -32,7 +32,14 @@ After removing optional control flags, the remaining input is one of:
 Before launching diagnosis or style-analysis agents, read
 `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
 **Multi-Agent Review Routing** contract where this workflow invokes diagnosis
-review or `/review-fix`, and the **Code Style Guide Lifecycle** contract.
+review or `/review-fix`, the **Code Style Guide Lifecycle** contract, and the
+shared **Output, Token, And Error Contract**.
+
+Token budget: for issue bodies, comments, diffs, and repo-wide searches, cap
+what each reviewer receives. Default budget: 25 changed files, 400 diff lines
+per file, 50 issue comments, and 20 search hits per query. If more context
+exists, set `truncated: true`, name the omitted ranges or files, and give the
+continuation command/query in `next_action`.
 
 ## Workflow
 
@@ -105,7 +112,10 @@ Create an isolated worktree so the fix doesn't interfere with the user's current
 ```bash
 git worktree add "$FIX_WORKTREE" "fix/issue-<number>"
 ```
-If that also fails, fall back to working in the current directory and warn the user.
+If that also fails, **stop** with `status: terminal`. Do not fall back to the
+current directory. A failed isolated-worktree setup means the skill cannot keep
+its safety boundary; report the branch, intended worktree path, command output,
+and a concrete next action for the user.
 
 ### Step 2: Evaluate (if not already evaluated)
 
@@ -212,11 +222,24 @@ After implementing:
 
 ### Step 6: Commit Changes
 
-Commit all changes inside the worktree with a descriptive message:
+Before committing, produce a diff summary from inside the worktree:
+
 ```bash
-git add -A
+git status --short
+git diff --stat
+git diff -- <files-touched-by-this-fix>
+```
+
+Stage only files intentionally changed for this fix:
+
+```bash
+git add <files-touched-by-this-fix>
 git commit -m "fix: <concise description of fix> (#<issue-number>)"
 ```
+
+Do not stage the whole tree. If unrelated edits are present in the fix
+worktree, leave them unstaged and call them out in the summary; if they prevent
+a clean scoped commit, stop with `status: needs_user`.
 
 ### Step 7: Summary
 
@@ -224,6 +247,21 @@ Present a concise summary:
 
 ```markdown
 ## Fix Applied: <issue-title>
+
+status: success | needs_user | terminal | degraded
+mode: id | description
+inputs_resolved:
+  issue: <number | description>
+  worktree: <path>
+outputs_written:
+  - <file>
+skipped:
+  - <item and reason>
+errors:
+  - type: retryable | terminal | needs_user | degraded
+    message: <actionable sentence>
+next_action: <one command or decision>
+truncated: true | false
 
 ### Worktree
 - Branch: `fix/issue-<number>`

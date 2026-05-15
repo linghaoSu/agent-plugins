@@ -11,7 +11,9 @@ Review a GitHub pull request against the current repository's codebase and code 
 
 ## CRITICAL SAFETY RULE
 
-**NEVER post comments, reviews, review comments, reactions, labels, or any other modifications to the PR on GitHub.** This means:
+**NEVER post comments, reviews, review comments, reactions, labels, or any other modifications to the PR on GitHub.** This skill is read-only with respect to GitHub and the PR branch. It may create a temporary local review worktree for source reads, and it may remove only that worktree when the review finishes.
+
+This means:
 - Do NOT run `gh pr review`
 - Do NOT run `gh pr comment`
 - Do NOT run `gh api` with POST/PUT/PATCH/DELETE methods against the PR
@@ -43,10 +45,11 @@ This should be a GitHub PR URL (e.g. `https://github.com/owner/repo/pull/123`) o
 
 Before launching any review agent, read `../../PRINCIPLES.md` and
 `../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
-contract. This workflow is pre-authorized to launch reviewer and synthesis
-sub-agents. The roles for this workflow are bug/security review, style review,
-existing-review context, independent check, linked-issue compliance,
-adversarial review, and final synthesis.
+contract and the shared **Output, Token, And Error Contract**. This workflow is
+pre-authorized to launch reviewer and synthesis sub-agents. The roles for this
+workflow are bug/security review, style review, existing-review context,
+independent check, linked-issue compliance, adversarial review, and final
+synthesis.
 
 Run these roles as independent sub-agents when supported. Fall back to
 same-context review only when reviewer sub-agents are explicitly unsupported by
@@ -82,6 +85,13 @@ Use `gh` CLI (read-only) to fetch the full PR context:
    ```bash
    gh api "repos/<owner>/<repo>/pulls/<number>/comments" --jq '.[] | {path, line: .original_line, body, user: .user.login, created_at}'
    ```
+
+   Token budget: by default, pass reviewers at most 25 changed files, 400 diff
+   lines per file, 100 inline comments, and 50 linked-issue comments. If the PR
+   is larger, prioritize changed files with executable code, security-sensitive
+   paths, failing diagnostics, and existing human comments. Set `truncated:
+   true`, list omitted files/comment pages, and provide a continuation command
+   in the final `next_action`.
 
 3. If the PR is already merged or closed, note this in the output but still proceed with the review.
 
@@ -141,10 +151,10 @@ Check if the current working directory belongs to the PR's target repository. If
 6. **Cleanup rule**: After the review is complete (after Step 6), clean up **only if we created the worktree** (`WORKTREE_REUSED=false`):
    ```bash
    if [ "$WORKTREE_REUSED" = "false" ]; then
-     git worktree remove "$REVIEW_WORKTREE" --force 2>/dev/null
+     git worktree remove "$REVIEW_WORKTREE" 2>/dev/null
    fi
    ```
-   Never remove a worktree that existed before the review started — it may be the user's active working directory.
+   Never remove a worktree that existed before the review started — it may be the user's active working directory. If cleanup fails, report the leftover path instead of forcing removal.
 
 **If worktree setup fails** (e.g. branch not found, detached HEAD issues), fall back to reviewing from the diff only and note this in the output.
 
@@ -459,6 +469,15 @@ Take the Round 3 agent's output and present it with the PR header prepended:
 **Review mode**: <multi-agent | degraded-same-context-review>
 **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Review pipeline**: Round 1 (primary review + independent review + IDE Diagnostics + Issue Compliance) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
+**Contract**:
+status: success | needs_user | terminal | degraded
+mode: read-only-review
+inputs_resolved: <repo + PR number>
+outputs_written: []
+skipped: <roles, linked issues, or cleanup skipped with reasons>
+errors: <retryable | terminal | needs_user | degraded entries>
+next_action: <one command or decision>
+truncated: true | false
 
 ### Summary
 <2-3 sentence summary of what this PR does>
@@ -482,11 +501,13 @@ Remind the user: "This review is local only — no comments have been posted to 
 If a worktree was **created** (not reused) in Step 2, clean it up:
 ```bash
 if [ "$WORKTREE_REUSED" = "false" ]; then
-  git worktree remove "$REVIEW_WORKTREE" --force 2>/dev/null
+  git worktree remove "$REVIEW_WORKTREE" 2>/dev/null
 fi
 ```
 
 This step **must always run**, even if the review encountered errors. Never remove a reused worktree — it belongs to the user.
+If cleanup fails, leave the worktree in place and report it under `errors:
+[{type: degraded, ...}]`; do not force-remove review worktrees.
 
 ## Phase Gates
 

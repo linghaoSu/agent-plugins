@@ -11,7 +11,9 @@ Scan the current repository for high-value **unattended** issues — those that 
 
 ## CRITICAL CONSTRAINT
 
-**This skill is strictly read-only.** During the entire execution, you MUST NOT:
+**This skill is strictly read-only.** It does not modify GitHub, git state, or
+repo files, and it writes no local report artifact by default; all results are
+returned in the conversation. During the entire execution, you MUST NOT:
 - Comment on any issue
 - Close, reopen, or edit any issue
 - Add or remove labels on any issue
@@ -20,6 +22,13 @@ Scan the current repository for high-value **unattended** issues — those that 
 - Perform any write operation via `gh issue edit`, `gh issue comment`, `gh issue close`, `gh issue reopen`, `gh issue create`, or equivalent `gh api` calls with POST/PATCH/PUT/DELETE methods on issue endpoints
 
 The ONLY permitted `gh` operations are read-only queries: `gh issue list`, `gh issue view`, and GET requests via `gh api`.
+
+Before reading large issue/comment sets, apply `../../WORKFLOW-CONTRACTS.md`
+**Output, Token, And Error Contract**. Default budget: 100 issues per search
+window, 50 comments per issue, and 15 issues in the final table. If more data
+is available, prioritize higher reaction count, maintainer-endorsed labels,
+recent activity, and missing active PR ownership. Set `truncated: true`, state
+what was omitted, and provide the continuation query in `next_action`.
 
 ## Arguments
 
@@ -236,6 +245,15 @@ Present the top results (up to 15) in this format:
 **Search window**: last <N> days (since YYYY-MM-DD)
 **Issues scanned**: <count>
 **High-value unattended issues found**: <count>
+**Contract**:
+status: success | needs_user | terminal | degraded
+mode: scan
+inputs_resolved: <repo + search window>
+outputs_written: []
+skipped: <issues skipped and why>
+errors: <retryable | terminal | needs_user | degraded entries>
+next_action: <one command or query>
+truncated: true | false
 
 ### Top Issues
 
