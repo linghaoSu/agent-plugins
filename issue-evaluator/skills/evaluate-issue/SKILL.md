@@ -39,6 +39,18 @@ multi-agent review.
 
 Execute the following steps in order. Use parallel agents where indicated.
 
+### Prompt & Template Artifacts
+
+Before using any extracted prompt or template artifact, read the referenced
+file. If it is missing or empty, stop with a terminal error. Do not reconstruct
+the missing prompt/template from memory, this skill body, or prior runs.
+Do not improvise a replacement prompt/template.
+
+Artifacts used by this skill:
+- `../../prompts/evaluate-issue-round2-adversarial.md`
+- `../../prompts/evaluate-issue-round3-synthesis.md`
+- `../../templates/evaluate-issue-final-report.md`
+
 ### Step 0: Classify Input Mode
 
 Decide which mode `$ARGUMENTS` falls into:
@@ -140,51 +152,9 @@ Required angles:
 - `REGRESSION_SCOPE`: validate scope control, regressions, and already-fixed
   claims
 
-Use this prompt per angle:
-
-```
-Adversarial review of issue diagnosis for issue #<number>: "<issue-title>".
-
-You are the second reviewer in a multi-agent, multi-angle diagnosis pipeline.
-Assigned angle: <ANGLE>.
-You have TWO jobs:
-1. Independently analyze the issue and the relevant code from your assigned angle.
-2. Evaluate the first-round diagnosis below — challenge any conclusions you believe are wrong, confirm conclusions you agree with, and flag anything the first round missed.
-
-IMPORTANT: This is a READ-ONLY analysis. Do NOT modify any files or post anything to GitHub.
-
-## Issue Details
-<issue title, body, labels, comments>
-
-## Code Style Guide (if available)
-<compact style checklist>
-
-## Round 1 Diagnosis — Primary Analysis
-<ROUND_1_PRIMARY — full output from Agent 1A + 1B>
-
-## Round 1 Diagnosis — Independent Check
-<ROUND_1_INDEPENDENT — full output from Agent 1C>
-
-## IDE Diagnostics (compiler/linter — ground truth)
-<ROUND_1_DIAGNOSTICS — machine-verified findings, treat these as facts>
-
-Your output should have TWO sections:
-
-### Section A: Independent Diagnosis
-- Your own root cause analysis (agree or disagree with Round 1)
-- Your own proposed fix plan with specific files and changes
-- Any edge cases or risks the fix plan should account for
-
-### Section B: Evaluation of Round 1
-For each Round 1 conclusion, give a verdict:
-- **CONFIRMED** — you agree. Briefly state why.
-- **DISPUTED** — you disagree. Explain the correct diagnosis/fix.
-- **INCOMPLETE** — Round 1 is partially right but missed important aspects. State what's missing.
-
-Note: IDE Diagnostics are machine-verified facts — do not dispute them. They may provide additional clues about the root cause.
-
-If Round 1 said "already fixed" and you agree, say: "Confirmed: already fixed in <sha>"
-```
+Use `../../prompts/evaluate-issue-round2-adversarial.md` for each angle,
+filling in the assigned angle, issue details, compact code style checklist,
+Round 1 outputs, and IDE diagnostics.
 
 **Wait for all Round 2 angles to complete.** Collect their outputs as
 `ROUND_2_DIAGNOSIS`, grouped by angle.
@@ -193,91 +163,21 @@ If Round 1 said "already fixed" and you agree, say: "Confirmed: already fixed in
 
 #### Round 3 — Final Synthesis
 
-Launch a single final synthesis agent. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent. This is issue diagnosis, but Round 3 synthesizes adversarial review evidence; fall back to same-context synthesis only when synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime, the user explicitly forbids them, or the selected synthesis reviewer/model is explicitly unavailable or at capacity. Record `degraded-same-context-review` before any final recommendation and do not present a main-context synthesis as independent review:
+Launch a single final synthesis agent. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent. This is issue diagnosis, but Round 3 synthesizes adversarial review evidence; fall back to same-context synthesis only when synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime, the user explicitly forbids them, or the selected synthesis reviewer/model is explicitly unavailable or at capacity. Record `degraded-same-context-review` before any final recommendation and do not present a main-context synthesis as independent review.
 
-```
-You are the final synthesis agent in a runtime-aware multi-pass issue diagnosis pipeline for issue #<number>: "<issue-title>".
-
-Four sources provided input: primary analysis (Round 1), independent check (Round 1), IDE Diagnostics (Round 1), and adversarial review (Round 2). Your job is to produce the definitive diagnosis and fix plan by synthesizing all sources. You must:
-
-1. For the root cause analysis:
-   - IDE Diagnostics findings are **ground truth** — if they point to the root cause, that takes precedence
-   - If 3+ independent review sources agree on root cause → HIGH CONFIDENCE
-   - If 2 independent review sources agree → HIGH CONFIDENCE
-   - If they disagree → re-examine the code yourself (read the relevant files) to break the tie
-   - State your final root cause with confidence level
-
-2. For the fix plan:
-   - If multiple models propose the same fix → HIGH CONFIDENCE, adopt it
-   - If they propose different fixes → evaluate all proposals, pick the best (or combine), and explain why
-   - If any model found risks or edge cases that others missed → incorporate them
-   - The final fix plan must be specific enough to implement directly
-
-3. For already-fixed status:
-   - If multiple sources agree it's fixed → confirm
-   - If they disagree → verify by reading the code at the relevant commit
-
-## Issue Details
-<issue title, body, labels, comments>
-
-## Round 1 Diagnosis — Primary Analysis
-<ROUND_1_PRIMARY>
-
-## Round 1 Diagnosis — Independent Check
-<ROUND_1_INDEPENDENT>
-
-## IDE Diagnostics (ground truth)
-<ROUND_1_DIAGNOSTICS>
-
-## Round 2 Diagnosis (Adversarial Review) + Round 1 Evaluation
-<ROUND_2_DIAGNOSIS>
-
-Produce a structured report in this exact format:
-
-### Status
-- **Issue exists in code**: Yes/No/Partially `[high]`|`[medium]`|`[low]` confidence
-- **Already fixed**: Yes/No/Partially (commit: <sha> if applicable)
-
-### Root Cause
-<Final root cause with file:line references>
-**Confidence**: `[high]`|`[medium]`|`[low]` — <brief justification: both rounds agreed / verified independently / etc.>
-
-### Reproduction
-<Step-by-step instructions to reproduce the issue locally>
-
-### Suggested Fix
-<Final concrete fix plan with specific files and changes>
-**Confidence**: `[high]`|`[medium]`|`[low]` — <brief justification>
-
-### Risks & Edge Cases
-<Any risks, edge cases, or caveats identified across both rounds>
-
-### Disputed & Resolved
-<Any disagreements between rounds and how they were resolved>
-
-### Affected Files
-- `path/to/file1.ext:L42` — <what needs to change>
-- `path/to/file2.ext:L88` — <what needs to change>
-
-Omit empty sections.
-```
+Use `../../prompts/evaluate-issue-round3-synthesis.md` for the synthesis agent,
+filling in issue details, Round 1 outputs, IDE diagnostics, and
+`ROUND_2_DIAGNOSIS`.
 
 **Wait for Round 3 to complete.**
 
 ### Step 4: Present Final Report
 
-Take the Round 3 agent's output and present it with the issue header prepended:
-
-```markdown
-## Issue Evaluation: <issue-title>
-
-**Issue**: #<number>
-**Review mode**: <multi-agent | degraded-same-context-review>
-**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
-**Diagnosis pipeline**: Round 1 (primary analysis + independent check + IDE Diagnostics) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
-
-<Round 3 structured output follows>
-```
+Take the Round 3 agent's output and present it using
+`../../templates/evaluate-issue-final-report.md`, filling in the issue header,
+review mode, degradation reason, diagnosis pipeline, and Round 3 structured
+output. In description mode, include the template's description-based
+evaluation mode line.
 
 ### Step 5: Prompt for Next Steps
 
