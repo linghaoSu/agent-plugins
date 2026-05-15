@@ -343,6 +343,25 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "implement-template-reference-contract",
+        "idea-to-ship/skills/implement/SKILL.md",
+        (
+            InvariantGroup("implementation log template", (r"implementation-log\.md", r"templates/implementation-log")),
+            InvariantGroup("cross skill contract reference", (r"WORKFLOW-CONTRACTS\.md", r"implementation-stage route table")),
+            InvariantGroup("stage status retained", (r"Stage Status",)),
+        ),
+    ),
+    ContractCheck(
+        "implementation-log-template-contract",
+        "idea-to-ship/templates/implementation-log.md",
+        (
+            InvariantGroup("stage status", (r"## Stage Status", r"Stage 1")),
+            InvariantGroup("stage entry", (r"## Stage <N>", r"Files touched")),
+            InvariantGroup("verification", (r"### Verification", r"tdd-log\.md")),
+            InvariantGroup("cross skill checks", (r"### Cross-Skill Checks", r"trigger/result/impact")),
+        ),
+    ),
+    ContractCheck(
         "review-design-interface-design-contract",
         "idea-to-ship/skills/review-design/SKILL.md",
         (

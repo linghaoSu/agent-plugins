@@ -51,20 +51,10 @@ Parse:
    to apply **Cross-Skill Routing**. Do not treat a missing
    `interface-design.md` as harmless until the selected stage has been checked
    for UI work in Step 3.
-5. Read or create `implementation-log.md`:
-
-   ```markdown
-   # Implementation Log — <slug>
-
-   **Architecture:** architecture.md
-   **Started:** <YYYY-MM-DD>
-
-   ## Stage Status
-   - [ ] Stage 1 — <name>
-   - [ ] Stage 2 — <name>
-   ...
-   ```
-   Mirror the stages from `architecture.md` § Staged Implementation Plan.
+5. Read or create `implementation-log.md` using
+   `../../templates/implementation-log.md`. Mirror the stages from
+   `architecture.md` § Staged Implementation Plan in its `## Stage Status`
+   list.
 
 ### Step 2: Pick The Stage
 
@@ -204,61 +194,16 @@ present; recommend anything that would mutate code, git, GitHub/GitLab,
 deployment state, credentials, or external systems unless the current request
 explicitly authorized that action.
 
-Use these implementation-stage routes:
-
-- Auth, credentials, `.env`, config, CI, deployment files, webhooks, signing,
-  examples, fixtures, or generated files → run
-  `secret-scanner:scan-secrets --mode working` or the repo's equivalent
-  deterministic secret scan.
-- Agent/pipeline/harness behavior, state persistence, retry, evaluator, or tool
-  middleware → run or recommend `harness-engineering:harness-audit`.
-- External APIs, data consistency, destructive operations, retries, fallback
-  paths, observability, or recovery → run or recommend
-  `antifragile:antifragile-system`.
-- React/UI code → run `react-doctor` when available and perform the relevant
-  UI verification from `interface-design.md`.
-- Long-running goal/pipeline state → use `harness-engineering:goal-mode` only
-  when this implementation stage itself needs persistent execution state.
-
-Record each route for Step 6:
-
-```markdown
-### Cross-Skill Checks
-- `<skill>` — triggered by <signal>; result: <clean | findings | skipped>;
-  impact: <fix applied | follow-up | accepted risk | not applicable>
-```
+Use the implementation-stage route table in
+`../../WORKFLOW-CONTRACTS.md` instead of duplicating it here. Record each
+triggered route in the `### Cross-Skill Checks` section from
+`../../templates/implementation-log.md`, including trigger, result, and impact.
 
 ### Step 6: Update The Log
 
-Append a section to `implementation-log.md`:
-
-```markdown
-## Stage <N> — <name>
-**Completed:** <YYYY-MM-DD HH:MM>
-
-### Files touched
-- `path/to/file.ext` — <what changed, 1 line>
-
-### Decisions made during implementation
-- <decision>: <reasoning>
-
-### Deviations from design artifacts
-- <none | or: "did X instead of architecture.md/interface-design.md because Z">
-
-### Adjacent issues noticed (NOT fixed here)
-- <bullet or "none">
-
-### Verification
-- build: ok / fail (fixed: <what>)
-- lint:  ok / skipped / ...
-- tests: N passed, M skipped, 0 failed
-- tdd: `tdd-log.md` entry <timestamp>, failing test then passed (`<command>`) / not applicable (`<reason>`)
-
-### Cross-Skill Checks
-- <skill or "none"> — <trigger/result/impact>
-```
-
-Tick the stage's checkbox in the Stage Status list at the top.
+Append a stage section to `implementation-log.md` using
+`../../templates/implementation-log.md`. Tick the stage's checkbox in the
+`## Stage Status` list at the top.
 
 ### Step 7: Hand-off
 
