@@ -255,133 +255,20 @@ This is the central step. Each comment gets an **independent verdict** before an
 
 For each comment in the set, launch an **analyst agent** in parallel, capped at ~4 concurrent. In Claude Code this is an Opus agent (`model: "opus"`); in non-Claude runtimes use the host's native sub-agent mechanism and label the role `ANALYST`. Each agent gets:
 
-```
-You are evaluating a single code review comment on GitHub PR #<number>: "<pr-title>".
-
-Your job: decide whether this comment is a VALID change request that should be implemented, and if so, design the fix. You are doing **analysis only** — a separate executor will apply the fix later, so your fix plan must be detailed enough for an executor to follow without re-deriving anything.
-
-CRITICAL: This is read-only with respect to GitHub. Do NOT run any gh commands that write to the PR (no gh pr review, gh pr comment, gh api POST/PATCH/DELETE, etc.). Do NOT run git commit. You may read files in the worktree at <FIX_WORKTREE>, but DO NOT edit files yourself — analysis only.
-
-## Context
-- PR description: <pr body>
-- Code style checklist: <compact checklist from Step 4>
-- PR author: @<pr-author>
-- Worktree (read source from here): <FIX_WORKTREE>
-
-## The comment
-- Thread id: <thread_id>
-- Reviewer: @<author>
-- Category (initial): <category>
-- Location: <file:line or "general">
-- Thread URL: <html_url>
-- Full thread:
-<thread body — original comment + any back-and-forth replies, oldest first>
-
-## Relevant code
-<for inline comments: the diff hunk around the anchored line, plus 30 lines of surrounding context read from <FIX_WORKTREE>/<file>>
-<for general comments: the relevant section of the PR description, and any files the comment mentions>
-
-## Evaluation rubric
-For this comment, decide one of:
-
-1. **ACCEPT** — the comment is correct and the change should be made. Provide:
-   - A concrete fix plan: file, lines, exact change (use diff-style or "replace X with Y" — be specific enough that the implementer doesn't have to guess)
-   - Rationale: why the reviewer is right
-   - Whether a test should be added
-
-2. **ACCEPT_PARTIAL** — the comment identifies a real problem but the suggested fix is wrong / suboptimal. Provide:
-   - The actual problem (acknowledging the reviewer's insight)
-   - A better fix
-   - A short note for the reviewer explaining the alternative approach (the user will deliver this manually)
-
-3. **REJECT** — the comment is incorrect, based on a misunderstanding, or asks for something that conflicts with project conventions / requirements / existing design. Provide:
-   - A factual rebuttal: what the reviewer got wrong
-   - Evidence: cite the specific code (file:line), doc, or convention that supports your position
-   - A polite, technical reply the user can paste back to the reviewer (3-5 sentences max, professional tone, no defensiveness)
-
-4. **DEFER** — the comment is valid but out of scope for this PR (e.g. asks for a refactor of unrelated code, requests a feature beyond the PR's stated purpose). Provide:
-   - Why it's out of scope
-   - A suggestion for a follow-up issue / PR
-   - A polite reply the user can post
-
-5. **ANSWER** — the comment is a QUESTION, not a change request. Provide:
-   - A direct answer based on the actual code
-   - A reply text the user can post
-
-6. **NEEDS_HUMAN** — the comment requires a judgment call, business context, or stakeholder input you don't have. Provide:
-   - What's unclear and why
-   - The specific question the user needs to answer
-
-## Ground rules
-- Be honest. Don't ACCEPT a bad comment to be polite, and don't REJECT a good one because it's annoying to fix.
-- Read the actual code in the worktree before deciding. Don't trust the diff snippet alone.
-- If the reviewer cites a specific behavior, verify it in the code. If they're factually wrong, that's a strong REJECT signal.
-- For NIT-level comments, lean ACCEPT if the fix is trivial and matches the style guide; lean REJECT or DEFER if it would touch many files or conflict with existing conventions.
-- If two comments contradict each other, note it — the meta-evaluation in Phase 2 will resolve it.
-- DO NOT edit files. DO NOT run git commit. DO NOT run any gh write commands. Just analyze and report.
-
-## Output format
-A single block with:
-  thread_id: <id>
-  verdict: ACCEPT | ACCEPT_PARTIAL | REJECT | DEFER | ANSWER | NEEDS_HUMAN
-  confidence: high | medium | low
-  rationale: <2-4 sentences>
-  fix_plan: <only if ACCEPT or ACCEPT_PARTIAL — file paths, line numbers, exact change>
-  reply_text: <only if REJECT, DEFER, ANSWER, or ACCEPT_PARTIAL — the message the user can post>
-  question_for_user: <only if NEEDS_HUMAN — the specific decision the user needs to make>
-```
+Use `../../prompts/fix-pr-comments-analyst.md`, filling in the PR context,
+thread metadata, relevant diff hunk, and surrounding code from
+`<FIX_WORKTREE>`. The analyst must not edit files, commit, stage, push, or
+write to GitHub.
 
 Wait for all per-comment agents to finish. Collect into `PHASE_1_VERDICTS`.
 
 #### Phase 2 — Cross-Comment Reconciliation (single reconciler)
 
-Many PRs have overlapping or contradictory comments. Launch a single reconciler agent. In Claude Code this is an Opus agent (`model: "opus"`); in non-Claude runtimes use a fresh sub-agent with role `RECONCILER`. Same reasoning as Phase 1: this is final analysis, and a wrong reconciliation gets baked into the executor's instructions.
-
-```
-You are reconciling multiple per-comment verdicts on GitHub PR #<number>.
-
-You receive a list of independent verdicts from Phase 1. Your job:
-
-1. **Detect contradictions** — two comments asking for opposite changes on the same code. Pick the one that's more consistent with the PR's stated purpose, the code style guide, and the higher-authority reviewer (e.g. a maintainer over a drive-by). Mark the other as REJECT with a note about the conflict.
-
-2. **Detect duplicates** — multiple comments saying the same thing. Merge them into one ACCEPT, citing all source thread ids.
-
-3. **Detect chains** — comment B builds on comment A. If A is REJECTED, re-evaluate B without A's premise.
-
-4. **Sanity-check the REJECTs** — for each REJECT verdict, ask: "Is the rebuttal actually correct, or am I being defensive?" Re-read the code in the worktree if uncertain. Better to flip to ACCEPT than to die on a bad hill.
-
-5. **Sanity-check the ACCEPTs** — for each ACCEPT verdict, ask: "Does the fix plan actually address the comment, or am I over-fitting?" Make sure the fix is minimal and scoped.
-
-6. **Order the ACCEPTs by file** so the implementation step can batch by file and avoid re-reading.
-
-## Phase 1 Verdicts
-<PHASE_1_VERDICTS>
-
-## Code Style Checklist
-<compact checklist>
-
-## PR Context
-- Title: <title>
-- Description: <body, truncated to ~50 lines if long>
-- Files changed: <list>
-
-## Output
-
-### Final triage table
-| thread_id | reviewer | category | location | final verdict | confidence | notes |
-
-### Consolidated fix plan
-For ACCEPT and ACCEPT_PARTIAL only, deduplicated and ordered by file:
-- file: <path>
-  - thread_id: <id> — <one-line description of change>
-  - thread_id: <id> — <one-line description of change>
-
-### Rebuttal text bundle
-For REJECT, DEFER, ANSWER: the reply text from Phase 1, organized by thread_id, ready to copy-paste.
-
-### Items needing user judgment
-For NEEDS_HUMAN: the open questions.
-```
+Many PRs have overlapping or contradictory comments. Launch a single reconciler
+agent. In Claude Code this is an Opus agent (`model: "opus"`); in non-Claude
+runtimes use a fresh sub-agent with role `RECONCILER`. Use
+`../../prompts/fix-pr-comments-reconciler.md` with `PHASE_1_VERDICTS`, the
+compact style checklist, PR title/body, and changed-file list.
 
 Wait for this agent. Store as `TRIAGE_REPORT` and `CONSOLIDATED_FIX_PLAN`.
 
@@ -423,53 +310,10 @@ If the user picks option 5, jump straight to Step 10 (Final Report) without edit
 
 Launch a single executor agent with the consolidated fix plan as input. In Claude Code this is a **Sonnet agent** (`model: "sonnet"`); in non-Claude runtimes use the host's native worker/executor sub-agent. Group all accepted items into one agent run so it can see cross-file relationships and avoid redundant file re-reads.
 
-```
-You are the executor for a pre-approved PR review fix plan on PR #<number>: "<pr-title>".
-
-A separate analyst already produced the verdicts and fix plans below. The user has reviewed and approved them. Your job is mechanical: read the affected files, apply each change exactly as planned, match surrounding code style, and stop. You are not re-evaluating verdicts — analysis is complete and the user signed off.
-
-CRITICAL CONSTRAINTS:
-- Apply the local 12-rule execution contract from `../../PRINCIPLES.md`: read
-  affected files/callers first, keep edits minimal, and report conflicts or
-  infeasible fixes instead of improvising.
-- Work ONLY inside the worktree at <FIX_WORKTREE>. Never touch the user's main working directory.
-- Do NOT run `git add`, `git commit`, `git commit --amend`, `git stash`, `git push`, or anything that records history. Edits must stay as **unstaged** modifications visible to `git diff`.
-- Do NOT run any `gh` command that writes to GitHub (`gh pr review`, `gh pr comment`, `gh api POST/PATCH/DELETE`, etc.). Read-only `gh` is fine if you actually need it (you probably don't).
-- Do NOT touch files that are not in the fix plan. Do NOT expand scope, refactor neighboring code, or add unrelated improvements.
-- If a fix turns out to be infeasible after reading the actual code (e.g. the function moved, the variable doesn't exist, the planned change would break a callsite the analyst missed), STOP that specific fix and report it as `INFEASIBLE` with details. Do not silently substitute a different fix. Continue with the other fixes.
-
-## Worktree
-<FIX_WORKTREE>
-
-## Consolidated fix plan (from Phase 2 reconciliation, user-approved)
-<CONSOLIDATED_FIX_PLAN — file-grouped, with thread_id, file:line, exact change description>
-
-## Code style checklist (for matching surrounding style)
-<compact checklist from Step 4>
-
-## Per-file workflow
-For each file in the plan:
-1. Read the file fully.
-2. Apply each planned change for that file.
-3. Match naming, imports, error handling, and idioms of the surrounding code.
-4. If the analyst flagged "add a test" for any change AND the project has an obvious test location for the affected file, add one focused test alongside the change. One test per accepted comment is the rule of thumb.
-
-## Output format
-After all edits, report:
-
-### Applied
-- thread_id <id>: <file>:<lines> — <one-line description of what you actually wrote>
-- ...
-
-### Infeasible (couldn't apply)
-- thread_id <id>: <file>:<lines> — <why it didn't work; what the analyst missed>
-
-### New tests added
-- <file> — covers thread_id <id>
-- ...
-
-Remember: NO commits, NO staging, NO pushes, NO GitHub writes. Just edits + report.
-```
+Use `../../prompts/fix-pr-comments-executor.md` with the PR title, scratch
+worktree path, user-approved consolidated fix plan, and compact style
+checklist. The executor must leave edits unstaged and must not commit, stash,
+push, stage, touch the user's main working directory, or write to GitHub.
 
 Wait for the executor to finish. Collect the result as `EXECUTOR_REPORT`. Move any `INFEASIBLE` items into the final report's "Needs Your Input" section so the user knows why those comments weren't addressed.
 
@@ -492,87 +336,10 @@ Required angles:
 
 Use this prompt per angle:
 
-```
-Adversarial review of the uncommitted edits applied for PR #<number>: "<pr-title>" review-comment fixes.
-
-You are the third reviewer in a multi-pass pipeline:
-- The analysis phase produced the verdicts and fix plans for each reviewer comment.
-- The executor applied the approved fix plans as uncommitted edits in a worktree.
-- You are reviewing the resulting diff from the assigned angle: <ANGLE>.
-
-CRITICAL: This review is READ-ONLY.
-- Do NOT run `git commit`, `git add`, `git stash`, `git push`, or anything that records history.
-- Do NOT run any `gh` command that writes to GitHub.
-- You may read files, run the diff, run tests, and read the original PR — but no writes anywhere.
-
-## Worktree
-<FIX_WORKTREE>
-
-## How to see what was changed
-```bash
-cd <FIX_WORKTREE>
-git diff
-```
-
-## Original PR context
-- Title: <pr title>
-- Description: <pr body>
-- Base ← head: <baseRefName> ← <headRefName>
-
-## What the analysis phase approved (consolidated fix plan)
-<CONSOLIDATED_FIX_PLAN>
-
-## What the executor reported applying
-<EXECUTOR_REPORT>
-
-## Your job
-For each change in the worktree diff, evaluate the checks in your assigned
-angle. Use the list below for shared context, but focus your findings on
-<ANGLE>:
-
-1. **Does the change actually address the cited reviewer comment?** Cross-reference each diff hunk against its `thread_id` in the fix plan. If a hunk doesn't trace back to a thread, that's scope creep — flag it.
-
-2. **Is the change correct?** Read the surrounding code and the call sites. Common failure modes to look for:
-   - Off-by-one errors introduced while "fixing" boundary conditions
-   - Nil/null/undefined checks added in the wrong place
-   - Error handling that swallows errors instead of propagating them
-   - Type changes that break callers
-   - Imports added but not used (or used but not added)
-   - Tests that don't actually test the claimed behavior
-
-3. **Did the executor miss anything from the plan?** Cross-check the EXECUTOR_REPORT against the CONSOLIDATED_FIX_PLAN. If the plan said "fix X in foo.go and bar.go" but the executor only touched foo.go, flag it.
-
-4. **Was the upstream verdict actually right?** You're allowed to dispute an upstream verdict if reading the code now makes you think the analyst got it wrong. Be specific: cite the file and line.
-
-5. **Did the fixes introduce any NEW bugs?** Independent of the original comments — does the diff have any new logic errors, race conditions, resource leaks, or security issues?
-
-## Output format
-
-### Section A — Verified
-For each fix that is correct and properly scoped: one-line confirmation with thread_id and file:line.
-
-### Section B — Issues found
-For each problem, report:
-- Severity: critical / warning / nit
-- thread_id (if traceable) or "scope creep" / "new bug"
-- file:line
-- What's wrong
-- Suggested correction (do NOT apply it — just describe)
-
-### Section C — Missed from the plan
-Items in the CONSOLIDATED_FIX_PLAN that the EXECUTOR_REPORT doesn't account for.
-
-### Section D — Disputed verdicts
-Cases where, after reading the actual code, you believe the original verdict was wrong. Be specific.
-
-### Section E — Verdict
-- **CLEAN** — all fixes look correct, scoped, and complete. Safe for the user to commit as-is.
-- **NEEDS_TOUCHUP** — minor issues; list what the user should fix before committing.
-- **NEEDS_REWORK** — significant problems; recommend the user roll back specific files and re-run.
-
-### Section F — Angle
-<ANGLE>
-```
+Use `../../prompts/fix-pr-comments-adversarial-reviewer.md` with the assigned
+angle, scratch worktree path, PR context, consolidated fix plan, and executor
+report. Reviewers must not stage, commit, stash, push, write to GitHub, or
+auto-apply suggested corrections.
 
 Wait for every adversarial review angle. Collect as `ADVERSARIAL_REVIEW`,
 grouped by angle, and synthesize the strictest verdict. **Do not auto-apply any
@@ -590,91 +357,10 @@ If yes, try in order based on what the project uses: `npm test`, `pnpm test`, `y
 
 ### Step 10: Final Report
 
-```markdown
-## PR Review Comments Triaged: #<number> "<pr-title>"
-
-**PR**: #<number> by @<author> → <baseRefName> ← <headRefName>
-**State**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
-**Worktree**: `<FIX_WORKTREE>` (detached HEAD on `<short-sha>`)
-**Pipeline**: analysis → executor → multi-agent adversarial review
-**Review mode**: <multi-agent | degraded-same-context-review>
-**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
-**Comments triaged**: <total> total → <actionable> actionable → <accepted> accepted, <rejected> rejected, <deferred> deferred, <answered> answered, <human> need-input
-**Adversarial review verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
-**Contract**:
-status: success | needs_user | terminal | degraded
-mode: comment-triage
-inputs_resolved: <repo + PR number + include-resolved flag>
-outputs_written: <scratch worktree path or [] when report-only>
-skipped: <filtered comments, skipped edits, skipped checks>
-errors: <retryable | terminal | needs_user | degraded entries>
-next_action: <one command or decision>
-truncated: true | false
-
-> **No commits were made. No changes were posted to GitHub.** All edits are uncommitted modifications in the worktree above. All rebuttal text is below — you decide whether to post any of it.
-
-### Accepted & Implemented (uncommitted edits in worktree)
-| # | Thread | Reviewer | Category | File | Change |
-|---|---|---|---|---|---|
-| 1 | [link](<html_url>) | @alice | BUG | `src/foo.go:42` | <one-line> |
-| ... | ... | ... | ... | ... | ... |
-
-To inspect: `cd <FIX_WORKTREE> && git diff`
-
-### Rejected — Rebuttals to Post Manually
-For each REJECT verdict, here is the suggested reply you can paste into the discussion. **This skill never posts to GitHub itself.**
-
-#### Thread [<id>](<html_url>) — @bob, `src/bar.go:18`
-> <original comment, blockquoted>
-
-**Reply**:
-> <3-5 sentence technical rebuttal with evidence — file:line citations included>
-
-(repeat for each REJECT)
-
-### Deferred — Follow-Up Suggestions
-- Thread [<id>](<html_url>) by @carol — <one-line about why deferred and what follow-up issue to file>
-  - Reply (optional):
-    > <polite reply text>
-
-### Answered — Replies to Questions
-- Thread [<id>](<html_url>) by @dan — question about <topic>
-  - Reply:
-    > <direct answer based on the code>
-
-### Needs Your Input
-- Thread [<id>](<html_url>) by @eve — <the specific question that needs human judgment>
-
-### Files Modified (in worktree only)
-- `path/to/file1.ext` — <what and why, citing thread id>
-- `path/to/file2.ext` — <what and why, citing thread id>
-
-### Adversarial Review
-**Verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>
-**Angles**: plan_trace_scope, correctness_regression_security, completeness_tests
-
-**Issues found by adversarial review** (none of these were auto-applied — review and decide):
-- **[critical|warning|nit]** `file:line` (thread <id> | scope creep | new bug) — <what's wrong> → <suggested correction>
-- ...
-
-**Missed from the plan** (executor didn't apply):
-- thread <id>: <file> — <what was missing>
-
-**Disputed verdicts** (adversarial review disagrees with the analysis phase):
-- thread <id>: <adversarial review reasoning>
-
-(Omit any subsection that's empty.)
-
-### Verification
-<test/lint result if Step 9 was run, or "verification skipped — run yourself in the worktree if needed">
-
-### Next Steps
-- Inspect the edits: `cd <FIX_WORKTREE> && git diff`
-- If you like them, stage and commit yourself: `cd <FIX_WORKTREE> && git checkout -B <some-branch> && git add ... && git commit ...`
-- For each REJECT, paste the rebuttal into the discussion on GitHub manually
-- Resolve threads on GitHub manually after the reviewer agrees
-- When you're done with the worktree: `git worktree remove <FIX_WORKTREE>` (or `--force` if there are still uncommitted edits you want to discard)
-```
+Use `../../templates/fix-pr-comments-final-report.md`. Preserve the template's
+read-only GitHub statement, no-commit statement, contract fields, rebuttal
+sections, adversarial-review sections, verification section, and manual next
+steps. Omit empty subsections.
 
 ## Notes
 

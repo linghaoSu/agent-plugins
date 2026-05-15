@@ -17,6 +17,12 @@ from pathlib import Path
 
 
 MAX_DESCRIPTION_CHARS = 320
+MAX_SKILL_LINES = 750
+FULL_CONTRACT_MARKERS = (
+    "## Output, Token, And Error Contract",
+    "status: success | needs_user | terminal | degraded",
+    "truncated: true | false",
+)
 
 
 @dataclass(frozen=True)
@@ -205,6 +211,38 @@ def check_shared_contract_references(root: Path, skill_files: list[Path], mode: 
     return findings
 
 
+def check_skill_size(root: Path, skill_files: list[Path], mode: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for path in skill_files:
+        text = read_skill_text(root, path, mode)
+        line_count = len(text.splitlines())
+        if line_count > MAX_SKILL_LINES:
+            findings.append(
+                Finding(
+                    "oversized-skill",
+                    str(path.relative_to(root)),
+                    f"skill is {line_count} lines; move long prompts/templates out of SKILL.md",
+                )
+            )
+    return findings
+
+
+def check_inline_output_contract_blocks(root: Path, skill_files: list[Path], mode: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for path in skill_files:
+        text = read_skill_text(root, path, mode)
+        markers = [marker for marker in FULL_CONTRACT_MARKERS if marker in text]
+        if len(markers) >= 2:
+            findings.append(
+                Finding(
+                    "inline-output-contract",
+                    str(path.relative_to(root)),
+                    "move repeated output/token/error contract fields to WORKFLOW-CONTRACTS.md and cite them",
+                )
+            )
+    return findings
+
+
 def check_added_skill_metadata(root: Path, mode: str) -> list[Finding]:
     findings: list[Finding] = []
     for skill_path in added_skill_files(root, mode):
@@ -225,6 +263,8 @@ def run(root: Path, mode: str) -> list[Finding]:
     findings: list[Finding] = []
     findings.extend(check_description_lengths(root, skill_files, mode))
     findings.extend(check_shared_contract_references(root, skill_files, mode))
+    findings.extend(check_skill_size(root, skill_files, mode))
+    findings.extend(check_inline_output_contract_blocks(root, skill_files, mode))
     findings.extend(check_added_skill_metadata(root, mode))
     return findings
 

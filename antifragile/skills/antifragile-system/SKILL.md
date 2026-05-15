@@ -15,32 +15,8 @@ Audit the project in the current working directory for resilience and antifragil
 If the user specifies a focus area, narrow the audit to that dimension. Otherwise audit all.
 
 This skill is read-only against the target project and writes no local artifact
-by default; the report goes to stdout/conversation.
-
-## Output, Token, And Error Contract
-
-End with:
-
-```yaml
-status: success | needs_user | terminal | degraded
-mode: audit
-inputs_resolved:
-  project: <directory>
-  focus: <focus-area>
-outputs_written: []
-skipped:
-  - <dimension or path>: <reason>
-errors:
-  - type: retryable | terminal | needs_user | degraded
-    message: <actionable sentence>
-next_action: <one command or decision>
-truncated: true | false
-```
-
-Token budget: inspect at most 100 source/config files in one pass, cap per-file
-evidence at 80 surrounding lines, and summarize repeated findings by pattern.
-If the scan exceeds the budget, set `truncated: true` and name omitted paths or
-dimensions.
+by default; the report goes to stdout/conversation. Apply the shared output,
+token, and error contract from `../../WORKFLOW-CONTRACTS.md`.
 
 ## Audit Dimensions
 

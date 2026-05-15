@@ -13,33 +13,10 @@ Audit the Claude Code plugin/hook/skill ecosystem for fragility. Produce a grade
 
 This skill is read-only against the target infrastructure and writes no local
 artifact by default; the report goes to stdout/conversation. Apply the shared
-safety checklist from `agent-playbook/WORKFLOW-CONTRACTS.md` when comparing
-with agent-playbook audits: boundary truth, human gates for destructive
-changes, token honesty, typed errors, and realistic scenario fixtures.
-
-## Output, Token, And Error Contract
-
-End with:
-
-```yaml
-status: success | needs_user | terminal | degraded
-mode: audit
-inputs_resolved:
-  target: <repo or plugin root>
-outputs_written: []
-skipped:
-  - <path or dimension>: <reason>
-errors:
-  - type: retryable | terminal | needs_user | degraded
-    message: <actionable sentence>
-next_action: <one command or decision>
-truncated: true | false
-```
-
-Token budget: inspect at most 100 hook/script/skill files in one pass, cap
-per-file evidence at 80 surrounding lines, and summarize repeated dependency
-findings by pattern. If the scan exceeds the budget, set `truncated: true` and
-name the omitted paths or dimensions.
+output, token, and error contract from `../../WORKFLOW-CONTRACTS.md`. When
+comparing with agent-playbook audits, also apply its shared safety checklist:
+boundary truth, human gates for destructive changes, token honesty, typed
+errors, and realistic scenario fixtures.
 
 ## Audit Dimensions
 

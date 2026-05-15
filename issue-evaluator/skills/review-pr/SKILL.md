@@ -187,66 +187,10 @@ context and label the report `degraded-same-context-review`.
 
 Launch the following agents and tools **all in parallel**:
 
-**Agent 1A — Bug, Logic & Security Review (`ROUND_1_BUG_SECURITY`; Claude: Sonnet, non-Claude: native review sub-agent):**
-
-Review the PR diff for:
-1. **Bugs**: Logic errors, off-by-one errors, nil/null pointer dereferences, race conditions, resource leaks
-2. **Security**: Injection vulnerabilities, auth/authz issues, sensitive data exposure, insecure defaults
-3. **Error handling**: Missing error checks, swallowed errors, incorrect error propagation
-4. **Edge cases**: Unhandled boundary conditions, empty inputs, concurrent access
-5. **Breaking changes**: API contract changes, behavioral changes that could affect callers
-
-Provide the agent with the full PR diff, description, and changed files list. Instruct: "Follow the Review Tone & Principles in the parent skill — Linus-style: blunt, direct, name the concrete failure mode. Attack the code, not the author. For each issue, report: severity (critical/warning/nit), file and line, what's wrong (specific failure mode), and how to fix it. If no issues found, respond with LGTM."
-
-**Agent 1B — Code Style & Quality Review (`ROUND_1_STYLE_QUALITY`; Claude: Sonnet, non-Claude: native review sub-agent):**
-
-Review the PR diff for compliance with the repo's code style:
-1. **Naming conventions**: Variables, functions, types, files match repo conventions
-2. **Import organization**: Grouping and ordering follows repo patterns
-3. **Error handling patterns**: Matches the repo's established patterns
-4. **Testing**: New/changed code has appropriate test coverage; tests follow repo patterns
-5. **Code organization**: Changes are in the right place structurally
-6. **Documentation**: Comments and docs match repo style
-7. **Common idioms**: Code uses the repo's preferred patterns and idioms
-
-Provide the agent with the full PR diff and the compact code style checklist from Step 3. Instruct: "Follow the Review Tone & Principles in the parent skill. CRITICAL: style findings must be grounded in THIS repo's conventions (the checklist below or patterns in surrounding code) — not your personal preferences or generic best practices. If you can't cite a repo rule or established pattern, drop the finding. Only flag issues within the changed lines. Do NOT flag pre-existing style patterns. For each issue, report: severity (critical/warning/nit), file and line, which specific repo rule or established pattern it violates (cite it), and how to fix it. Be blunt. If no issues found, respond with LGTM."
-
-**Agent 1C — Existing Review Context (`ROUND_1_EXISTING_CONTEXT`; Claude: Sonnet, non-Claude: native review sub-agent):**
-
-Analyze existing PR reviews and comments to avoid duplicating feedback:
-1. Read through all existing review comments and inline comments fetched in Step 1
-2. Summarize what has already been flagged by human reviewers
-3. Note any open discussion threads or unresolved conversations
-4. Identify areas that have NOT been reviewed yet
-
-Provide the agent with the PR metadata (reviews, comments, review comments) and the list of changed files.
-
-**Agent 1D — Independent Review (`ROUND_1_INDEPENDENT`; Claude: Haiku, non-Claude: native independent sub-agent):**
-
-Launch an independent third perspective. In Claude Code use a Haiku agent; in non-Claude runtimes use a separate sub-agent with no access to the first two agents' conclusions. Provide it with the full PR diff, description, and code style checklist. Instruct:
-
-"You are an independent code reviewer in the spirit of Linus Torvalds: blunt, direct, technically sharp. Call bad code bad and name the concrete failure mode. Attack the code, not the author. Style findings must cite a rule from the code style checklist provided — do NOT impose personal preferences or generic best practices; this repo's conventions win. Review this PR diff for bugs, security issues, logic errors, and code style violations. For each issue, report: severity (critical/warning/nit), file and line, what's wrong, and how to fix it. If no issues found, respond with LGTM. Be concise."
-
-**Agent 1F — Linked Issue Compliance (`ROUND_1_ISSUE_COMPLIANCE`; Claude: Sonnet, non-Claude: native review sub-agent):**
-
-**Skip this agent if `LINKED_ISSUES` is empty.**
-
-Review whether the PR diff adequately addresses the requirements of each linked issue. Provide the agent with the full PR diff, PR description, and the full text of each linked issue (title, body, comments). Instruct:
-
-"For each linked issue, evaluate:
-1. **Requirement coverage**: Does the diff address all requirements/acceptance criteria described in the issue? List each requirement and whether it's addressed, partially addressed, or missing.
-2. **Fix correctness**: For issues marked as `fixes`, does the code change actually fix the reported problem? Could the described bug/feature request still reproduce after this change?
-3. **Scope alignment**: Does the PR stay within scope of the issue, or does it include unrelated changes? Does it miss parts of the issue scope?
-4. **Edge cases from issue discussion**: Do the issue comments mention edge cases, constraints, or requirements that the PR doesn't handle?
-
-For each linked issue, report:
-- Issue reference (e.g. #123)
-- Relationship: fixes / references
-- Verdict: **FULLY ADDRESSED** / **PARTIALLY ADDRESSED** / **NOT ADDRESSED**
-- Details: what's covered, what's missing or incomplete
-- Severity of gaps (critical/warning/nit)
-
-If all linked issues are fully addressed, respond with: 'All linked issues are fully addressed by this PR.'"
+Use `../../prompts/review-pr-round1.md` to launch these roles:
+`ROUND_1_BUG_SECURITY`, `ROUND_1_STYLE_QUALITY`,
+`ROUND_1_EXISTING_CONTEXT`, `ROUND_1_INDEPENDENT`, and
+`ROUND_1_ISSUE_COMPLIANCE` when `LINKED_ISSUES` is non-empty.
 
 **Tool 1E — IDE Diagnostics:**
 
@@ -274,74 +218,7 @@ Required Round 2 angles:
 - `STYLE_SCOPE`: repo style grounding, maintainability, scope control
 - `TRACEABILITY`: linked issue coverage, test evidence, review finding validity
 
-Use this prompt per angle:
-
-```
-Adversarial code review of PR #<number>: "<pr-title>".
-
-TONE: Linus-style — blunt, direct, technically sharp. Call bad code bad and name the concrete failure mode (race, leak, UB, broken invariant, API misuse, O(n²), etc.). No hedging, no corporate softening. Attack the code, never the author.
-
-STYLE GROUNDING: Style findings must cite a rule from the repo's code style checklist below, or an established pattern in the surrounding code. Personal preferences and generic "best practices" from other projects are OUT — this repo's conventions are the law. If a Round 1 style finding isn't grounded in this repo, DISPUTE it.
-
-You are the second reviewer in a multi-agent, multi-angle review pipeline.
-Assigned angle: <ANGLE>.
-Your jobs:
-1. Independently review the PR diff from your assigned angle.
-2. Evaluate the first-round review findings relevant to your angle — challenge false positives, confirm real findings, and flag anything the first round missed.
-3. If this PR links to issues and your angle is TRACEABILITY, evaluate whether the issue compliance assessment from Round 1 is accurate — verify the PR actually addresses the linked issue requirements.
-
-IMPORTANT: This is a READ-ONLY review. Do NOT run any commands that modify the PR, post comments, or write to GitHub.
-
-## PR Description
-<pr body>
-
-## Code Style Rules for This Repo
-<compact style checklist from Step 3>
-
-## PR Diff
-<the full diff>
-
-## Round 1 Findings — Primary Review
-<ROUND_1_PRIMARY — full output from Agent 1A + 1B>
-
-## Round 1 Findings — Independent Review
-<ROUND_1_INDEPENDENT — full output from Agent 1D>
-
-## IDE Diagnostics (compiler/linter — ground truth)
-<ROUND_1_DIAGNOSTICS — machine-verified findings, treat these as facts>
-
-## Linked Issue Compliance (if applicable)
-<ROUND_1_ISSUE_COMPLIANCE — assessment of whether this PR addresses its linked issues; empty if no linked issues>
-
-SCOPE RULE: Only report issues within the lines changed in the diff. Do NOT flag lint, style, or formatting issues in unchanged/surrounding code. Even within the diff, only flag style issues if they introduce NEW inconsistencies with the repo's conventions.
-
-Your output should have THREE sections (Section C only if linked issues exist):
-
-### Section A: Independent Findings
-For each NEW issue you found (not already in Round 1), report:
-- Severity (critical / warning / nit)
-- File and line
-- What's wrong and how to fix it
-- Which style rule it violates (if applicable)
-
-If you found NO new issues, say: "No additional issues found."
-
-### Section B: Evaluation of Round 1
-For each Round 1 finding (from BOTH the primary review and independent review), give a verdict:
-- **CONFIRMED** — you agree this is a real issue. Briefly state why.
-- **DISPUTED** — you believe this is a false positive or overstated. Explain why.
-- **UPGRADED/DOWNGRADED** — you agree the issue exists but disagree on severity. State the correct severity and why.
-
-Note: IDE Diagnostics are machine-verified facts — do not dispute them. You may add context or suggest fixes for them.
-
-### Section C: Issue Compliance Evaluation (only if linked issues exist)
-For each linked issue in the Round 1 issue compliance assessment:
-- **CONFIRMED** — you agree with the compliance verdict. Briefly state why.
-- **DISPUTED** — you disagree (e.g. Round 1 said FULLY ADDRESSED but you see gaps, or vice versa). Explain.
-- Note any issue requirements that both Round 1 and you believe are missing from the PR.
-
-If Round 1 was LGTM across all sources and you agree, say: "Confirmed: LGTM"
-```
+Use `../../prompts/review-pr-round2-adversarial.md` for each angle.
 
 **Wait for all Round 2 angles to complete.** Collect their outputs as
 `ROUND_2_FINDINGS`, grouped by angle.
@@ -350,142 +227,25 @@ If Round 1 was LGTM across all sources and you agree, say: "Confirmed: LGTM"
 
 #### Round 3 — Final Synthesis Review
 
-Launch a single final synthesis reviewer. In Claude Code, use an **Opus agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a fresh synthesis sub-agent. This review workflow is already authorized for reviewer sub-agents. Fall back to same-context synthesis only when synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime, the user explicitly forbids them, or the selected synthesis reviewer/model is explicitly unavailable or at capacity; record `degraded-same-context-review` and do not present it as independent multi-agent synthesis:
+Launch a single final synthesis reviewer. In Claude Code, use an **Opus
+agent** (`model: "opus"`) as the final arbiter. In non-Claude runtimes, use a
+fresh synthesis sub-agent. This review workflow is already authorized for
+reviewer sub-agents. Fall back to same-context synthesis only when
+synthesis/reviewer sub-agents are explicitly unsupported by the host/runtime,
+the user explicitly forbids them, or the selected synthesis reviewer/model is
+explicitly unavailable or at capacity; record `degraded-same-context-review`
+and do not present it as independent multi-agent synthesis.
 
-```
-You are the final reviewer in a runtime-aware multi-pass code review pipeline for PR #<number>: "<pr-title>".
-
-TONE: Write the final report in Linus Torvalds' voice — blunt, direct, technically sharp. Name concrete failure modes, not vague concerns. No hedging, no praise padding, no corporate softening. Attack the code, never the author. If something is wrong, say it plainly.
-
-STYLE GROUNDING: Every style/quality finding in the final report must be traceable to a rule in the repo's code style guide or an established pattern in the repo's surrounding code. Drop any Round 1/2 finding that amounts to personal preference or generic best-practice with no repo-grounded citation — list it under "Disputed & Dropped" with a one-line reason.
-
-Four sources provided input: primary review (Round 1), independent review (Round 1), IDE Diagnostics (Round 1), and adversarial review (Round 2). Your job is to produce the definitive review by synthesizing all sources. You must:
-
-1. For each finding, count how many independent sources flagged it and make a final judgment:
-   - IDE Diagnostics findings are **ground truth** — always include them as `[verified]`
-   - If 3+ independent review sources agree → `[high]` confidence
-   - If 2 independent review sources agree → `[high]` confidence
-   - If 1 independent review source found it and others didn't comment → `[medium]`, verify by reading the code yourself
-   - If 1 independent review source found it and another disputed it → re-examine the code to break the tie
-   - If a finding is a clear false positive → DROP it and note why
-
-2. Assign final severity (critical/warning/nit) and a confidence tag:
-   - `[verified]` — confirmed by IDE Diagnostics (compiler/linter)
-   - `[high]` — multiple independent review sources agree, or you verified independently
-   - `[medium]` — single independent review source found it, you believe it's valid
-   - `[low]` — uncertain, included for completeness
-
-3. Deduplicate against issues already flagged by human reviewers (from the existing review context below).
-
-4. **Four-principle check** (from the plugin's PRINCIPLES.md). Add a finding
-   under the appropriate severity if the diff violates any of:
-   - *Think before coding* — silent assumptions in the diff (a branch
-     chosen without justification, an interpretation picked without a
-     comment explaining why). Flag as `warning` unless clearly load-bearing.
-   - *Simplicity first* — speculative abstractions, unused config knobs,
-     error handling for impossible states, or obvious "if 200 lines could
-     be 50" bloat. Flag as `warning`; upgrade to `critical` if it masks a
-     real bug.
-   - *Surgical changes* — changed lines that don't trace to the PR's stated
-     purpose (drive-by refactors, adjacent-code "improvements", formatting
-     churn in untouched files). Flag as `warning`.
-   - *Goal-driven execution* — a fix/feature with no observable
-     verification (no test, no command, no behavior change a reviewer can
-     run). For `fix:` PRs, this is `critical` — the fix can't be verified.
-     For others, `warning`.
-
-## PR Description
-<pr body>
-
-## PR Diff
-<the full diff>
-
-## Round 1 Findings — Primary Review
-<ROUND_1_PRIMARY>
-
-## Round 1 Findings — Independent Review
-<ROUND_1_INDEPENDENT>
-
-## IDE Diagnostics (ground truth)
-<ROUND_1_DIAGNOSTICS>
-
-## Round 2 Findings (Adversarial Review) + Round 1 Evaluation
-<ROUND_2_FINDINGS>
-
-## Existing Human Review Comments
-<ROUND_1_CONTEXT>
-
-## Linked Issue Compliance (if applicable)
-Round 1 assessment: <ROUND_1_ISSUE_COMPLIANCE>
-Round 2 evaluation: <relevant Section C from ROUND_2_FINDINGS>
-
-Produce a structured review in this exact format:
-
-### Critical Issues
-- **[critical]** `file:line` — <description> `[high]`|`[medium]`|`[low]`
-
-### Warnings
-- **[warning]** `file:line` — <description> `[high]`|`[medium]`|`[low]`
-
-### Nits
-- **[nit]** `file:line` — <description>
-
-### Disputed & Dropped
-<findings from either round that you determined to be false positives, with brief explanation>
-
-### Already Flagged by Reviewers
-<issues human reviewers have already raised — not duplicated above>
-
-### Linked Issue Compliance
-For each linked issue (if any), give the final verdict:
-- **#<number>** (<fixes|references>) — **FULLY ADDRESSED** / **PARTIALLY ADDRESSED** / **NOT ADDRESSED**
-  - What's covered and what's missing
-  - If PARTIALLY/NOT ADDRESSED with `fixes` relationship, this is a critical finding — the PR claims to fix the issue but doesn't fully do so
-
-### Positive Notes
-<things done well in this PR>
-
-### Verdict
-<LGTM / Approve with nits / Request changes — with brief justification>
-Note: If the PR claims to fix an issue (via fix/close/resolve keywords) but the linked issue is NOT FULLY ADDRESSED, this should weigh heavily toward "Request changes".
-
-Omit empty sections.
-```
+Use `../../prompts/review-pr-round3-synthesis.md` with the PR description,
+diff, Round 1 outputs, diagnostics, Round 2 outputs, existing human review
+comments, and linked issue compliance data.
 
 **Wait for Round 3 to complete.**
 
 ### Step 5: Present Final Report
 
-Take the Round 3 agent's output and present it with the PR header prepended:
-
-```markdown
-## PR Review: <pr-title>
-
-**PR**: #<number> by @<author>
-**Base**: <base-branch> <- <head-branch>
-**Files changed**: <count> (+<additions> -<deletions>)
-**Status**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
-**Linked issues**: <#N (fixes), #M (references), ... or "None">
-**Review mode**: <multi-agent | degraded-same-context-review>
-**Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
-**Review pipeline**: Round 1 (primary review + independent review + IDE Diagnostics + Issue Compliance) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
-**Contract**:
-status: success | needs_user | terminal | degraded
-mode: read-only-review
-inputs_resolved: <repo + PR number>
-outputs_written: []
-skipped: <roles, linked issues, or cleanup skipped with reasons>
-errors: <retryable | terminal | needs_user | degraded entries>
-next_action: <one command or decision>
-truncated: true | false
-
-### Summary
-<2-3 sentence summary of what this PR does>
-
-<Round 3 structured output follows: Critical Issues, Warnings, Nits, Disputed & Dropped, Already Flagged, Linked Issue Compliance, Positive Notes, Verdict>
-```
-
-Omit empty sections.
+Take the Round 3 agent's output and present it with the PR header using
+`../../templates/review-pr-final-report.md`. Omit empty sections.
 
 ### Step 6: Suggest Next Steps
 

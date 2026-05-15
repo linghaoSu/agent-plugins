@@ -245,15 +245,10 @@ Present the top results (up to 15) in this format:
 **Search window**: last <N> days (since YYYY-MM-DD)
 **Issues scanned**: <count>
 **High-value unattended issues found**: <count>
-**Contract**:
-status: success | needs_user | terminal | degraded
-mode: scan
-inputs_resolved: <repo + search window>
-outputs_written: []
-skipped: <issues skipped and why>
-errors: <retryable | terminal | needs_user | degraded entries>
-next_action: <one command or query>
-truncated: true | false
+**Contract:** include the fields from `../../WORKFLOW-CONTRACTS.md` with
+mode `scan`, `inputs_resolved` set to repo and search window,
+`outputs_written: []`, skipped issues with reasons, typed errors, one
+`next_action`, and the correct `truncated` value.
 
 ### Top Issues
 

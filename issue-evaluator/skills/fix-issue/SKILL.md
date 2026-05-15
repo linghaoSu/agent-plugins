@@ -248,20 +248,10 @@ Present a concise summary:
 ```markdown
 ## Fix Applied: <issue-title>
 
-status: success | needs_user | terminal | degraded
-mode: id | description
-inputs_resolved:
-  issue: <number | description>
-  worktree: <path>
-outputs_written:
-  - <file>
-skipped:
-  - <item and reason>
-errors:
-  - type: retryable | terminal | needs_user | degraded
-    message: <actionable sentence>
-next_action: <one command or decision>
-truncated: true | false
+**Contract:** include the fields from `../../WORKFLOW-CONTRACTS.md` with
+mode `id` or `description`, `inputs_resolved` set to the issue and worktree,
+`outputs_written` listing only files changed by this fix, and `truncated`
+matching the context gathered.
 
 ### Worktree
 - Branch: `fix/issue-<number>`

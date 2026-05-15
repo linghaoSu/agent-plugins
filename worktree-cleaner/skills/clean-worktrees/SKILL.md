@@ -25,29 +25,11 @@ Supported flags:
 - `--dry-run` — Explicit report-only mode. This is also the default.
 - No arguments — Report candidates only; remove nothing.
 
-## Output, Token, And Error Contract
+## Shared Contract
 
-Use this compact result contract in the final response:
-
-```yaml
-status: success | needs_user | terminal | degraded
-mode: dry-run | apply
-inputs_resolved:
-  repo: <path>
-outputs_written: []
-skipped:
-  - <worktree path>: <reason>
-errors:
-  - type: retryable | terminal | needs_user | degraded
-    message: <actionable sentence>
-next_action: <one command or decision>
-truncated: true | false
-```
-
-Token budget: inspect at most 100 worktrees. For each candidate, show at most
-20 changed-file stat lines and 5 commit subjects. If the budget is exceeded,
-set `truncated: true`, summarize what was omitted, and tell the user to rerun
-with a narrower repo path or inspect the named worktree manually.
+Apply `../../WORKFLOW-CONTRACTS.md`: final output must include the shared
+status/mode/outputs/errors/next_action/truncated fields. Use mode `dry-run`
+unless `--apply` passed the confirmation gate.
 
 ## Workflow
 
@@ -101,7 +83,7 @@ Candidate actions:
 |---|---|
 | `OPEN` | Keep |
 | `MERGED` with clean tree and no unpushed commits | Candidate for normal removal |
-| `MERGED` with uncommitted changes or unpushed commits | Needs user decision |
+| `MERGED` with uncommitted changes or unpushed commits | Needs explicit force confirmation |
 | `CLOSED_NOT_MERGED` | Needs user decision |
 | `NO_PR` | Needs user decision |
 | `DETACHED` | Needs user decision |
@@ -144,6 +126,7 @@ git worktree remove "<worktree-path>"
 Use `git worktree remove --force "<worktree-path>"` only when all of these are
 true:
 
+- The PR status is `MERGED`.
 - The user passed `--force`.
 - The user saw the per-worktree safety summary.
 - The user explicitly confirmed force removal for that exact worktree.
@@ -152,6 +135,9 @@ Never remove:
 - The main worktree.
 - An open-PR worktree.
 - A worktree whose status or local state could not be determined.
+- A `CLOSED_NOT_MERGED`, `NO_PR`, `DETACHED`, or `NO_UPSTREAM` worktree that
+  has uncommitted changes or unpushed commits. Report it for manual handling
+  instead.
 
 ### Step 7: Final Verification
 

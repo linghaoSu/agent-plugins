@@ -46,7 +46,7 @@ Advisory checks report risk without changing the release gate exit code unless
 
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
-| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
+| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, oversized `SKILL.md` files, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
 | `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
@@ -141,6 +141,8 @@ diff touches agent-playbook fixture scope: `agent-playbook/`, `antifragile/`,
 `issue-evaluator/`, `skill-stats/`, `worktree-cleaner/`, or the fixture files.
 It validates that `/vibe-coding-health-check` keeps its scorecard dimensions,
 safe routing, stop rules, untracked-file handling, and artifact ownership
-contract; that cross-plugin safety gates remain documented; and that skill
-`agents/openai.yaml` metadata follows the repo's expected interface shape. With
-`--strict`, fixture regressions block the gate.
+contract; that cross-plugin safety gates remain documented; that worktree
+cleanup, issue-fix worktree setup, and PR-comment edit gates keep their
+behavior scenarios; and that skill `agents/openai.yaml` metadata follows the
+repo's expected interface shape. With `--strict`, fixture regressions block the
+gate.

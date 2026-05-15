@@ -284,6 +284,28 @@ MD
   assert_contains "$repo/out.txt" "missing-openai-metadata" "new skill missing metadata advisory"
 }
 
+test_inline_output_contract_warns() {
+  repo="$(make_fixture_repo inline_output_contract)"
+  cat >>"$repo/demo/skills/example/SKILL.md" <<'MD'
+
+## Output, Token, And Error Contract
+
+```yaml
+status: success | needs_user | terminal | degraded
+truncated: true | false
+```
+MD
+  (
+    cd "$repo" &&
+      git add demo/skills/example/SKILL.md
+  )
+  run_gate "$repo" --mode staged
+  code="$?"
+  assert_exit "$code" 0 "inline output contract advisory"
+  assert_contains "$repo/out.txt" "WARN skill-hygiene" "inline output contract advisory"
+  assert_contains "$repo/out.txt" "inline-output-contract" "inline output contract advisory"
+}
+
 test_strict_advisory_fails() {
   repo="$(make_fixture_repo strict_advisory)"
   mkdir -p "$repo/demo/skills/new-skill"
@@ -364,6 +386,7 @@ test_staged_whitespace_fails
 test_working_whitespace_fails
 test_staged_secret_fails
 test_new_skill_missing_metadata_warns
+test_inline_output_contract_warns
 test_strict_advisory_fails
 test_invalid_mode_exits_2
 test_missing_secret_scanner_exits_2
