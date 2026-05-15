@@ -19,8 +19,10 @@ Before scoring, read `../../PRINCIPLES.md` and
 `../../WORKFLOW-CONTRACTS.md`. In particular, apply "Verify over vibe" and
 "Explore -> Plan -> Code -> Verify": every green decision needs a runnable
 check or cited evidence, not confidence from the same model that made the
-change. If the user asks to fix the findings after this diagnosis, hand off to
-the Vibe Health To Fix Contract via `agent-playbook:vibe-coding-fix`.
+change. Also apply the local 12-rule execution contract: name assumptions,
+conflicts, skipped checks, token-budget pressure, and residual risk instead of
+smoothing them over. If the user asks to fix the findings after this diagnosis,
+hand off to the Vibe Health To Fix Contract via `agent-playbook:vibe-coding-fix`.
 
 ## Arguments
 

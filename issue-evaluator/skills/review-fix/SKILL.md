@@ -25,6 +25,9 @@ only when reviewer sub-agents are explicitly unsupported by the host/runtime,
 the user explicitly forbids them, or the selected reviewer/model is explicitly
 unavailable or at capacity. Record `degraded-same-context-review`; degraded
 mode still runs the same angles and rounds sequentially in the main context.
+Also apply the local 12-rule execution contract from `PRINCIPLES.md`: review
+findings must trace to changed lines, conflicts must be named instead of
+averaged, fixes must stay surgical, and skipped checks must be reported.
 
 ## Workflow
 

@@ -16,9 +16,10 @@ gate; then implement until that gate passes.
 This skill writes code. It does **not** commit, push, or run adversarial review — those are separate (`git` is yours; use `/review-code` when a stage is complete).
 
 **Before coding, read `../../PRINCIPLES.md`, `../../LANGUAGE.md`, and
-`../../WORKFLOW-CONTRACTS.md` at the plugin root.** PRINCIPLES governs every
-line written here. LANGUAGE defines shared terms (vertical slice, staged
-implementation, design drift, seam, blast radius) — use them precisely.
+`../../WORKFLOW-CONTRACTS.md` at the plugin root.** PRINCIPLES includes the
+local 12-rule execution contract and governs every line written here. LANGUAGE
+defines shared terms (vertical slice, staged implementation, design drift,
+seam, blast radius) — use them precisely.
 WORKFLOW-CONTRACTS defines cross-skill routing.
 
 ## Arguments
@@ -111,6 +112,12 @@ Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
    implement a design you can see is broken.
 4. If a simpler approach than the architecture's would work and you're
    confident, raise it and wait for confirmation. Do not silently substitute.
+5. Define the stage's success criteria in the log as a command, test, or
+   observable behavior. If no objective check exists, stop or record the
+   missing verification path before coding.
+6. If architecture, interface design, tests, or code conventions conflict,
+   pick the most local and tested authority, name the rejected alternative,
+   and record the reason. Do not blend conflicting patterns.
 
 ### Step 3.6: TDD Gate (delegate to `$idea-to-ship:tdd`)
 

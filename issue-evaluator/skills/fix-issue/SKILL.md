@@ -9,9 +9,10 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 
 Implement a fix for a GitHub issue, guided by the evaluation report and the repo's code style guide.
 
-**Before coding, read `../../PRINCIPLES.md` at the plugin root** (Think Before
-Coding · Simplicity First · Surgical Changes · Goal-Driven Execution). These
-govern every edit in this skill.
+**Before coding, read `../../PRINCIPLES.md` at the plugin root.** Its local
+12-rule execution contract governs every edit in this skill: assumptions before
+code, smallest scoped fix, read callers before writing, intent-bearing tests,
+and explicit reporting for skipped or failed checks.
 
 ## Arguments
 
@@ -144,6 +145,13 @@ Per *Think Before Coding* and *Goal-Driven Execution* in `PRINCIPLES.md`:
    pass, a command that will produce the expected output, or the specific
    reproduction from the issue no longer reproducing. Write this into the
    commit message later so the reviewer can verify without re-deriving.
+5. **Surface conflicts** between issue text, comments, current code, prior
+   evaluation, and repo conventions. Pick the more recent, tested, or local
+   authority and name the alternative you are rejecting.
+6. **Read before writing**: inspect affected files, exports, immediate callers,
+   shared utilities, and nearby tests before Step 4. If the code shape makes
+   the planned fix unsafe, stop and revise the plan instead of substituting
+   silently.
 
 ### Step 3.6: Optional Implementation Tournament
 

@@ -11,8 +11,9 @@ Produce a tight `CLAUDE.md` (and optionally `AGENTS.md`) for the current
 repo. The goal is **persistent, agent-specific context that every session
 needs** — not architecture docs, not style guides the agent already knows.
 
-Read `../../PRINCIPLES.md` first; cite Principle 3 when pushing back on
-bloat.
+Read `../../PRINCIPLES.md` first; apply the local 12-rule execution contract
+when drafting or pruning memory files, and cite Principle 3 when pushing back
+on bloat.
 
 ## Arguments
 
@@ -104,6 +105,8 @@ Template:
 - Prefer single-test runs over the full suite.
 - Before commit: <pre-commit chain>
 - Branch naming / PR title: <pattern>
+- Local execution rules: <only project-specific rules that agents cannot infer;
+  keep broad behavior rules concise and avoid duplicating tooling>
 
 ## Environment
 - Node: <version>  (or Python: <version>, …)

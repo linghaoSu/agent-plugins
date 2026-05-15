@@ -55,7 +55,10 @@ Before launching analysis, executor, or adversarial review agents, read
 **Multi-Agent Review Routing** contract for all review phases. The roles for
 this workflow are `ANALYST`, `RECONCILER`, `EXECUTOR`, and multiple
 `ADVERSARIAL_REVIEWER:<ANGLE>` roles. Keep the human confirmation gate before
-edits and keep adversarial review read-only.
+edits and keep adversarial review read-only. The local 12-rule execution
+contract in `PRINCIPLES.md` is binding for every role: surface assumptions and
+conflicts, keep accepted fixes surgical, read affected callers before editing,
+and fail loud on skipped comments or checks.
 
 The adversarial review phase is pre-authorized for reviewer sub-agents. Fall
 back to same-context review only when reviewer sub-agents are explicitly
@@ -414,6 +417,9 @@ You are the executor for a pre-approved PR review fix plan on PR #<number>: "<pr
 A separate analyst already produced the verdicts and fix plans below. The user has reviewed and approved them. Your job is mechanical: read the affected files, apply each change exactly as planned, match surrounding code style, and stop. You are not re-evaluating verdicts — analysis is complete and the user signed off.
 
 CRITICAL CONSTRAINTS:
+- Apply the local 12-rule execution contract from `../../PRINCIPLES.md`: read
+  affected files/callers first, keep edits minimal, and report conflicts or
+  infeasible fixes instead of improvising.
 - Work ONLY inside the worktree at <FIX_WORKTREE>. Never touch the user's main working directory.
 - Do NOT run `git add`, `git commit`, `git commit --amend`, `git stash`, `git push`, or anything that records history. Edits must stay as **unstaged** modifications visible to `git diff`.
 - Do NOT run any `gh` command that writes to GitHub (`gh pr review`, `gh pr comment`, `gh api POST/PATCH/DELETE`, etc.). Read-only `gh` is fine if you actually need it (you probably don't).

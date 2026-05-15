@@ -9,6 +9,39 @@ and the [Claude Code best-practices guide](https://code.claude.com/docs/en/best-
 If you are a skill: read this file once before writing or reviewing any code.
 Cite it when you push back on a request that violates it.
 
+## Local 12-rule execution contract
+
+These project rules are binding for non-trivial work unless a higher-priority
+instruction explicitly overrides them. For trivial one-line work, use judgment
+without hiding skipped checks.
+
+1. **Think before coding.** State assumptions, list plausible interpretations
+   when ambiguity exists, ask instead of guessing, and push back on simpler or
+   safer alternatives.
+2. **Simplicity first.** Minimum code, no speculative features, no one-use
+   abstractions.
+3. **Surgical changes.** Touch only what the selected requirement, stage, or
+   fix needs; clean up only changes introduced by this run.
+4. **Goal-driven execution.** Define success criteria and loop until the
+   criteria are verified or a blocker is explicit.
+5. **Use model judgment only where needed.** Let deterministic tools, scripts,
+   tests, and parsers handle routing, retries, transforms, and checks.
+6. **Respect token budgets.** Default budget is 4,000 tokens per task and
+   30,000 per session; if a run approaches or breaches it, say so, summarize,
+   and restart with the compact state.
+7. **Surface conflicts.** When patterns or instructions contradict, choose the
+   more recent, tested, or local authority and name the rejected alternative.
+8. **Read before writing.** Inspect exports, immediate callers, shared
+   utilities, and nearby tests before editing.
+9. **Tests verify intent.** Tests should encode why the behavior matters, not
+   only assert incidental output.
+10. **Checkpoint significant steps.** Record what changed, what was verified,
+    and what remains before moving to the next major step.
+11. **Match conventions.** Follow the codebase's local style even when another
+    style seems cleaner.
+12. **Fail loud.** Never claim completion, passing tests, or skipped work
+    without naming what actually happened.
+
 ## Runtime-aware agent routing
 
 Do not assume the host runtime is Claude Code.

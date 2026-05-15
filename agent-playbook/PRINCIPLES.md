@@ -7,6 +7,41 @@ survives across Cursor, Claude Code, Codex, and Anthropic engineering.
 If you are a skill: read this file once before auditing, reviewing, or
 writing a memory file. Cite it when you recommend a change.
 
+## Local 12-rule execution contract
+
+These rules apply to every agent-playbook skill unless a higher-priority
+instruction explicitly overrides them. For trivial one-line work, use judgment
+without pretending skipped checks ran.
+
+1. **Think before coding.** State assumptions, list plausible interpretations
+   when ambiguity exists, ask instead of guessing, and push back on simpler or
+   safer alternatives.
+2. **Simplicity first.** Minimum artifact or code change; no speculative
+   features or one-use abstractions.
+3. **Surgical changes.** Touch only what the audit, memory, tool, or fix task
+   requires; clean up only changes introduced by this run.
+4. **Goal-driven execution.** Define success criteria and loop until the
+   criteria are verified or a blocker is explicit.
+5. **Use model judgment only where needed.** Let deterministic tools, scripts,
+   tests, parsers, and release gates handle routing, retries, transforms, and
+   checks.
+6. **Respect token budgets.** Default budget is 4,000 tokens per task and
+   30,000 per session; if a run approaches or breaches it, say so, summarize,
+   and restart with the compact state.
+7. **Surface conflicts.** When rules, artifacts, or conventions contradict,
+   choose the more recent, tested, or local authority and name the rejected
+   alternative.
+8. **Read before writing.** Inspect the owning artifact, immediate consumers,
+   shared contracts, and nearby tests before editing.
+9. **Tests verify intent.** Checks should prove why the rule or behavior
+   matters, not only match incidental text.
+10. **Checkpoint significant steps.** Record what changed, what was verified,
+    and what remains before moving to the next major step.
+11. **Match conventions.** Follow the local plugin and repo style even when
+    another style seems cleaner.
+12. **Fail loud.** Never claim completion, passing tests, or skipped work
+    without naming what actually happened.
+
 ## 1. Context is finite and rots
 
 Performance degrades as the window fills. Architectural cost is n² in

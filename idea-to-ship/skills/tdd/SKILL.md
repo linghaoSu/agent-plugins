@@ -18,6 +18,11 @@ guessing. This skill has two modes:
 This skill writes tests and verification artifacts only. It does not edit
 production code.
 
+Before writing tests, read `../../PRINCIPLES.md`. Apply the local 12-rule
+execution contract: state assumptions, derive the smallest verifiable goal, use
+deterministic repo discovery for test commands and fixtures, and fail loud if a
+red-first gate cannot be made meaningful.
+
 ## Arguments
 
 Raw: `$ARGUMENTS`
@@ -49,6 +54,9 @@ for `--stage <N>` or `--backfill`.
    `interface-design.md`, `test-plan.md`, and `implementation-log.md`.
 6. Detect the repo's test setup from nearby tests, package scripts, Makefile,
    CI, and existing naming/fixture style.
+7. Record load-bearing assumptions and conflicts in `tdd-log.md`. If product
+   intent, test layer, or command selection has multiple plausible readings,
+   ask or pick explicitly with rationale before writing tests.
 
 ### Step 1.5: Test Artifact Ownership
 
@@ -111,6 +119,9 @@ Write minimal tests in the repo's existing style:
 
 - Match test location, naming, fixtures, and assertion idioms.
 - Test observable behavior, not private helpers.
+- Encode why the behavior matters by tying each test to a story, acceptance
+  criterion, regression, boundary, or failure mode. Avoid tests that merely
+  mirror implementation details and would still pass if the intent regressed.
 - For UI, map relevant `interface-design.md` accessibility, responsive,
   interaction-state, and visual QA expectations to the smallest useful test
   layer: unit, integration, E2E, or explicit manual check.

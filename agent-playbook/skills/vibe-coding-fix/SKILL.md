@@ -12,9 +12,10 @@ without turning the health check into an unbounded autopilot.
 
 Before editing, read `../../PRINCIPLES.md` and
 `../../WORKFLOW-CONTRACTS.md`, especially the **Vibe Health To Fix Contract**,
-**Fix Classification**, and **Artifact Ownership** sections. Apply "Verify over
-vibe": every applied fix needs a concrete check or a recorded reason why only
-static verification was possible.
+**Fix Classification**, and **Artifact Ownership** sections. Apply the local
+12-rule execution contract plus "Verify over vibe": every applied fix needs a
+concrete check or a recorded reason why only static verification was possible,
+and skipped or failed checks must be named.
 
 ## Arguments
 
@@ -72,6 +73,8 @@ For each red/yellow finding, assign exactly one class from
 
 If there are any stop items, do not edit until the first stop item has a fix
 plan. If a finding is ambiguous, classify it as user-owned rather than guessing.
+If findings or existing artifacts conflict, pick the more recent, tested, or
+local authority and record the rejected alternative in the fix log.
 
 ### Step 3: Write The Fix Plan
 
