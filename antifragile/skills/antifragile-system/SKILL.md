@@ -1,6 +1,6 @@
 ---
 name: antifragile-system
-description: Audit the target project for resilience gaps — external dependency fallbacks, error handling, single points of failure, data safety, and observability.
+description: Read-only stdout audit of a target application or system for resilience gaps: dependency fallbacks, error handling, data safety, observability, and single points of failure; not agent/plugin infrastructure.
 argument-hint: "[focus-area] — optional: 'api', 'data', 'infra', 'all' (default: all)"
 allowed-tools:
   - Bash

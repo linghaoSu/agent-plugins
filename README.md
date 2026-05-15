@@ -55,8 +55,8 @@ Use skills through their plugin-qualified names, for example
 
 | Skill | Purpose |
 |---|---|
-| [`antifragile-agent`](antifragile/skills/antifragile-agent/SKILL.md) | Read-only stdout audit of agent plugin, hook, and skill infrastructure for robustness gaps. |
-| [`antifragile-system`](antifragile/skills/antifragile-system/SKILL.md) | Audit a target project for resilience gaps such as weak fallbacks, unsafe state, missing observability, and single points of failure. |
+| [`antifragile-agent`](antifragile/skills/antifragile-agent/SKILL.md) | Read-only stdout audit of agent/plugin/hook/skill infrastructure: guards, state pollution, recovery, and tool fragility. Not for target app resilience. |
+| [`antifragile-system`](antifragile/skills/antifragile-system/SKILL.md) | Read-only stdout audit of a target application/system for resilience gaps such as weak fallbacks, unsafe state, missing observability, and single points of failure. Not for agent infrastructure. |
 
 ### harness-engineering
 
@@ -79,8 +79,8 @@ Use skills through their plugin-qualified names, for example
 | [`review-code`](idea-to-ship/skills/review-code/SKILL.md) | Multi-agent, multi-angle, multi-round review/fix loop for the current implementation diff. |
 | [`review-design`](idea-to-ship/skills/review-design/SKILL.md) | Multi-agent, multi-angle, multi-round adversarial review of `architecture.md`. |
 | [`roadmap`](idea-to-ship/skills/roadmap/SKILL.md) | Build or refresh an evidence-backed Now/Next/Later roadmap for a slug or portfolio. |
-| [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create the stage-local red-first gate for `/implement`, or explicitly backfill missing tests without production-code edits. |
-| [`test`](idea-to-ship/skills/test/SKILL.md) | Produce the full story-driven test plan, implement tests, and run them until green. |
+| [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create a stage-local red-first gate before `/implement`, or explicitly backfill missing tests. Writes test evidence only; not the full story test plan. |
+| [`test`](idea-to-ship/skills/test/SKILL.md) | Produce the full story-driven test plan from stories, acceptance criteria, and scenario matrices, then implement and run tests. Not a stage-local red-first gate. |
 | [`ui-design`](idea-to-ship/skills/ui-design/SKILL.md) | Design the UI/UX contract from requirements, architecture, existing UI, design-system evidence, and structured visual references. |
 
 ### issue-evaluator
@@ -106,7 +106,7 @@ Use skills through their plugin-qualified names, for example
 
 | Skill | Purpose |
 |---|---|
-| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Conversation-only read of local skill usage statistics, including call counts, last-used time, and unused skills. |
+| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Conversation-only read of local skill usage statistics: call counts, last-used time, unused skills, and truncation status. Never edits logs or hooks. |
 
 ### worktree-cleaner
 

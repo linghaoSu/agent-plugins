@@ -1,6 +1,6 @@
 ---
 name: antifragile-agent
-description: Read-only audit of agent plugin/hook/skill infrastructure for fragile hooks, missing guards, state pollution, and recovery gaps. Outputs stdout only.
+description: Read-only stdout audit of agent/plugin/hook/skill infrastructure. Use for hook robustness, state pollution, dependency guards, recovery gaps, and skill/tool fragility; not target application resilience.
 allowed-tools:
   - Bash
   - Read

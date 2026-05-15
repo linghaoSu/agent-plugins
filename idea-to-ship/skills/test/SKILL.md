@@ -1,6 +1,6 @@
 ---
 name: test
-description: Full story-driven test plan and implementation for an idea-to-ship slug: stories, acceptance criteria, scenario matrix, tests, and green verification.
+description: Build the full story-driven test plan for an idea-to-ship slug, then implement and run tests across unit/integration/e2e. Use for end-to-end verification from stories and acceptance criteria; not a stage-local red-first gate.
 argument-hint: '[--slug <name>] [focus e.g. "edge cases" "concurrency"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---

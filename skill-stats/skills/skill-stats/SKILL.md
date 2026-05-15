@@ -1,6 +1,6 @@
 ---
 name: skill-stats
-description: Read local skill usage JSONL and report call counts, recency, unused skills, and truncation status. Conversation-only; writes no files.
+description: Conversation-only read of local skill usage JSONL. Use when the user asks for skill call counts, recency, unused skills, or truncation status; never edits logs, hooks, or plugin files.
 allowed-tools:
   - Bash
   - Read

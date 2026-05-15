@@ -97,10 +97,11 @@ as secret scanning, harness audit, antifragile audit, and React checks when the
 diff warrants them.
 
 ### `/tdd [--stage <N> | --backfill] [focus]`
-Creates the test gate for a stage before production code, writing stage-local
-evidence to `test-plan.md` and `tdd-log.md`. In `--backfill` mode, supplements
-missing tests for existing code or the current diff without pretending those
-passing tests are TDD. Does not write production code.
+Creates the stage-local red-first gate for `/implement`, writing focused test
+evidence to `test-plan.md` and `tdd-log.md` before production code changes. In
+`--backfill` mode, supplements missing tests for existing code or the current
+diff without pretending those passing tests are TDD. It does not write
+production code and does not replace the full `/test` story matrix.
 
 ### `/review-code [focus]`
 Multi-agent, multi-angle, multi-round adversarial code review of the current diff, looping
@@ -117,7 +118,8 @@ Produces `test-plan.md` from user stories, acceptance criteria, scenario
 sequences, and unit/integration/e2e matrices. Every core story should cover a
 happy path plus at least one edge/corner, invalid-input, alternate, or
 failure-mode scenario unless explicitly out of scope. Then implements the
-tests and runs them until green.
+tests and runs them until green. It is the full verification plan for a slug,
+not the stage-local red-first gate used by `/implement`.
 
 ## Typical flow
 

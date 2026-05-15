@@ -1,7 +1,7 @@
 {
   "name": "skill-stats",
   "version": "0.1.0",
-  "description": "Track skill invocations via PostToolUse hook and display usage statistics locally.",
+  "description": "Track skill invocations via PostToolUse hook and provide a conversation-only local usage summary.",
   "author": {
     "name": "linghao"
   },

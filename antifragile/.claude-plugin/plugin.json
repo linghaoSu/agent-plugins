@@ -1,7 +1,7 @@
 {
   "name": "antifragile",
   "version": "0.1.0",
-  "description": "Antifragility audit for agent infrastructure and target systems. /antifragile-agent audits plugin/hook/skill robustness; /antifragile-system audits the project being developed for resilience gaps.",
+  "description": "Antifragility audits with clear boundaries: /antifragile-agent checks agent/plugin/hook/skill infrastructure; /antifragile-system checks target application resilience.",
   "author": {
     "name": "linghao"
   }

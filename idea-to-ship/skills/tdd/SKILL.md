@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Stage-local red-first gate for idea-to-ship implementation, plus explicit test-backfill mode. Writes test-plan.md/tdd-log.md evidence; never production code.
+description: Create stage-local red-first tests for an idea-to-ship implementation stage, or explicit --backfill tests for existing code. Use before /implement production edits; writes test-plan.md/tdd-log.md evidence and never edits production code.
 argument-hint: '[--slug <name>] [--stage <N>] [--backfill] [focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 ---
