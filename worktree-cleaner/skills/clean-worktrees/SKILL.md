@@ -1,7 +1,7 @@
 ---
 name: clean-worktrees
 description: Report stale git worktrees with PR and local-change safety checks. Dry-run by default; requires --apply before any removal.
-argument-hint: [--apply] [--all] [--force]
+argument-hint: '[--apply] [--all] [--force]'
 allowed-tools: [Bash, Read]
 ---
 

@@ -1,266 +1,211 @@
 ---
-goal: "让 agent-plugins 可持续演进"
-horizon: "next 4 weeks (2026-05-09 to 2026-06-06)"
-generated_at: "2026-05-09 13:49 CST"
-repo_head: "1514e2b796fe20200854ff430219566ab2647c17"
-dirty_worktree: "clean after pushed roadmap execution commits"
+goal: "提高 agent-plugins 稳定性，降低 token 消耗，减少重复维护"
+horizon: "next 3 commits"
+generated_at: "2026-05-15 12:52 CST"
+repo_head: "2d23196de91a05804c2c101618b7ac18d62b787a"
+dirty_worktree: "clean before roadmap refresh"
 mode: "portfolio"
-source_scope: "local+git"
+source_scope: "local artifacts + repo docs/manifests; no GitHub, TODO, or git-history scan"
 write_target: ".idea-to-ship/roadmap.md"
-final_lanes_written: "yes"
-priority_approval: "user-approved Now/Next/Later ordering in current request"
+final_lanes_written: "no"
+priority_approval: "pending"
 ---
 
-# Roadmap - 让 agent-plugins 可持续演进
+# Roadmap - 提高 agent-plugins 稳定性，降低 token 消耗，减少重复维护
 
 ## Human-Owned Sections
 
 ### Strategic Objective
 
-让 `agent-plugins` 在未来 4 周内从快速扩展进入可持续演进模式：插件目录、skill 工作流、hook、验证链路和发布节奏都要更容易审查、复用、回滚和继续迭代。
+在整个 `agent-plugins` repo 内，把接下来 3 个 commit 用于稳定性、token 消耗和重复维护的收敛：优先减少长 skill 中重复的路由、prompt、模板和检查清单，同时用 release gate / fixture 防止后续反弹。
 
 ### Manual Overrides
 
-- Approved Now: `ITS-ROADMAP-001`, `ITS-ROADMAP-003`, `ITS-ROADMAP-004`.
-- Approved Next: `ITS-ROADMAP-006`, `ITS-ROADMAP-005`, `ITS-ROADMAP-007`.
-- Approved Later: `ITS-ROADMAP-002`.
+- Requested horizon: next 3 commits.
+- Requested scope: entire `agent-plugins`.
+- Requested optimization goal: stability, lower token use, and less repeated maintenance.
+- Priority approval is pending; this file currently records candidates, not final Now/Next/Later lanes.
 
 ### Out of Scope / Non-Goals
 
-- No GitHub issue, PR, or milestone scan in this run because `--include-github` was not provided.
-- No TODO/FIXME mining in this run because `--include-todos` was not provided.
-- GitHub and TODO/FIXME inputs remain out of scope for this version of the roadmap.
+- No GitHub issue, PR, or milestone scan in this run.
+- No TODO/FIXME mining in this run.
+- No broad renaming or removal of public skill entry points.
+- No production code edits in this roadmap refresh.
+- No final Now/Next/Later lanes until the candidate ordering is approved or edited.
 
 <!-- idea-to-ship:roadmap generated:start -->
 
-## What Changed Since Last Roadmap
+## Candidate Brief
 
-- Added final Now/Next/Later lanes from user-approved priority order.
-- Promoted `ITS-ROADMAP-001`, `ITS-ROADMAP-003`, and `ITS-ROADMAP-004` to `Now`.
-- Promoted `ITS-ROADMAP-006`, `ITS-ROADMAP-005`, and `ITS-ROADMAP-007` to `Next`.
-- Moved `ITS-ROADMAP-002` to `Later` because idea-to-ship dogfooding is already happening through this roadmap and does not need to block release hardening.
-- Completed `ITS-ROADMAP-001` Stage 1 release gate in commit `17460a5`.
-- Completed `ITS-ROADMAP-003` runtime-aware marketplace/plugin metadata patch.
-- Completed `ITS-ROADMAP-004` hook/state audit with low-risk hardening.
-- Completed `ITS-ROADMAP-006` idea-to-ship contract fixtures, artifact safety
-  fixtures, `--mode all` advisory release-gate integration, and runtime-aware
-  delegation authorization hardening, plus requirements/architecture ownership
-  safety and selected-model capacity fallback handling for reviews.
-- Completed `ITS-ROADMAP-005` portfolio inventory and ownership model.
-- Completed `ITS-ROADMAP-007` by recording command-based secret-scan release-gate enforcement.
-- Completed `ITS-ROADMAP-002` by using `ITS-ROADMAP-006` as evidence of full-flow idea-to-ship dogfooding.
+### Source Plan
 
-## Inputs
+Included sources:
 
-- Goal: "让 agent-plugins 可持续演进" from user request.
-- Horizon: `next 4 weeks`, interpreted as 2026-05-09 through 2026-06-06.
-- Priority approval: user-provided Now/Next/Later list in current request.
-- Repo HEAD: `1514e2b796fe20200854ff430219566ab2647c17`.
-- Source scope: local repo docs/manifests/artifacts plus `--include-git`.
-- Idea-to-ship artifact: `.idea-to-ship/current/code-review.md`.
-- Repo docs/manifests: `.claude-plugin/marketplace.json`, plugin `plugin.json` files, README files for `idea-to-ship`, `agent-playbook`, `harness-engineering`, `issue-evaluator`, and `secret-scanner`.
-- Git history considered:
-  - `1514e2b` 2026-05-09 `feat(idea-to-ship): add roadmap and verification workflow`
-  - `de16602` 2026-05-09 `feat: add antifragile and skill stats plugins`
-  - `31c7189` 2026-05-09 `fix(issue-evaluator): route validation by runtime`
-  - `b35abe3` 2026-04-29 `feat: add shared reference files, anti-patterns, and phase gates to skills`
-  - `4100d91` 2026-04-23 `Init commit`
+- Current user request: `$idea-to-ship:roadmap`, goal of stability / lower token use / less repetition, horizon of next 3 commits, scope of entire `agent-plugins`.
+- `README.md:23-35` for repo naming, read-only, and token-budget expectations.
+- `README.md:42-120` for current plugin and skill catalog boundaries.
+- `PORTFOLIO.md:8-13` for sources of truth and roadmap ownership.
+- `PORTFOLIO.md:46-56` for portfolio responsibility boundaries.
+- `RELEASE-GATE.md:42-51` for advisory release-gate checks and fixture expectations.
+- `idea-to-ship/WORKFLOW-CONTRACTS.md:38-83` for shared output, token, and error contracts.
+- `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136` for cross-skill routing already available to individual skills.
+- `issue-evaluator/WORKFLOW-CONTRACTS.md:40-84` for shared output, token, and error contracts.
+- `issue-evaluator/WORKFLOW-CONTRACTS.md:86-168` for code-style lifecycle and GitHub read-only safety contracts.
+- `scripts/skill-hygiene-check.py:19-25` and `scripts/skill-hygiene-check.py:181-243` for current hygiene thresholds and missing repetition checks.
+- `worktree-cleaner/skills/clean-worktrees/SKILL.md:4` for the invalid unquoted `argument-hint` pattern that triggered loader YAML warnings.
+- Long / repetitive skill bodies inspected locally: `idea-to-ship/skills/implement/SKILL.md`, `idea-to-ship/skills/review-code/SKILL.md`, `issue-evaluator/skills/evaluate-issue/SKILL.md`, `issue-evaluator/skills/fix-issue/SKILL.md`, `agent-playbook/skills/tool-review/SKILL.md`, `agent-playbook/skills/context-audit/SKILL.md`, and `agent-playbook/skills/vibe-coding-health-check/SKILL.md`.
 
-Excluded:
+Excluded sources:
 
-- GitHub milestones, issues, and PRs because `--include-github` was not provided.
-- TODO/FIXME scan because `--include-todos` was not provided.
+- GitHub issues, PRs, milestones, and discussions.
+- TODO/FIXME scan.
+- Full git-history mining beyond the current repo head.
+- Subagent exploration, because the current request did not explicitly authorize parallel agent delegation.
 
-## Now
+### Candidate Work
 
-### ITS-ROADMAP-001 - Establish repo-wide plugin release gates
-**Status:** Done
+| ID | Candidate | Suggested Commit | Evidence Class | Confidence | Primary Impact |
+|---|---|---:|---|---|---|
+| ITS-ROADMAP-008 | Collapse `idea-to-ship:implement` routing and log-template repetition into shared contracts/templates. | 1 | Repo | High | Lower token load in a central high-traffic skill; less duplicated routing maintenance. |
+| ITS-ROADMAP-009 | Extract `issue-evaluator:evaluate-issue` long adversarial prompts and report template into reusable prompt/template files. | 2 | Repo | High | Lower per-invocation prompt bulk; clearer skill body; easier prompt review. |
+| ITS-ROADMAP-010 | Add hygiene checks for repeated inline prompts/templates and moderate skill bloat. | 3 | Repo | Medium | Prevents repeated text from creeping back after manual cleanup. |
+| ITS-ROADMAP-011 | Extract shared audit/safety checklist used by tool-review, context-audit, vibe health, and antifragile-agent. | 3 | Repo | Medium | Reduces four-way maintenance drift across overlapping audit skills. |
+| ITS-ROADMAP-012 | Normalize agent-playbook audit report templates into `templates/`. | 3 | Repo | Medium | Cuts inline artifact boilerplate and improves report consistency. |
+| ITS-ROADMAP-013 | Strengthen skill frontmatter validation against real loader YAML semantics and installed-cache drift. | 3 | Repo | High | Prevents invalid `SKILL.md` YAML from shipping or only surfacing after plugin load. |
+
+### ITS-ROADMAP-008 - Collapse idea-to-ship implement repetition
+
+**Status:** Candidate
 **Work Type:** Maintenance
-**Evidence Class:** Artifact
+**Evidence Class:** Repo
 **Confidence:** High
-**Source Anchors:** `.claude-plugin/marketplace.json:6-50`; `harness-engineering/README.md:50-57`; `secret-scanner/scripts/scan.py:1-24`; `1514e2b`
-**Why Now / Why Next / Why Later:** This is the highest-leverage sustainability step. The repo now has multiple plugins, hooks, and skills, but release checks are still manual and easy to skip.
+**Source Anchors:** `idea-to-ship/skills/implement/SKILL.md:199-229`; `idea-to-ship/skills/implement/SKILL.md:231-259`; `idea-to-ship/skills/implement/SKILL.md:293-317`; `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136`
+**Why Now / Why Next / Why Later:** This is the best first commit because `implement` is central, currently carries repeated cross-skill routing and inline log/report structure, and already has shared contracts it can cite instead.
 **Owner:** Unassigned
 **Decision Owner:** User
-**Release Gate:** Entry: current manifest/skill validation commands are known. Exit: one documented or scripted release gate covers JSON manifests, skill frontmatter, `git diff --check`, hook robustness, and secret scanning. No-go: gate requires network or mutates repo state without explicit approval.
-**Evidence Required:** Completed: `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; commit `17460a5`.
-**Dependencies:** None
-**Risk:** medium - a too-heavy gate can slow small edits; a too-light gate preserves current manual drift.
+**Release Gate:** Entry: current `implement` behavior and output contract are captured. Exit: repeated routing text is replaced by references to shared contracts/templates, fixtures still pass, and no public skill name changes. No-go: removing safety routing or weakening TDD/review gates for brevity.
+**Evidence Required:** Updated `idea-to-ship/skills/implement/SKILL.md`; new or reused template files under `idea-to-ship/templates/`; passing `tests/idea-to-ship-eval-fixtures.sh`; passing strict release gate if touched files require it.
+**Dependencies:** Existing `idea-to-ship/WORKFLOW-CONTRACTS.md`.
+**Risk:** medium - reducing prompt text can accidentally remove a behavioral gate unless the contract reference is explicit and fixture coverage remains green.
 
-### ITS-ROADMAP-003 - Normalize runtime-aware review language across manifests
-**Status:** Done
+### ITS-ROADMAP-009 - Extract issue-evaluator evaluate prompts
+
+**Status:** Candidate
 **Work Type:** Maintenance
-**Evidence Class:** Artifact
-**Confidence:** High
-**Source Anchors:** `issue-evaluator/README.md:9-12`; `issue-evaluator/skills/review-fix/SKILL.md:18-29`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.claude-plugin/marketplace.json:8-10`
-**Why Now / Why Next / Why Later:** Metadata still advertises Codex-only review in places while the skill behavior is runtime-aware. That mismatch affects installed plugin discovery and user expectations.
-**Owner:** Unassigned
-**Decision Owner:** None
-**Release Gate:** Entry: identify all stale Codex-only descriptions. Exit: marketplace and plugin metadata consistently describe runtime-aware validation without overclaiming model availability. No-go: docs imply unavailable model names are mandatory outside Claude Code.
-**Evidence Required:** Completed: targeted stale wording scan; JSON manifest validation; release gate `working`/`all`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md`.
-**Dependencies:** None
-**Risk:** low - mostly metadata, but misleading docs can cause wrong execution mode.
-
-### ITS-ROADMAP-004 - Audit and harden hooks/stateful scripts
-**Status:** Done
-**Work Type:** Spike
 **Evidence Class:** Repo
-**Confidence:** Medium
-**Source Anchors:** `auto-updater/hooks/hooks.json:1-13`; `auto-updater/scripts/check-update.sh:19-47`; `skill-stats/hooks/hooks.json:1-17`; `skill-stats/scripts/track-skill.sh:7-23`; `antifragile/skills/antifragile-agent/SKILL.md:16-47`
-**Why Now / Why Next / Why Later:** Hooks run during normal agent sessions and can silently degrade or pollute state. Before adding more release automation, hook robustness should be audited.
+**Confidence:** High
+**Source Anchors:** `issue-evaluator/skills/evaluate-issue/SKILL.md:128-187`; `issue-evaluator/skills/evaluate-issue/SKILL.md:194-263`; `issue-evaluator/skills/evaluate-issue/SKILL.md:267-280`; `issue-evaluator/WORKFLOW-CONTRACTS.md:6-84`
+**Why Now / Why Next / Why Later:** This is the strongest second commit because `evaluate-issue` has large inline adversarial prompts and final report text that are expensive to load and hard to diff-review inside the skill body.
 **Owner:** Unassigned
 **Decision Owner:** User
-**Release Gate:** Entry: run antifragile-agent audit focused on hooks and state. Exit: accepted findings are either fixed or explicitly deferred with rationale. No-go: hook changes that can block SessionStart/PostToolUse on optional dependency failure.
-**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; timeout/disable hardening in `auto-updater/scripts/check-update.sh`; non-blocking state write hardening in `skill-stats/scripts/track-skill.sh`; portable analysis docs in `skill-stats/skills/skill-stats/SKILL.md`.
-**Dependencies:** ITS-ROADMAP-001 can define the standard checks, but this spike can run independently.
-**Risk:** medium - hook changes can affect every session if failure isolation is wrong.
+**Release Gate:** Entry: current prompt phases and final report fields are preserved. Exit: skill body references prompt/template artifacts, output contract remains unchanged, and issue-evaluator fixtures pass. No-go: changing GitHub read-only behavior or silently dropping multi-angle review steps.
+**Evidence Required:** Updated `issue-evaluator/skills/evaluate-issue/SKILL.md`; prompt/template files under `issue-evaluator/prompts/` and/or `issue-evaluator/templates/`; passing `tests/agent-playbook-eval-fixtures.sh` or the relevant issue-evaluator fixture if present; strict release gate result.
+**Dependencies:** Existing `issue-evaluator/WORKFLOW-CONTRACTS.md`.
+**Risk:** medium - prompt extraction reduces visible context in `SKILL.md`, so references must be exact and fixtures should check required phases still exist.
 
-## Next
+### ITS-ROADMAP-010 - Add repetition and bloat hygiene checks
 
-### ITS-ROADMAP-006 - Add executable eval fixtures for critical skill workflows
-**Status:** Done
-**Work Type:** Spike
-**Evidence Class:** Artifact
-**Confidence:** Medium
-**Source Anchors:** `idea-to-ship/skills/roadmap/SKILL.md:395-413`; `idea-to-ship/README.md:72-77`; `.idea-to-ship/current/code-review.md:29-36`
-**Why Now / Why Next / Why Later:** After release gates and metadata consistency, the next bottleneck is proving skill behavior with repeatable fixtures instead of manual markdown review.
-**Owner:** Unassigned
-**Decision Owner:** None
-**Release Gate:** Entry: choose fixture harness shape. Exit: smoke fixtures cover `/roadmap`, `/test`, and `/review-code` critical paths: first run, rerun preservation, missing test plan, and final-without-approval. No-go: fixtures require live GitHub or mutate user repo state.
-**Evidence Required:** Completed: `.idea-to-ship/ITS-ROADMAP-006/architecture.md`; `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `scripts/release-gate.sh`; `tests/release-gate-stage1.sh`; `RELEASE-GATE.md`; `bash tests/idea-to-ship-eval-fixtures.sh`; `scripts/release-gate.sh --mode all`; negative contract, artifact safety, delegation authorization, capacity fallback, and requirements/architecture ownership coverage recorded in `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md`.
-**Dependencies:** ITS-ROADMAP-001 should define where eval fixtures sit in release checks.
-**Risk:** medium - poorly scoped evals become brittle markdown golden files.
-
-### ITS-ROADMAP-005 - Define portfolio inventory and ownership model
-**Status:** Done
-**Work Type:** Docs
-**Evidence Class:** Repo
-**Confidence:** Medium
-**Source Anchors:** `.claude-plugin/marketplace.json:6-50`; `agent-playbook/README.md:53-61`; `idea-to-ship/README.md:122-124`; `de16602`
-**Why Now / Why Next / Why Later:** The repo is now a plugin portfolio. A lightweight inventory makes ownership, lifecycle, and verification expectations explicit after the immediate release gates exist.
-**Owner:** Unassigned
-**Decision Owner:** None
-**Release Gate:** Entry: plugin list from marketplace is current. Exit: each plugin has purpose, maintenance status, owner/decision owner, release checks, and deprecation/review notes. No-go: inventory duplicates README content without operational decisions.
-**Evidence Required:** Completed: `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md`; inventory coverage check against `.claude-plugin/marketplace.json`; release gate `working`/`all`.
-**Dependencies:** ITS-ROADMAP-001 can provide release-check categories for the inventory.
-**Risk:** low - docs can drift if not tied to release gate.
-
-### ITS-ROADMAP-007 - Promote secret scanning from available tool to release gate
-**Status:** Done
+**Status:** Candidate
 **Work Type:** Maintenance
 **Evidence Class:** Repo
 **Confidence:** Medium
-**Source Anchors:** `secret-scanner/README.md:92-100`; `secret-scanner/scripts/scan.py:1-24`; `.gitignore:1`
-**Why Now / Why Next / Why Later:** Secret scanning exists, but the repo does not yet require it as part of plugin release. It should become a release gate after the general gate shape is agreed.
+**Source Anchors:** `scripts/skill-hygiene-check.py:19-25`; `scripts/skill-hygiene-check.py:181-243`; `RELEASE-GATE.md:42-51`
+**Why Now / Why Next / Why Later:** This should land with or after the first extraction commits so the release gate enforces the new expectation instead of relying on manual review.
 **Owner:** Unassigned
-**Decision Owner:** None
-**Release Gate:** Entry: ITS-ROADMAP-001 release gate draft exists. Exit: secret scanning is included as a documented mandatory local check or installed hook. No-go: hook installation overwrites existing hooks without confirmation.
-**Evidence Required:** Completed: `scripts/release-gate.sh` blocking `secret-scan`; `RELEASE-GATE.md` blocking check and hook decision; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md`; release gate `staged`/`working`/`all`.
-**Dependencies:** ITS-ROADMAP-001
-**Risk:** low - main risk is false positives or adding friction to small markdown-only changes.
+**Decision Owner:** User
+**Release Gate:** Entry: define non-brittle signals for repeated inline prompts/templates and moderate-size skill bodies. Exit: hygiene check reports actionable advisory failures in `--strict` mode without punishing legitimate concise skills. No-go: exact prose golden-file checks that make normal wording edits noisy.
+**Evidence Required:** Updated `scripts/skill-hygiene-check.py`; fixture/sample coverage for repeated prompt/template markers; `scripts/release-gate.sh --mode all --strict`.
+**Dependencies:** Prefer after `ITS-ROADMAP-008` or `ITS-ROADMAP-009` so the rule can be tuned against real cleanup.
+**Risk:** medium - too-strict thresholds create false positives; too-loose thresholds do not stop drift.
 
-## Later
+### ITS-ROADMAP-011 - Extract shared audit and safety checklist
 
-### ITS-ROADMAP-002 - Dogfood idea-to-ship as the planning backbone
-**Status:** Done
-**Work Type:** Feature
-**Evidence Class:** Artifact
+**Status:** Candidate
+**Work Type:** Maintenance
+**Evidence Class:** Repo
+**Confidence:** Medium
+**Source Anchors:** `agent-playbook/skills/tool-review/SKILL.md:89-138`; `agent-playbook/skills/context-audit/SKILL.md:68-115`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:108-130`; `README.md:48-59`
+**Why Now / Why Next / Why Later:** This belongs in the third commit because audit skills overlap by design, but their shared safety and eval criteria should be maintained once instead of duplicated across several skill bodies.
+**Owner:** Unassigned
+**Decision Owner:** User
+**Release Gate:** Entry: identify shared checklist items that are truly common and keep skill-specific criteria local. Exit: shared checklist file is cited from each audit skill, and each skill keeps a short boundary-focused local checklist. No-go: forcing all audit skills into one generic checklist that loses domain-specific judgment.
+**Evidence Required:** Shared checklist under `agent-playbook/` or a repo-wide contracts location; updated audit skill references; passing agent-playbook fixtures and strict release gate.
+**Dependencies:** Can pair with `ITS-ROADMAP-010` if the hygiene check watches for duplicated checklist headings.
+**Risk:** medium - over-extraction can hide the differences between context hygiene, tool review, vibe health, and antifragile audits.
+
+### ITS-ROADMAP-012 - Normalize agent-playbook audit templates
+
+**Status:** Candidate
+**Work Type:** Maintenance
+**Evidence Class:** Repo
+**Confidence:** Medium
+**Source Anchors:** `agent-playbook/skills/tool-review/SKILL.md:146-180`; `agent-playbook/skills/context-audit/SKILL.md:116-158`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:145-190`; `.gitignore:2`
+**Why Now / Why Next / Why Later:** This is a good third-commit companion to `ITS-ROADMAP-011`: shared report templates reduce boilerplate while `.agent-playbook/current/` remains ignored and local-only.
+**Owner:** Unassigned
+**Decision Owner:** User
+**Release Gate:** Entry: current audit outputs and generated markers are known. Exit: templates live outside long skill bodies and report-writing rules still distinguish read-only analysis from local artifact writes. No-go: committing generated `.agent-playbook/current/` reports or changing read-only semantics.
+**Evidence Required:** New or updated `agent-playbook/templates/` files; updated audit skills; passing `tests/agent-playbook-eval-fixtures.sh`; strict release gate result.
+**Dependencies:** Strongly related to `ITS-ROADMAP-011`.
+**Risk:** low - mostly documentation/template movement, but output contract wording must stay clear.
+
+### ITS-ROADMAP-013 - Prevent invalid skill frontmatter from shipping
+
+**Status:** Candidate
+**Work Type:** Maintenance
+**Evidence Class:** Repo
 **Confidence:** High
-**Source Anchors:** `idea-to-ship/README.md:40-49`; `.idea-to-ship/current/code-review.md:42-44`; `1514e2b`; `.idea-to-ship/roadmap.md`
-**Why Now / Why Next / Why Later:** The repo is already dogfooding idea-to-ship through this roadmap. Keep it as a later process improvement after release gates, metadata consistency, hook hardening, and eval fixtures are in place.
+**Source Anchors:** `worktree-cleaner/skills/clean-worktrees/SKILL.md:4`; `scripts/skill-hygiene-check.py:181-243`; `RELEASE-GATE.md:42-51`
+**Why Now / Why Next / Why Later:** This should be part of the third commit because the repo just produced a loader-visible YAML warning that the current checks did not make obvious early enough. Preventing invalid `SKILL.md` frontmatter is a direct stability gate for every installed plugin.
 **Owner:** Unassigned
-**Decision Owner:** None
-**Release Gate:** Entry: at least one Now item completed. Exit: future portfolio work consistently uses requirements/architecture/roadmap/review/test artifacts where useful. No-go: process overhead exceeds the value of the change.
-**Evidence Required:** Completed: `ITS-ROADMAP-006` used requirements, architecture, design review, implementation log, test plan, code review, runnable eval fixture, and release-gate verification; `.idea-to-ship/ITS-ROADMAP-002/implementation-log.md`.
-**Dependencies:** ITS-ROADMAP-001; ITS-ROADMAP-006
-**Risk:** low - main risk is process bloat.
+**Decision Owner:** User
+**Release Gate:** Entry: reproduce the invalid unquoted bracket argument-hint case in a fixture or sample. Exit: release gate parses skill frontmatter with real YAML semantics, rejects invalid flow-style scalars, and optionally verifies installed-cache copies when a cache path is available. No-go: validator depends on network or mutates installed plugins during normal checks.
+**Evidence Required:** Updated frontmatter validation in `scripts/skill-hygiene-check.py` or the release-gate frontmatter checker; fixture covering `argument-hint: [--apply] [--all] [--force]`; passing `scripts/release-gate.sh --mode all --strict`; documented cache-sync expectation if source and installed cache can diverge.
+**Dependencies:** Can pair with `ITS-ROADMAP-010` because both strengthen hygiene enforcement.
+**Risk:** low - the validation target is narrow, but the parser must remain compatible with existing quoted and unquoted scalar frontmatter fields.
 
-## Milestones
+## Recommended Three-Commit Shape
 
-### Milestone 1 - Release Discipline Baseline
-**Target:** Week 1 of horizon
-**Scope:** `ITS-ROADMAP-001`, `ITS-ROADMAP-003`
-**Owner:** Unassigned
-**Dependencies:** None
-**Release Gate:** Entry: current repo on `main` at `1514e2b`. Exit: release checks are documented/scripted and runtime-aware metadata is consistent. Evidence required: manifest validation, frontmatter validation, diff whitespace check, stale wording scan.
-**Risk Level:** medium
+1. Commit 1: `ITS-ROADMAP-008` - refactor `idea-to-ship:implement` around existing workflow contracts and templates.
+2. Commit 2: `ITS-ROADMAP-009` - extract `issue-evaluator:evaluate-issue` prompts/templates and keep its output contract stable.
+3. Commit 3: `ITS-ROADMAP-010` + `ITS-ROADMAP-013`, with `ITS-ROADMAP-011` or `ITS-ROADMAP-012` only if the diff stays small - enforce the cleanup pattern and prevent invalid skill frontmatter from reaching installed plugin load.
 
-### Milestone 2 - Hook Robustness And Evaluation Shape
-**Target:** Weeks 2-3 of horizon
-**Scope:** `ITS-ROADMAP-004`, `ITS-ROADMAP-006`
-**Owner:** Unassigned
-**Dependencies:** `ITS-ROADMAP-001`
-**Release Gate:** Entry: release gate baseline exists. Exit: hook audit findings are triaged and first eval fixtures are runnable or explicitly scoped. Evidence required: antifragile audit output, fixture command output, reviewed diff.
-**Risk Level:** medium
+Recommended priority order: `ITS-ROADMAP-008`, `ITS-ROADMAP-009`, then `ITS-ROADMAP-010` + `ITS-ROADMAP-013`. If the third commit remains small enough, include `ITS-ROADMAP-011` or `ITS-ROADMAP-012`; otherwise keep agent-playbook extraction for the next roadmap slice.
 
-### Milestone 3 - Portfolio Operating Model
-**Target:** Week 4 of horizon
-**Scope:** `ITS-ROADMAP-005`, `ITS-ROADMAP-007`, revisit `ITS-ROADMAP-002`
-**Owner:** Unassigned
-**Dependencies:** `ITS-ROADMAP-001`, `ITS-ROADMAP-006`
-**Release Gate:** Entry: release/eval baseline exists. Exit: plugin inventory has owners/status/checks and secret scanning is part of the release gate or explicitly deferred. Evidence required: inventory artifact, secret-scan command/hook decision, updated roadmap.
-**Risk Level:** low
+## Unverified Signals
 
-## Dependency Order
+- No empirical token measurements were taken; expected token savings are inferred from line counts and inline prompt/template repetition.
+- GitHub and TODO signals were intentionally excluded, so external priorities may override this local-only view.
+- The old `.agent-playbook/current/skill-complexity-audit.md` is ignored and was not treated as source of truth.
+- Existing roadmap fixture behavior still expects structured `ITS-*` items; this candidate brief keeps that structure while avoiding final lanes.
+- The cache warning was observed from the installed plugin cache; source validation should prevent recurrence, but cache drift may still need an explicit sync/check step.
 
-1. `ITS-ROADMAP-001` should land first because it defines the checks used by later changes.
-2. `ITS-ROADMAP-003` can run in parallel with `ITS-ROADMAP-001`; it has no hard dependency.
-3. `ITS-ROADMAP-004` can start after or during `ITS-ROADMAP-001`, but accepted hook fixes should obey the release gate once it exists.
-4. `ITS-ROADMAP-006` depended on `ITS-ROADMAP-001` for where eval fixtures fit into release checks; the fixture command now runs as a non-blocking `--mode all` advisory.
-5. `ITS-ROADMAP-005` and `ITS-ROADMAP-007` follow the release gate baseline so they do not create separate, drifting process rules.
-6. `ITS-ROADMAP-002` is complete: `ITS-ROADMAP-006` proved the full-flow dogfood path, while docs-only and decision-only items used right-sized artifacts.
+## Conflicts And Tradeoffs
 
-## Dependency Hypotheses
-
-- Eval fixtures required a small local harness script. Contract fixtures,
-  artifact-level fixtures, and release-gate advisory integration are now in
-  place; live-agent evals remain out of scope.
-- Secret scanning may be better as a documented release command before becoming a hook. The hook path depends on user tolerance for local workflow friction.
-- Hook hardening may uncover issues that should move ahead of metadata consistency if any hook can block sessions or corrupt state.
-
-## Critical Path
-
-`ITS-ROADMAP-001` -> `ITS-ROADMAP-006` (done) -> `ITS-ROADMAP-005` / `ITS-ROADMAP-007`
-
-`ITS-ROADMAP-003` and `ITS-ROADMAP-004` are important parallel work but are not on the validated hard-dependency chain unless the hook audit finds a blocking issue.
-
-## Risks / Spikes
-
-- Hook changes have high blast radius because SessionStart/PostToolUse failures affect normal agent operation.
-- Markdown skill evals can become brittle if they assert exact prose instead of behavioral invariants.
-- The roadmap currently excludes GitHub issues/PRs/milestones, so active external planning may be missing.
-- Capacity is unknown; the Now lane assumes one maintainer can complete three small-to-medium work items inside the horizon.
-
-## Status By Feature
-
-| Slug/ID | Status | Next Action | Blockers | Evidence |
-|---|---|---|---|---|
-| ITS-ROADMAP-001 | Done | None - release gate Stage 1 committed and pushed | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-001/code-review.md`; `17460a5` |
-| ITS-ROADMAP-003 | Done | None - stale manifest wording patched | None | `.claude-plugin/marketplace.json:8-10`; `issue-evaluator/.claude-plugin/plugin.json:1-7`; `.idea-to-ship/ITS-ROADMAP-003/implementation-log.md` |
-| ITS-ROADMAP-004 | Done | None - audit complete and low-risk fixes applied | None | `.idea-to-ship/ITS-ROADMAP-004/antifragile-audit.md`; `auto-updater/scripts/check-update.sh`; `skill-stats/scripts/track-skill.sh` |
-| ITS-ROADMAP-006 | Done | None - contract/artifact/delegation/capacity/ownership fixtures integrated as `--mode all` advisory | None | `tests/idea-to-ship-eval-fixtures.sh`; `tests/idea-to-ship-eval-fixtures.py`; `scripts/release-gate.sh`; `tests/release-gate-stage1.sh`; `.idea-to-ship/ITS-ROADMAP-006/implementation-log.md` |
-| ITS-ROADMAP-005 | Done | None - portfolio inventory added | None | `PORTFOLIO.md`; `.idea-to-ship/ITS-ROADMAP-005/implementation-log.md` |
-| ITS-ROADMAP-007 | Done | None - command-based secret-scan gate recorded | None | `scripts/release-gate.sh`; `RELEASE-GATE.md`; `.idea-to-ship/ITS-ROADMAP-007/implementation-log.md` |
-| ITS-ROADMAP-002 | Done | None - dogfood evidence recorded | None | `.idea-to-ship/ITS-ROADMAP-006/*`; `.idea-to-ship/ITS-ROADMAP-002/implementation-log.md` |
-
-## Candidate Backlog
-
-- No additional candidates from this run. GitHub and TODO sources were intentionally excluded.
+- The previous roadmap is complete and targeted a four-week sustainability horizon; the current request supersedes it for the next three commits.
+- Extracting templates lowers repeated prompt bulk but can make behavior harder to inspect from a single file. Each extraction should keep exact template paths and output fields in the skill body.
+- Strict hygiene should catch repeated text without making normal skill editing noisy.
 
 ## Open Decisions
 
 | Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
 |---|---|---|---|---|---|
-| Should the next roadmap refresh include GitHub signals? | A: local only; B: include GitHub read-only; C: include GitHub plus TODO scan | B | User | Before release planning beyond this local repo snapshot | Roadmap may miss active PRs/issues/milestones that should override repo-internal guesses. |
-| How strict should release gates be after baseline? | Resolved for current baseline: required local command set; pre-commit/pre-push hooks remain opt-in | B implemented | None | Done in `ITS-ROADMAP-007` | Revisit only if a future release shows the command gate is too easy to skip. |
+| Approve candidate ordering for final lanes? | A: 008, 009, then 010+013; B: 013 first, then cleanup; C: focus on one plugin only | A | User | Before writing final Now/Next/Later lanes or starting implementation | Work can begin from the recommendation, but the roadmap should not claim final priority approval. |
+| How strict should moderate-bloat hygiene be? | A: advisory only over 300 lines; B: strict over 400 lines; C: keep only current 750-line limit | A to start | User | Before `ITS-ROADMAP-010` implementation | Too strict creates noise; too loose lets token-heavy skills keep growing. |
+| Should token savings be measured before and after? | A: estimate by lines only; B: add a lightweight prompt-size/token budget script; C: defer measurement | B | User | Before or during commit 3 | Without measurement, improvements remain qualitative. |
+
+## Rejected / Not Roadmap-Relevant
+
+- Broadly renaming existing skills for nicer taxonomy: rejected for compatibility risk.
+- Removing safety gates to shorten text: rejected because stability is part of the goal.
+- Making GitHub/TODO scans mandatory for this refresh: rejected because the current request asked for a local next-3-commit plan.
+- Committing ignored `.agent-playbook/current/` generated reports: rejected because the repo now intentionally ignores that local scratch path.
 
 ## Acceptance Checks
 
-- First run: passed. `.idea-to-ship/roadmap.md` existed as a generated Candidate Brief and contained generated markers before finalization.
-- Rerun with human content: passed. Human-owned sections were preserved and `Manual Overrides` was updated from the user's explicit approval.
-- `--final` without priority approval: not applicable; priority approval was provided in the current request.
-- `--include-github`: not applicable; GitHub was not used.
-- Conflicting evidence: passed. Metadata conflict is recorded through `ITS-ROADMAP-003`, and no unapproved GitHub/TODO signals were used.
-- Weak signals: passed. `Now` contains only High/Medium confidence items approved by the user.
+- Candidate-only run: this refresh writes a Candidate Brief and keeps `final_lanes_written: "no"`.
+- Artifact safety: generated content remains inside `idea-to-ship:roadmap` markers, with human-owned sections explicit above the marker.
+- Structure: candidate items use the same `ITS-*` fields required by the existing roadmap artifact fixture.
+- Next action: approve or edit the recommended three-commit ordering before converting candidates into final lanes.
 
 <!-- idea-to-ship:roadmap generated:end -->
