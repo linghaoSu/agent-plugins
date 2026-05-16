@@ -36,6 +36,7 @@ blocking, advisory, and skipped checks.
 | `diff-whitespace` | Mode-specific git diff whitespace check passes. | `1` |
 | `secret-scan` | `secret-scanner/scripts/scan.py --format json` reports no findings for the selected mode. | `1` |
 | `skill-hygiene-infra-drift` | In `--mode staged`, when staged changes touch skill-hygiene infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed checker/fixture code. | `1` |
+| `skill-topology-infra-drift` | In `--mode staged`, when staged changes touch skill-topology infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed scanner/fixture code. | `1` |
 
 Missing required tools (`git`, `jq`, `python3`) or the required Python `yaml`
 module from PyYAML return exit `2`. A missing or non-runnable blocking checker
@@ -56,6 +57,7 @@ Advisory checks report risk without changing the release gate exit code unless
 | `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, moderate or oversized `SKILL.md` files, repeated inline prompts/templates, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
 | `skill-hygiene-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-check-fixtures.sh` so checker snapshot and existing-check regression fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
+| `skill-topology-fixtures` | `all`, or `staged`/`working` when the diff touches skill-topology scanner, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-topology-scan-fixtures.sh` so the read-only topology scanner keeps reporting broken references, orphan skills, hub skills, skill-tree output, and README coverage gaps deterministically. | `WARN` (`FAIL` with `--strict`) |
 | `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
@@ -168,6 +170,30 @@ least two plausible same-family candidates remain. A visible
 when it includes both a
 non-empty `repetition-scan-limited:` reason and `reviewed-with:` or
 `cap-evidence:` evidence.
+
+## Skill Topology Fixtures
+
+The read-only skill topology scanner has a dedicated offline fixture command:
+
+```bash
+bash tests/skill-topology-scan-fixtures.sh
+```
+
+The scanner itself is report-only:
+
+```bash
+python3 scripts/skill-topology-scan.py .
+```
+
+It inventories local `*/skills/*/SKILL.md` files, renders a deterministic
+Markdown skill tree, and reports broken skill references, orphan skills, hub
+skills, and root README catalog coverage gaps. The release gate runs
+`skill-topology-fixtures` in `--mode all`, and in `staged`/`working` mode when
+the diff touches `scripts/skill-topology-scan.py`,
+`tests/skill-topology-*`, `scripts/release-gate.sh`, or `RELEASE-GATE.md`.
+In staged mode, the blocking `skill-topology-infra-drift` check fails before
+handoff when those topology infrastructure paths are staged but differ from the
+worktree copy.
 
 ## Idea-To-Ship Contract Fixtures
 

@@ -65,6 +65,12 @@ SKILL_HYGIENE_INFRA_TARGETS=(
   "tests/skill-hygiene-*"
   "RELEASE-GATE.md"
 )
+SKILL_TOPOLOGY_TARGETS=(
+  "scripts/skill-topology-scan.py"
+  "scripts/release-gate.sh"
+  "tests/skill-topology-*"
+  "RELEASE-GATE.md"
+)
 trap 'rm -f "$RESULTS_FILE"' EXIT
 
 cd "$ROOT" || exit 2
@@ -537,6 +543,10 @@ diff_touches_skill_hygiene_infra() {
   diff_touches_any "${SKILL_HYGIENE_INFRA_TARGETS[@]}"
 }
 
+diff_touches_skill_topology_infra() {
+  diff_touches_any "${SKILL_TOPOLOGY_TARGETS[@]}"
+}
+
 check_skill_hygiene_infra_drift() {
   command_text="git diff --cached --name-only -- <skill hygiene infrastructure>; git diff --name-only -- <skill hygiene infrastructure>"
 
@@ -567,6 +577,38 @@ check_skill_hygiene_infra_drift() {
 
   add_result "blocking" "pass" "skill-hygiene-infra-drift" \
     "staged skill hygiene infrastructure matches the worktree" "" "$command_text" 0
+}
+
+check_skill_topology_infra_drift() {
+  command_text="git diff --cached --name-only -- <skill topology infrastructure>; git diff --name-only -- <skill topology infrastructure>"
+
+  if [ "$MODE" != "staged" ]; then
+    return
+  fi
+
+  staged_paths="$(git diff --cached --name-only -- "${SKILL_TOPOLOGY_TARGETS[@]}")"
+  if [ -z "$staged_paths" ]; then
+    add_result "skipped" "skip" "skill-topology-infra-drift" \
+      "no staged diff touches skill topology infrastructure" "" "$command_text" 0
+    return
+  fi
+
+  drift_paths="$(
+    {
+      git diff --name-only -- "${SKILL_TOPOLOGY_TARGETS[@]}"
+      git ls-files --others --exclude-standard -- "${SKILL_TOPOLOGY_TARGETS[@]}"
+    } | sed '/^$/d' | sort -u
+  )"
+  if [ -n "$drift_paths" ]; then
+    first_path="$(printf '%s\n' "$drift_paths" | sed -n '1p')"
+    add_result "blocking" "fail" "skill-topology-infra-drift" \
+      "staged skill topology infrastructure differs from the worktree" \
+      "$first_path" "$command_text" 1
+    return
+  fi
+
+  add_result "blocking" "pass" "skill-topology-infra-drift" \
+    "staged skill topology infrastructure matches the worktree" "" "$command_text" 0
 }
 
 check_idea_to_ship_fixtures() {
@@ -738,6 +780,39 @@ check_skill_hygiene_release_gate_fixtures() {
   fi
 }
 
+check_skill_topology_fixtures() {
+  command_text="bash tests/skill-topology-scan-fixtures.sh"
+
+  if ! diff_touches_skill_topology_infra; then
+    add_result "skipped" "skip" "skill-topology-fixtures" \
+      "no $MODE diff touches skill topology fixture scope" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/skill-topology-scan-fixtures.sh" ]; then
+    add_result "advisory" "warn" "skill-topology-fixtures" \
+      "skill topology fixture command is missing" \
+      "tests/skill-topology-scan-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/skill-topology-scan-fixtures.sh 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "skill-topology-fixtures" \
+      "skill topology fixture checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "skill-topology-fixtures" \
+      "skill topology fixture checks reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "skill-topology-fixtures" \
+      "skill topology fixture checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -809,9 +884,11 @@ check_skill_metadata
 check_diff_whitespace
 check_secret_scan
 check_skill_hygiene_infra_drift
+check_skill_topology_infra_drift
 check_skill_hygiene
 check_skill_hygiene_fixtures
 check_skill_hygiene_release_gate_fixtures
+check_skill_topology_fixtures
 check_idea_to_ship_fixtures
 check_agent_playbook_fixtures
 
