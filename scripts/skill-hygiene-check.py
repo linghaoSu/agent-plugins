@@ -122,6 +122,33 @@ STRUCTURE_YAML_KEYS = {
     "resolution",
     "evidence",
 }
+SKILL_AUTHORING_BASELINE = Path("scripts/skill-authoring-baseline.txt")
+USAGE_SECTION_TITLES = {"workflow", "when to use", "usage", "steps", "arguments", "examples"}
+WORKFLOW_LANGUAGE_RE = re.compile(r"\b(route to|handoff|phase gate|stage)\b", re.IGNORECASE)
+TASK_TRACKING_RE = re.compile(
+    r"\b(todo|checklist|task list|update_plan|stage status|track(?:ing)? (?:progress|status)|"
+    r"update (?:the )?status|record (?:the )?status)\b",
+    re.IGNORECASE,
+)
+MERMAID_FLOW_RE = re.compile(r"\b(flowchart|graph|sequenceDiagram|stateDiagram)\b")
+MERMAID_EDGE_RE = re.compile(r"(-->|->>|-->\||--\|[^|\n]+\|)")
+QUALIFIED_SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_/-])(\$?)([A-Za-z0-9_-]+):([A-Za-z0-9_-]+)\b")
+PATH_SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_./-])([A-Za-z0-9_-]+)/skills/([A-Za-z0-9_-]+)/SKILL\.md\b")
+COMMAND_FENCE_LANGUAGES = {"bash", "sh", "zsh", "shell", "console", "terminal"}
+COMMAND_START_RE = re.compile(r"^\s*(?:\$+\s*)?(git|rm|python3?|bash|npm|pnpm|yarn|uv|make|scripts/|\./)\b")
+COMMAND_PLACEHOLDER_RE = re.compile(r"<[^>\n]+>|\{[^}\n]+\}|\b[A-Z][A-Z0-9_]*_[A-Z0-9_]*\b")
+HEREDOC_RE = re.compile(r"<<-?['\"]?[A-Za-z_][A-Za-z0-9_-]*['\"]?")
+UNSAFE_COMMAND_RE = re.compile(
+    r"(&&|\|\||;|\brm\s+-rf\b|\bgit\s+reset\s+--hard\b|\bgit\s+clean\s+-fd\b|"
+    r"\bgit\s+checkout\s+--(?:\s|$)|\bcurl\b[^\n|]*\|\s*(?:sh|bash)\b)",
+    re.IGNORECASE,
+)
+COMMAND_SAFETY_RE = re.compile(
+    r"\b(approval|confirm|dry-run|non-mutating|read-only|explicit authorization|review before running)\b",
+    re.IGNORECASE,
+)
+PLACEHOLDER_EXPLANATION_RE = re.compile(r"\b(replace|set|export|placeholder)\b", re.IGNORECASE)
+SINGLE_SKILL_FIXTURE_RELATED_NOTE = "No other local related skills in this fixture repo."
 
 
 @dataclass(frozen=True)
@@ -239,6 +266,19 @@ def reference_skill_files(root: Path, mode: str) -> list[Path]:
     return iter_all_skill_files(root)
 
 
+def dirty_skill_files(root: Path) -> list[Path]:
+    output = run_git(
+        ["diff", "--name-only", "--diff-filter=ACMRT", "HEAD", "--", "*/skills/*/SKILL.md"],
+        root,
+    )
+    return sorted(root / line for line in output.splitlines() if line.strip())
+
+
+def untracked_skill_files(root: Path) -> list[Path]:
+    output = run_git(["ls-files", "--others", "--exclude-standard", "--", "*/skills/*/SKILL.md"], root)
+    return sorted(root / line for line in output.splitlines() if line.strip())
+
+
 def added_skill_files(root: Path, mode: str) -> list[Path]:
     if mode == "staged":
         output = run_git(
@@ -279,6 +319,66 @@ def read_skill_text(root: Path, path: Path, mode: str) -> str:
         relative = str(path.relative_to(root))
         return run_git(["show", f":{relative}"], root)
     return read_text(path)
+
+
+def read_index_text(root: Path, relative: str) -> str | None:
+    result = subprocess.run(
+        ["git", "show", f":{relative}"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def read_baseline_text(root: Path, mode: str) -> str:
+    relative = SKILL_AUTHORING_BASELINE.as_posix()
+    if mode == "staged":
+        return read_index_text(root, relative) or ""
+    path = root / SKILL_AUTHORING_BASELINE
+    return read_text(path) if path.is_file() else ""
+
+
+def parse_authoring_baseline(root: Path, mode: str) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line in read_baseline_text(root, mode).splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        path, separator, digest = line.partition("\t")
+        if separator and path and digest:
+            entries[path] = digest.strip()
+    return entries
+
+
+def skill_text_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def authoring_target_skill_files(root: Path, mode: str) -> list[Path]:
+    if mode in {"staged", "working"}:
+        return changed_skill_files(root, mode)
+
+    baseline = parse_authoring_baseline(root, mode)
+    dirty_paths = {path.resolve() for path in dirty_skill_files(root)}
+    untracked_paths = {path.resolve() for path in untracked_skill_files(root)}
+    targets: set[Path] = set()
+
+    for path in iter_all_skill_files(root):
+        relative = path.relative_to(root).as_posix()
+        digest = skill_text_hash(read_text(path))
+        resolved = path.resolve()
+        if (
+            baseline.get(relative) != digest
+            or resolved in dirty_paths
+            or resolved in untracked_paths
+        ):
+            targets.add(path)
+
+    targets.update(path for path in untracked_paths if path.is_file())
+    return sorted(targets)
 
 
 def metadata_exists(root: Path, path: Path, mode: str) -> bool:
@@ -446,6 +546,147 @@ def has_hygiene_exception(text: str, check_id: str) -> bool:
     section = strip_fenced_blocks(section)
     pattern = re.compile(r"^[ \t]*" + re.escape(check_id) + r"[ \t]*:[ \t]*(\S.+)$", re.MULTILINE)
     return bool(pattern.search(section))
+
+
+def visible_heading_titles(text: str) -> list[str]:
+    titles: list[str] = []
+    for line in strip_fenced_blocks(text).splitlines():
+        heading = HEADING_RE.match(line)
+        if heading:
+            titles.append(normalize_anchor(heading.group(2)))
+    return titles
+
+
+def skill_id_for_path(root: Path, path: Path) -> str | None:
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError:
+        return None
+    if len(parts) != 4 or parts[1] != "skills" or parts[3] != "SKILL.md":
+        return None
+    return f"{parts[0]}:{parts[2]}"
+
+
+def known_skill_ids(root: Path, mode: str) -> set[str]:
+    ids: set[str] = set()
+    for path in reference_skill_files(root, mode):
+        skill_id = skill_id_for_path(root, path)
+        if skill_id:
+            ids.add(skill_id)
+    return ids
+
+
+def extract_skill_references(text: str) -> list[str]:
+    refs: list[str] = []
+    seen: set[str] = set()
+    for match in QUALIFIED_SKILL_REF_RE.finditer(text):
+        plugin = match.group(2)
+        target_id = f"{plugin}:{match.group(3)}"
+        if target_id not in seen:
+            refs.append(target_id)
+            seen.add(target_id)
+    for match in PATH_SKILL_REF_RE.finditer(text):
+        target_id = f"{match.group(1)}:{match.group(2)}"
+        if target_id not in seen:
+            refs.append(target_id)
+            seen.add(target_id)
+    return refs
+
+
+def is_workflow_skill(text: str) -> bool:
+    visible = strip_fenced_blocks(text)
+    titles = visible_heading_titles(text)
+    if "workflow" in titles:
+        return True
+    if re.search(r"\bStep\s+1\b", visible, re.IGNORECASE):
+        return True
+    step_headings = [title for title in titles if title.startswith("step")]
+    return len(step_headings) >= 3 or bool(WORKFLOW_LANGUAGE_RE.search(visible))
+
+
+def has_workflow_diagram(text: str) -> bool:
+    lines = text.splitlines()
+    active_fence: str | None = None
+    active_is_mermaid = False
+    content: list[str] = []
+    in_comment = False
+    for line in lines:
+        visible_line, in_comment = strip_html_comment_spans(line, in_comment)
+        if in_comment and not visible_line.strip():
+            continue
+        marker = fence_marker(line)
+        if active_fence:
+            if marker and is_closing_fence(visible_line, active_fence):
+                block = "\n".join(content)
+                if active_is_mermaid and MERMAID_FLOW_RE.search(block) and MERMAID_EDGE_RE.search(block):
+                    return True
+                active_fence = None
+                active_is_mermaid = False
+                content = []
+                continue
+            content.append(visible_line)
+            continue
+        if is_indented_code_line(visible_line):
+            continue
+        parts = fence_parts(visible_line)
+        if parts:
+            active_fence = parts[0]
+            info = parts[1].strip().split()
+            active_is_mermaid = bool(info and info[0].lower() == "mermaid")
+    return False
+
+
+@dataclass(frozen=True)
+class CommandBlock:
+    start_line: int
+    end_line: int
+    text: str
+    context: str
+
+
+def command_blocks(text: str) -> list[CommandBlock]:
+    lines = text.splitlines()
+    blocks: list[CommandBlock] = []
+    active_fence: str | None = None
+    start_index = 0
+    active_is_command = False
+    content: list[str] = []
+    for index, line in enumerate(lines):
+        marker = fence_marker(line)
+        if active_fence:
+            if marker and is_closing_fence(line, active_fence):
+                if active_is_command:
+                    context_start = max(0, start_index - 5)
+                    context = "\n".join(lines[context_start:start_index])
+                    blocks.append(CommandBlock(start_index + 1, index + 1, "\n".join(content), context))
+                active_fence = None
+                active_is_command = False
+                content = []
+                continue
+            content.append(line)
+            continue
+        parts = fence_parts(line)
+        if not parts:
+            continue
+        active_fence = parts[0]
+        start_index = index
+        info = parts[1].strip().split()
+        language = info[0].lower() if info else ""
+        active_is_command = language in COMMAND_FENCE_LANGUAGES
+        content = []
+        if not active_is_command and not language:
+            following = next((candidate for candidate in lines[index + 1:] if candidate.strip()), "")
+            active_is_command = bool(COMMAND_START_RE.match(following))
+    return blocks
+
+
+def command_has_safety_language(block: CommandBlock) -> bool:
+    return bool(COMMAND_SAFETY_RE.search(f"{block.context}\n{block.text}"))
+
+
+def command_has_placeholder_explanation(block: CommandBlock) -> bool:
+    return bool(PLACEHOLDER_EXPLANATION_RE.search(block.context))
+
 def collapse_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -1454,6 +1695,131 @@ def check_added_skill_metadata(root: Path, mode: str) -> list[Finding]:
     return findings
 
 
+def check_authoring_standards(root: Path, skill_files: list[Path], mode: str) -> list[Finding]:
+    findings: list[Finding] = []
+    known_ids = known_skill_ids(root, mode)
+
+    for path in skill_files:
+        text = read_skill_text(root, path, mode)
+        relative = path.relative_to(root).as_posix()
+        titles = visible_heading_titles(text)
+        visible_text = strip_fenced_blocks(text)
+        current_skill_id = skill_id_for_path(root, path)
+
+        if not any(title in USAGE_SECTION_TITLES for title in titles) and not has_hygiene_exception(text, "missing-actionable-usage"):
+            findings.append(
+                Finding(
+                    "missing-actionable-usage",
+                    relative,
+                    "skill lacks a visible usage/workflow/steps/arguments/examples section",
+                )
+            )
+
+        workflow_like = is_workflow_skill(text)
+        if (
+            workflow_like
+            and not TASK_TRACKING_RE.search(visible_text)
+            and not has_hygiene_exception(text, "missing-task-tracking")
+        ):
+            findings.append(
+                Finding(
+                    "missing-task-tracking",
+                    relative,
+                    "workflow-like skill lacks visible task tracking/status guidance",
+                )
+            )
+
+        if (
+            workflow_like
+            and not has_workflow_diagram(text)
+            and not has_hygiene_exception(text, "missing-workflow-diagram")
+        ):
+            findings.append(
+                Finding(
+                    "missing-workflow-diagram",
+                    relative,
+                    "workflow-like skill lacks a Mermaid workflow diagram with an edge",
+                )
+            )
+
+        related_section = extract_markdown_section(text, "Related Skills")
+        if related_section:
+            related_visible = strip_fenced_blocks(related_section)
+            refs = extract_skill_references(related_visible)
+            broken_refs = [ref for ref in refs if ref not in known_ids]
+            valid_non_self_refs = [ref for ref in refs if ref in known_ids and ref != current_skill_id]
+            valid_self_refs = [ref for ref in refs if ref in known_ids and ref == current_skill_id]
+            fixture_self_only = (
+                bool(valid_self_refs)
+                and SINGLE_SKILL_FIXTURE_RELATED_NOTE in related_visible
+                and len(known_ids) == 1
+            )
+
+            for ref in broken_refs:
+                if not has_hygiene_exception(text, "broken-related-skill"):
+                    findings.append(
+                        Finding(
+                            "broken-related-skill",
+                            relative,
+                            f"Related Skills references unknown local skill {ref}",
+                        )
+                    )
+
+            if (
+                not valid_non_self_refs
+                and not fixture_self_only
+                and not has_hygiene_exception(text, "missing-related-skills")
+            ):
+                findings.append(
+                    Finding(
+                        "missing-related-skills",
+                        relative,
+                        "Related Skills section has no valid non-self local reference",
+                    )
+                )
+        elif not has_hygiene_exception(text, "missing-related-skills"):
+            findings.append(
+                Finding(
+                    "missing-related-skills",
+                    relative,
+                    "skill lacks a visible Related Skills section",
+                )
+            )
+
+        for block in command_blocks(text):
+            has_unsafe = bool(UNSAFE_COMMAND_RE.search(block.text) or HEREDOC_RE.search(block.text))
+            if (
+                has_unsafe
+                and not command_has_safety_language(block)
+                and not has_hygiene_exception(text, "unsafe-command-example")
+            ):
+                findings.append(
+                    Finding(
+                        "unsafe-command-example",
+                        relative,
+                        f"command block lines {block.start_line}-{block.end_line} contains chained, heredoc, or destructive commands without nearby safety language",
+                    )
+                )
+                break
+
+        for block in command_blocks(text):
+            if (
+                COMMAND_PLACEHOLDER_RE.search(block.text)
+                and not command_has_placeholder_explanation(block)
+                and not has_hygiene_exception(text, "unexplained-command-placeholder")
+            ):
+                findings.append(
+                    Finding(
+                        "unexplained-command-placeholder",
+                        relative,
+                        f"command block lines {block.start_line}-{block.end_line} contains placeholder tokens without nearby explanation",
+                    )
+                )
+                break
+
+    return findings
+
+
 def run(root: Path, mode: str) -> list[Finding]:
     skill_files = changed_skill_files(root, mode)
     findings: list[Finding] = []
@@ -1465,6 +1831,7 @@ def run(root: Path, mode: str) -> list[Finding]:
     findings.extend(repeated_inline_findings_from_matches(matches, {"prompt", "template"}))
     findings.extend(check_repetition_scan_limits(root, limits, mode))
     findings.extend(check_added_skill_metadata(root, mode))
+    findings.extend(check_authoring_standards(root, authoring_target_skill_files(root, mode), mode))
     return findings
 
 

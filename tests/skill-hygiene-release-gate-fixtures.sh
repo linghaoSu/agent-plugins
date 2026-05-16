@@ -9,6 +9,7 @@ TMP_DIRS_COUNT=0
 failures=0
 SKILL_HYGIENE_INFRA_TARGETS=(
   "scripts/skill-hygiene-check.py"
+  "scripts/skill-authoring-baseline.txt"
   "scripts/release-gate.sh"
   "tests/skill-hygiene-*"
   "RELEASE-GATE.md"
@@ -315,6 +316,39 @@ interface:
 EOF
 }
 
+write_authoring_weak_skill() {
+  repo="$1"
+  skill_dir="$repo/harness-engineering/skills/authoring-weak"
+  mkdir -p "$skill_dir/agents"
+  cat >"$skill_dir/SKILL.md" <<'EOF'
+---
+name: authoring-weak
+description: Short routing description.
+---
+
+# Authoring Weak
+
+## Notes
+This stage routes to another process but gives no task tracking.
+
+```bash
+python3 scripts/run.py <TARGET> && rm -rf build
+cat <<'PY' > /tmp/generated.py
+print('unsafe heredoc')
+PY
+```
+
+## Related Skills
+- $harness-engineering:missing
+EOF
+  cat >"$skill_dir/agents/openai.yaml" <<'EOF'
+interface:
+  display_name: "Authoring Weak"
+  short_description: "Fixture metadata for weak authoring"
+  default_prompt: "$authoring-weak"
+EOF
+}
+
 write_scan_limited_prompt_skill() {
   repo="$1"
   skill_dir="$repo/harness-engineering/skills/scan-limited-prompt"
@@ -421,11 +455,14 @@ run_gate_json() {
 
 self_check() {
   require_file "$RELEASE_GATE" "release-gate-present" || return
+  require_file "$ROOT/RELEASE-GATE.md" "release-gate-docs-present" || return
   require_file "$ROOT/tests/skill-hygiene-check-fixtures.sh" "checker-fixture-present" || return
 
   require_grep "skill-hygiene-fixtures" "$RELEASE_GATE" "self-check-skill-hygiene-fixtures-id"
   require_grep "skill-hygiene-release-gate-fixtures" "$RELEASE_GATE" "self-check-release-gate-fixtures-id"
   require_grep "skill-hygiene-infra-drift" "$RELEASE_GATE" "self-check-skill-hygiene-infra-drift-id"
+  require_grep "missing-actionable-usage" "$ROOT/RELEASE-GATE.md" "self-check-authoring-usage-id"
+  require_grep "unsafe-command-example" "$ROOT/RELEASE-GATE.md" "self-check-authoring-command-id"
   require_grep "skill-topology-fixtures" "$RELEASE_GATE" "self-check-skill-topology-fixtures-id"
   require_grep "skill-topology-infra-drift" "$RELEASE_GATE" "self-check-skill-topology-infra-drift-id"
   require_grep "tests/skill-hygiene-check-fixtures.sh" "$RELEASE_GATE" "self-check-checker-fixture-command"
@@ -454,6 +491,21 @@ full_check() {
   assert_json_check "$all_json" "skill-hygiene" "advisory" "warn" 1
   assert_json_evidence_contains "$all_json" "skill-hygiene" "moderate-skill-bloat" "json-all-moderate-bloat-evidence"
   assert_json_evidence_contains "$all_json" "skill-hygiene" "repeated-inline-template" "json-all-repeated-template-evidence"
+
+  authoring_all_repo="$(make_candidate_repo)"
+  write_authoring_weak_skill "$authoring_all_repo"
+  git -C "$authoring_all_repo" add harness-engineering/skills/authoring-weak
+  git -C "$authoring_all_repo" commit -q -m "add unbaselined weak authoring skill"
+
+  authoring_all_json="$(run_gate_json "$authoring_all_repo" "all" "true" 1 "release-gate-all-strict-authoring-json")"
+  assert_json_check "$authoring_all_json" "skill-hygiene" "advisory" "fail" 1
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-actionable-usage" "json-all-strict-authoring-usage-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-task-tracking" "json-all-strict-authoring-task-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-workflow-diagram" "json-all-strict-authoring-diagram-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-related-skills" "json-all-strict-authoring-related-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "broken-related-skill" "json-all-strict-authoring-broken-related-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "unsafe-command-example" "json-all-strict-authoring-command-evidence"
+  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "unexplained-command-placeholder" "json-all-strict-authoring-placeholder-evidence"
 
   working_repo="$(make_candidate_repo)"
   write_moderate_bloat_skill "$working_repo"

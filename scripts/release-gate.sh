@@ -61,6 +61,7 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RESULTS_FILE="$(mktemp "${TMPDIR:-/tmp}/release-gate-results.XXXXXX")"
 SKILL_HYGIENE_INFRA_TARGETS=(
   "scripts/skill-hygiene-check.py"
+  "scripts/skill-authoring-baseline.txt"
   "scripts/release-gate.sh"
   "tests/skill-hygiene-*"
   "RELEASE-GATE.md"

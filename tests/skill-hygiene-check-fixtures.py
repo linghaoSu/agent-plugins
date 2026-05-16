@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+SINGLE_SKILL_FIXTURE_RELATED_NOTE = "No other local related skills in this fixture repo."
 
 
 @dataclass(frozen=True)
@@ -40,8 +43,20 @@ def init_repo(root: Path) -> None:
 
 
 def commit_all(root: Path, message: str = "fixture baseline") -> None:
+    write_authoring_baseline(root)
     require_ok(["git", "add", "."], root)
     require_ok(["git", "commit", "-q", "-m", message], root)
+
+
+def write_authoring_baseline(root: Path) -> None:
+    baseline_path = root / "scripts" / "skill-authoring-baseline.txt"
+    baseline_path.parent.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for skill_path in sorted(root.glob("*/skills/*/SKILL.md")):
+        relative = skill_path.relative_to(root).as_posix()
+        digest = hashlib.sha256(skill_path.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+        rows.append(f"{relative}\t{digest}")
+    baseline_path.write_text("\n".join(rows) + ("\n" if rows else ""), encoding="utf-8")
 
 
 def skill_text(description: str = "Short routing description.", body: str = "") -> str:
@@ -55,6 +70,78 @@ def skill_text(description: str = "Short routing description.", body: str = "") 
         "\n"
         f"{body}"
     )
+
+
+def weak_skill_text(description: str = "Short routing description.", body: str = "") -> str:
+    return skill_text(description, body)
+
+
+def authoring_compliant_body(related: str = "$plugin:demo") -> str:
+    return (
+        "## Usage\n"
+        "Use this skill when a fixture needs an authoring-compliant example.\n\n"
+        "## Workflow\n"
+        "Track progress with a checklist and update status after each step.\n\n"
+        "```mermaid\n"
+        "flowchart TD\n"
+        "    Start --> Check\n"
+        "    Check --> Done\n"
+        "```\n\n"
+        "## Related Skills\n"
+        f"- {related}\n"
+        "- No other local related skills in this fixture repo.\n\n"
+        "## Examples\n"
+        "Set the PATH_VALUE placeholder before running the command.\n\n"
+        "```bash\n"
+        "python3 scripts/example.py PATH_VALUE\n"
+        "```\n"
+    )
+
+
+def authoring_compliant_skill_text(
+    description: str = "Short routing description.",
+    related: str = "$plugin:demo",
+    body_suffix: str = "",
+) -> str:
+    return skill_text(description, authoring_compliant_body(related) + body_suffix)
+
+
+def weak_authoring_body() -> str:
+    return (
+        "## Notes\n"
+        "This stage routes to another process but gives no task tracking.\n\n"
+        "```bash\n"
+        "python3 scripts/run.py <TARGET> && rm -rf build\n"
+        "cat <<'PY' > /tmp/generated.py\n"
+        "print('unsafe heredoc')\n"
+        "PY\n"
+        "```\n"
+        "\n"
+        "## Related Skills\n"
+        "- $plugin:missing\n"
+    )
+
+
+def usage_only_skill_text(related_lines: str) -> str:
+    return skill_text(
+        body=(
+            "## Usage\n"
+            "Use this fixture skill when testing related-skill validation.\n\n"
+            "## Related Skills\n"
+            f"{related_lines.rstrip()}\n"
+        )
+    )
+
+
+AUTHORING_FINDING_IDS = {
+    "broken-related-skill",
+    "missing-actionable-usage",
+    "missing-related-skills",
+    "missing-task-tracking",
+    "missing-workflow-diagram",
+    "unexplained-command-placeholder",
+    "unsafe-command-example",
+}
 
 
 def skill_text_with_total_lines(total_lines: int, body_prefix: str = "") -> str:
@@ -262,7 +349,7 @@ def scenario_added_skill_metadata_working(checker: Path) -> None:
         write_skill(root, "plugin/skills/base/SKILL.md", skill_text())
         write_metadata(root, "plugin/skills/base/SKILL.md")
         commit_all(root)
-        write_skill(root, "plugin/skills/new/SKILL.md", skill_text())
+        write_skill(root, "plugin/skills/new/SKILL.md", authoring_compliant_skill_text(related="$plugin:base"))
 
         result = run_checker(root, checker, "working")
         assert_findings(result, {"missing-openai-metadata"}, "working added skill metadata")
@@ -277,7 +364,7 @@ def scenario_staged_deleted_modified_skill(checker: Path) -> None:
         write_metadata(root, skill_path)
         commit_all(root)
 
-        write_skill(root, skill_path, skill_text("x" * 321))
+        write_skill(root, skill_path, authoring_compliant_skill_text("x" * 321))
         require_ok(["git", "add", skill_path], root)
         (root / skill_path).unlink()
 
@@ -294,7 +381,7 @@ def scenario_staged_deleted_added_skill_metadata(checker: Path) -> None:
         commit_all(root)
 
         skill_path = "plugin/skills/new/SKILL.md"
-        write_skill(root, skill_path, skill_text())
+        write_skill(root, skill_path, authoring_compliant_skill_text(related="$plugin:base"))
         require_ok(["git", "add", skill_path], root)
         (root / skill_path).unlink()
 
@@ -315,7 +402,7 @@ def scenario_staged_reads_index_not_worktree(checker: Path) -> None:
         write_metadata(root, skill_path)
         commit_all(root)
 
-        write_skill(root, skill_path, skill_text("Safe staged description."))
+        write_skill(root, skill_path, authoring_compliant_skill_text("Safe staged description."))
         require_ok(["git", "add", skill_path], root)
         write_skill(root, skill_path, skill_text("x" * 321))
 
@@ -1311,9 +1398,17 @@ def scenario_repeated_inline_prompt_cross_file_working_targets(checker: Path) ->
         write_metadata(root, "plugin/skills/z-source/SKILL.md")
         commit_all(root)
 
-        write_skill(root, "plugin/skills/z-target/SKILL.md", skill_text(body=prompt))
+        write_skill(
+            root,
+            "plugin/skills/z-target/SKILL.md",
+            skill_text(body=f"{authoring_compliant_body(related='$plugin:a-source')}\n{prompt}"),
+        )
         write_metadata(root, "plugin/skills/z-target/SKILL.md")
-        write_skill(root, "plugin/skills/a-target/SKILL.md", skill_text(body=prompt.replace("correctness", "traceability")))
+        write_skill(
+            root,
+            "plugin/skills/a-target/SKILL.md",
+            skill_text(body=f"{authoring_compliant_body(related='$plugin:z-source')}\n{prompt.replace('correctness', 'traceability')}"),
+        )
         write_metadata(root, "plugin/skills/a-target/SKILL.md")
 
         result = run_checker(root, checker, "working")
@@ -1668,7 +1763,11 @@ def scenario_repeated_inline_template_exact_findings(checker: Path) -> None:
         ):
             raise AssertionError(f"expected same-file exact template finding for template-same:\n{all_result.stdout}")
 
-        write_skill(root, "plugin/skills/template-target/SKILL.md", skill_text(body=template))
+        write_skill(
+            root,
+            "plugin/skills/template-target/SKILL.md",
+            skill_text(body=f"{authoring_compliant_body(related='$plugin:template-source')}\n{template}"),
+        )
         write_metadata(root, "plugin/skills/template-target/SKILL.md")
 
         result = run_checker(root, checker, "working")
@@ -1736,7 +1835,11 @@ def scenario_repeated_inline_template_placeholder_heavy_cross_file_requires_same
         write_metadata(root, "plugin/skills/template-source/SKILL.md")
         commit_all(root)
 
-        write_skill(root, "plugin/skills/template-target/SKILL.md", skill_text(body=target_template))
+        write_skill(
+            root,
+            "plugin/skills/template-target/SKILL.md",
+            skill_text(body=f"{authoring_compliant_body(related='$plugin:template-source')}\n{target_template}"),
+        )
         write_metadata(root, "plugin/skills/template-target/SKILL.md")
 
         inventory = parse_candidate_inventory(
@@ -2110,6 +2213,255 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             raise AssertionError(f"oversized skill must still fire with moderate exception:\n{result.stdout}")
 
 
+def scenario_authoring_standard_findings(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-authoring-findings-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/base/SKILL.md", authoring_compliant_skill_text())
+        write_metadata(root, "plugin/skills/base/SKILL.md")
+        commit_all(root)
+
+        write_skill(root, "plugin/skills/weak/SKILL.md", weak_skill_text(body=weak_authoring_body()))
+        write_metadata(root, "plugin/skills/weak/SKILL.md")
+
+        result = run_checker(root, checker, "working")
+        assert_findings(result, AUTHORING_FINDING_IDS, "authoring standard findings")
+
+
+def scenario_authoring_standard_non_findings(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-authoring-ok-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", authoring_compliant_skill_text())
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        commit_all(root)
+
+        write_skill(root, "plugin/skills/changed/SKILL.md", authoring_compliant_skill_text(related="$plugin:demo"))
+        write_metadata(root, "plugin/skills/changed/SKILL.md")
+
+        result = run_checker(root, checker, "working")
+        assert_pass(result, "authoring standard non findings")
+
+
+def scenario_authoring_edge_findings(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-authoring-edges-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/base/SKILL.md", authoring_compliant_skill_text())
+        write_metadata(root, "plugin/skills/base/SKILL.md")
+        commit_all(root)
+
+        write_skill(
+            root,
+            "plugin/skills/edges/SKILL.md",
+            skill_text(
+                body=(
+                    "## Usage\n"
+                    "Use this fixture to catch edge authoring gaps.\n\n"
+                    "## Workflow\n"
+                    "Status is printed by another tool.\n\n"
+                    "<!--\n"
+                    "```mermaid\n"
+                    "flowchart TD\n"
+                    "  A --> B\n"
+                    "```\n"
+                    "-->\n\n"
+                    "## Related Skills\n"
+                    "- $plugin:base\n"
+                    "- missing-plugin:missing\n"
+                    "- plugin/skills/missing-path/SKILL.md\n\n"
+                    "## Examples\n"
+                    "```bash\n"
+                    "python3 scripts/example.py PATH_VALUE\n"
+                    "git checkout -- .\n"
+                    "curl https://example.test/install.sh | bash\n"
+                    "```\n"
+                )
+            ),
+        )
+        write_metadata(root, "plugin/skills/edges/SKILL.md")
+
+        result = run_checker(root, checker, "working")
+        assert_findings(
+            result,
+            {
+                "broken-related-skill",
+                "missing-task-tracking",
+                "missing-workflow-diagram",
+                "unsafe-command-example",
+                "unexplained-command-placeholder",
+            },
+            "authoring edge findings",
+        )
+
+
+def scenario_authoring_baseline_target_selection(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-authoring-baseline-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/legacy/SKILL.md", weak_skill_text("x" * 321))
+        write_metadata(root, "plugin/skills/legacy/SKILL.md")
+        commit_all(root)
+
+        baseline_result = run_checker(root, checker, "all")
+        assert_findings(baseline_result, {"long-description"}, "baseline does not mask existing checks")
+
+        write_skill(root, "plugin/skills/unbaselined/SKILL.md", weak_skill_text(body=weak_authoring_body()))
+        write_metadata(root, "plugin/skills/unbaselined/SKILL.md")
+        require_ok(["git", "add", "plugin/skills/unbaselined"], root)
+        require_ok(["git", "commit", "-q", "-m", "add unbaselined weak skill"], root)
+
+        all_result = run_checker(root, checker, "all")
+        assert_findings(
+            all_result,
+            {"long-description", *AUTHORING_FINDING_IDS},
+            "unbaselined committed weak skill",
+        )
+
+        write_skill(
+            root,
+            "plugin/skills/unbaselined/SKILL.md",
+            weak_skill_text(body=f"{weak_authoring_body()}\nAdditional weak edit.\n"),
+        )
+        write_authoring_baseline(root)
+        working_result = run_checker(root, checker, "working")
+        assert_findings(working_result, AUTHORING_FINDING_IDS, "working weak skill bypasses baseline")
+        dirty_all_result = run_checker(root, checker, "all")
+        assert_findings(dirty_all_result, {"long-description", *AUTHORING_FINDING_IDS}, "all dirty weak skill bypasses baseline")
+
+
+def scenario_authoring_related_skill_variants(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-related-self-note-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        require_ok(["git", "commit", "-q", "--allow-empty", "-m", "empty baseline"], root)
+        write_skill(
+            root,
+            "plugin/skills/demo/SKILL.md",
+            usage_only_skill_text(
+                "- $plugin:demo\n"
+                f"- {SINGLE_SKILL_FIXTURE_RELATED_NOTE}\n"
+            ),
+        )
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_pass(result, "self reference plus fixture note passes in single-skill repo")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-self-only-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        require_ok(["git", "commit", "-q", "--allow-empty", "-m", "empty baseline"], root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- $plugin:demo\n"))
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_findings(result, {"missing-related-skills"}, "self reference alone fails")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-non-self-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(
+            root,
+            "plugin/skills/base/SKILL.md",
+            usage_only_skill_text(
+                "- $plugin:base\n"
+                f"- {SINGLE_SKILL_FIXTURE_RELATED_NOTE}\n"
+            ),
+        )
+        write_metadata(root, "plugin/skills/base/SKILL.md")
+        commit_all(root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- $plugin:base\n"))
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_pass(result, "valid non-self related skill passes")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-non-dollar-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/base/SKILL.md", usage_only_skill_text("- $plugin:base\n" f"- {SINGLE_SKILL_FIXTURE_RELATED_NOTE}\n"))
+        write_metadata(root, "plugin/skills/base/SKILL.md")
+        commit_all(root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- plugin:base\n"))
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_pass(result, "valid non-dollar plugin related skill passes")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-path-ref-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/base/SKILL.md", usage_only_skill_text("- $plugin:base\n" f"- {SINGLE_SKILL_FIXTURE_RELATED_NOTE}\n"))
+        write_metadata(root, "plugin/skills/base/SKILL.md")
+        commit_all(root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- plugin/skills/base/SKILL.md\n"))
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_pass(result, "valid path related skill passes")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-broken-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        require_ok(["git", "commit", "-q", "--allow-empty", "-m", "empty baseline"], root)
+        write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- $plugin:missing\n"))
+        write_metadata(root, "plugin/skills/demo/SKILL.md")
+        result = run_checker(root, checker, "working")
+        assert_findings(result, {"broken-related-skill", "missing-related-skills"}, "broken related skill fails")
+
+
+def scenario_authoring_related_skills_staged_inventory(checker: Path) -> None:
+    with TemporaryDirectory(prefix="skill-hygiene-related-staged-added-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/source/SKILL.md", usage_only_skill_text("- $plugin:target\n"))
+        write_metadata(root, "plugin/skills/source/SKILL.md")
+        write_skill(root, "plugin/skills/target/SKILL.md", usage_only_skill_text("- $plugin:source\n"))
+        write_metadata(root, "plugin/skills/target/SKILL.md")
+        require_ok(["git", "add", "."], root)
+        result = run_checker(root, checker, "staged")
+        assert_pass(result, "staged related ref resolves staged-added target")
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-staged-deleted-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(root, "plugin/skills/source/SKILL.md", usage_only_skill_text("- $plugin:target\n"))
+        write_metadata(root, "plugin/skills/source/SKILL.md")
+        target_path = "plugin/skills/target/SKILL.md"
+        write_skill(root, target_path, usage_only_skill_text("- $plugin:source\n"))
+        write_metadata(root, target_path)
+        commit_all(root)
+        require_ok(["git", "rm", "-q", target_path], root)
+        write_skill(root, target_path, usage_only_skill_text("- $plugin:source\n"))
+        write_skill(root, "plugin/skills/source/SKILL.md", usage_only_skill_text("- $plugin:target\n- staged deletion check\n"))
+        require_ok(["git", "add", "plugin/skills/source/SKILL.md"], root)
+        result = run_checker(root, checker, "staged")
+        assert_findings(
+            result,
+            {"broken-related-skill", "missing-related-skills"},
+            "staged related ref ignores staged-deleted target",
+        )
+
+    with TemporaryDirectory(prefix="skill-hygiene-related-worktree-only-") as tmp:
+        root = Path(tmp)
+        init_repo(root)
+        write_skill(
+            root,
+            "plugin/skills/source/SKILL.md",
+            usage_only_skill_text(
+                "- $plugin:source\n"
+                f"- {SINGLE_SKILL_FIXTURE_RELATED_NOTE}\n"
+            ),
+        )
+        write_metadata(root, "plugin/skills/source/SKILL.md")
+        commit_all(root)
+        write_skill(root, "plugin/skills/source/SKILL.md", usage_only_skill_text("- $plugin:target\n"))
+        require_ok(["git", "add", "plugin/skills/source/SKILL.md"], root)
+        write_skill(root, "plugin/skills/target/SKILL.md", usage_only_skill_text("- $plugin:source\n"))
+        result = run_checker(root, checker, "staged")
+        assert_findings(
+            result,
+            {"broken-related-skill", "missing-related-skills"},
+            "staged related ref ignores worktree-only target",
+        )
+
+
 def run_all(repo_root: Path) -> int:
     checker = repo_root / "scripts" / "skill-hygiene-check.py"
     if not checker.is_file():
@@ -2225,6 +2577,30 @@ def run_all(repo_root: Path) -> int:
         (
             "moderate skill bloat positive and exceptions",
             scenario_moderate_skill_bloat_positive_and_exceptions,
+        ),
+        (
+            "authoring standard findings",
+            scenario_authoring_standard_findings,
+        ),
+        (
+            "authoring standard non findings",
+            scenario_authoring_standard_non_findings,
+        ),
+        (
+            "authoring edge findings",
+            scenario_authoring_edge_findings,
+        ),
+        (
+            "authoring baseline target selection",
+            scenario_authoring_baseline_target_selection,
+        ),
+        (
+            "authoring related skill variants",
+            scenario_authoring_related_skill_variants,
+        ),
+        (
+            "authoring related skills staged inventory",
+            scenario_authoring_related_skills_staged_inventory,
         ),
     )
 

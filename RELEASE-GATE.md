@@ -54,7 +54,7 @@ Advisory checks report risk without changing the release gate exit code unless
 
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
-| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, moderate or oversized `SKILL.md` files, repeated inline prompts/templates, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, and newly-added skills without `agents/openai.yaml`. | `WARN` |
+| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, moderate or oversized `SKILL.md` files, repeated inline prompts/templates, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, newly-added skills without `agents/openai.yaml`, and authoring-standard gaps such as `missing-actionable-usage`, `missing-task-tracking`, `missing-workflow-diagram`, `missing-related-skills`, `broken-related-skill`, `unsafe-command-example`, and `unexplained-command-placeholder`. | `WARN` |
 | `skill-hygiene-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-check-fixtures.sh` so checker snapshot and existing-check regression fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
 | `skill-topology-fixtures` | `all`, or `staged`/`working` when the diff touches skill-topology scanner, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-topology-scan-fixtures.sh` so the read-only topology scanner keeps reporting broken references, orphan skills, hub skills, skill-tree output, and README coverage gaps deterministically. | `WARN` (`FAIL` with `--strict`) |
@@ -133,7 +133,8 @@ bash tests/skill-hygiene-release-gate-fixtures.sh
 `skill-hygiene-fixtures` runs the checker fixture command in
 `scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
 diff touches skill hygiene infrastructure: `scripts/skill-hygiene-check.py`,
-`scripts/release-gate.sh`, `tests/skill-hygiene-*`, or `RELEASE-GATE.md`.
+`scripts/skill-authoring-baseline.txt`, `scripts/release-gate.sh`,
+`tests/skill-hygiene-*`, or `RELEASE-GATE.md`.
 In staged mode, the blocking `skill-hygiene-infra-drift` check fails before
 handoff when those canonical infrastructure paths are staged but differ from the
 worktree copy.
@@ -170,6 +171,24 @@ least two plausible same-family candidates remain. A visible
 when it includes both a
 non-empty `repetition-scan-limited:` reason and `reviewed-with:` or
 `cap-evidence:` evidence.
+
+The checker also applies stronger skill authoring checks to new or changed
+skills. It warns when a skill lacks actionable usage/workflow guidance
+(`missing-actionable-usage`), when workflow-like skills lack task/status
+tracking (`missing-task-tracking`) or a basic Mermaid workflow diagram
+(`missing-workflow-diagram`), when `## Related Skills` is missing or contains
+unknown local references (`missing-related-skills`, `broken-related-skill`),
+and when command examples contain risky chained/destructive/heredoc forms or
+unexplained placeholders (`unsafe-command-example`,
+`unexplained-command-placeholder`).
+
+Current legacy skills are recorded in `scripts/skill-authoring-baseline.txt` so
+strict all-mode does not force a one-time catalog rewrite. The baseline applies
+only to authoring-standard checks; existing hygiene checks still scan their
+normal target set. Staged and working modes always check touched skill files, so
+a baseline edit does not hide a weak changed skill. Accepted exceptions for
+touched skills should be visible in that skill's `## Hygiene Exception`
+section.
 
 ## Skill Topology Fixtures
 
