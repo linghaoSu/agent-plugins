@@ -158,6 +158,28 @@ MD
   assert_contains "$repo/out.txt" "FAIL skill-frontmatter" "malformed frontmatter"
 }
 
+test_invalid_yaml_frontmatter_fails() {
+  repo="$(make_fixture_repo invalid_yaml_frontmatter)"
+  cat >"$repo/demo/skills/example/SKILL.md" <<'MD'
+---
+name: example
+description: Example skill fixture.
+argument-hint: [--apply] [--all] [--force]
+allowed-tools: [Read]
+---
+
+# Example
+MD
+  (
+    cd "$repo" &&
+      git add demo/skills/example/SKILL.md
+  )
+  run_gate "$repo" --mode staged
+  code="$?"
+  assert_exit "$code" 1 "invalid yaml frontmatter"
+  assert_contains "$repo/out.txt" "FAIL skill-frontmatter" "invalid yaml frontmatter"
+}
+
 test_staged_manifest_reads_index() {
   repo="$(make_fixture_repo staged_manifest_index)"
   printf '{\n' >"$repo/demo/.claude-plugin/plugin.json"
@@ -379,6 +401,7 @@ fi
 test_valid_repo_passes
 test_malformed_manifest_fails
 test_malformed_frontmatter_fails
+test_invalid_yaml_frontmatter_fails
 test_staged_manifest_reads_index
 test_staged_frontmatter_reads_index
 test_malformed_skill_metadata_fails

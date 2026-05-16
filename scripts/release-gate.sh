@@ -161,6 +161,23 @@ require_cmd git
 require_cmd jq
 require_cmd python3
 
+require_python_module() {
+  module="$1"
+  label="$2"
+  if ! python3 - "$module" <<'PY' >/dev/null 2>&1
+import importlib
+import sys
+
+importlib.import_module(sys.argv[1])
+PY
+  then
+    printf 'Missing required Python module: %s\n' "$label" >&2
+    exit 2
+  fi
+}
+
+require_python_module yaml PyYAML
+
 validate_manifest_file() {
   file="$1"
   err_file="$(mktemp "${TMPDIR:-/tmp}/release-gate-jq.XXXXXX")"
@@ -242,10 +259,11 @@ check_manifest_json() {
 
 validate_frontmatter_file() {
   python3 - "$MODE" "$1" <<'PY'
-import re
 import subprocess
 import sys
 from pathlib import Path
+
+import yaml
 
 mode = sys.argv[1]
 path = sys.argv[2]
@@ -280,11 +298,27 @@ if closing_index is None:
     print("missing closing --- delimiter")
     sys.exit(1)
 
-frontmatter = lines[1:closing_index]
+frontmatter = "\n".join(lines[1:closing_index]) + "\n"
+
+try:
+    data = yaml.safe_load(frontmatter)
+except yaml.YAMLError as exc:
+    print("frontmatter YAML parse error: " + str(exc).replace("\n", " "))
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print("frontmatter must parse to a mapping")
+    sys.exit(1)
 
 def has_nonempty_key(key: str) -> bool:
-    pattern = re.compile(r"^\s*" + re.escape(key) + r"\s*:\s*\S")
-    return any(pattern.search(line) for line in frontmatter)
+    if key not in data:
+        return False
+    value = data[key]
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return True
 
 missing = [key for key in ("name", "description") if not has_nonempty_key(key)]
 if missing:
@@ -318,9 +352,9 @@ check_skill_frontmatter() {
 
   if [ -s "$failures_file" ]; then
     evidence="$(join_output "$(cat "$failures_file")")"
-    add_result "blocking" "fail" "skill-frontmatter" "skill frontmatter validation failed" "$evidence" "structural frontmatter validation" 1
+    add_result "blocking" "fail" "skill-frontmatter" "skill frontmatter validation failed" "$evidence" "YAML frontmatter validation" 1
   else
-    add_result "blocking" "pass" "skill-frontmatter" "validated $count skill file(s)" "" "structural frontmatter validation" 0
+    add_result "blocking" "pass" "skill-frontmatter" "validated $count skill file(s)" "" "YAML frontmatter validation" 0
   fi
 
   rm -f "$files_file" "$failures_file"

@@ -31,14 +31,20 @@ blocking, advisory, and skipped checks.
 | Check | What It Validates | Failure Exit |
 |---|---|---|
 | `manifest-json` | `.claude-plugin/marketplace.json` and every `*/.claude-plugin/plugin.json` parse with `jq empty`. | `1` |
-| `skill-frontmatter` | Every `*/skills/*/SKILL.md` starts with frontmatter delimiters and has non-empty `name` and `description` keys. | `1` |
+| `skill-frontmatter` | Every `*/skills/*/SKILL.md` starts with frontmatter delimiters, parses as YAML, and has non-empty `name` and `description` keys. | `1` |
 | `skill-metadata` | Every `*/skills/*/agents/openai.yaml` has the expected `interface` fields for UI metadata. | `1` |
 | `diff-whitespace` | Mode-specific git diff whitespace check passes. | `1` |
 | `secret-scan` | `secret-scanner/scripts/scan.py --format json` reports no findings for the selected mode. | `1` |
 | `skill-hygiene-infra-drift` | In `--mode staged`, when staged changes touch skill-hygiene infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed checker/fixture code. | `1` |
 
-Missing required tools (`git`, `jq`, `python3`) return exit `2`. A missing or
-non-runnable blocking checker also returns exit `2`.
+Missing required tools (`git`, `jq`, `python3`) or the required Python `yaml`
+module from PyYAML return exit `2`. A missing or non-runnable blocking checker
+also returns exit `2`.
+
+The gate validates the source checkout or staged index only. Installed plugin
+caches are not mutated or synchronized by this script; after source
+frontmatter changes, refresh installed/cache copies through the owning plugin
+installation workflow before treating runtime loader warnings as resolved.
 
 ## Advisory Checks
 
