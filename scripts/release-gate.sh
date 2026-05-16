@@ -59,6 +59,12 @@ esac
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RESULTS_FILE="$(mktemp "${TMPDIR:-/tmp}/release-gate-results.XXXXXX")"
+SKILL_HYGIENE_INFRA_TARGETS=(
+  "scripts/skill-hygiene-check.py"
+  "scripts/release-gate.sh"
+  "tests/skill-hygiene-*"
+  "RELEASE-GATE.md"
+)
 trap 'rm -f "$RESULTS_FILE"' EXIT
 
 cd "$ROOT" || exit 2
@@ -82,6 +88,10 @@ status_label() {
 
 join_output() {
   printf '%s' "$1" | tr '\n' ' ' | cut -c 1-240
+}
+
+join_finding_output() {
+  printf '%s' "$1" | sed '/^[[:space:]]*$/d' | paste -sd'|' -
 }
 
 add_result() {
@@ -489,6 +499,42 @@ diff_touches_any() {
   return 1
 }
 
+diff_touches_skill_hygiene_infra() {
+  diff_touches_any "${SKILL_HYGIENE_INFRA_TARGETS[@]}"
+}
+
+check_skill_hygiene_infra_drift() {
+  command_text="git diff --cached --name-only -- <skill hygiene infrastructure>; git diff --name-only -- <skill hygiene infrastructure>"
+
+  if [ "$MODE" != "staged" ]; then
+    return
+  fi
+
+  staged_paths="$(git diff --cached --name-only -- "${SKILL_HYGIENE_INFRA_TARGETS[@]}")"
+  if [ -z "$staged_paths" ]; then
+    add_result "skipped" "skip" "skill-hygiene-infra-drift" \
+      "no staged diff touches skill hygiene infrastructure" "" "$command_text" 0
+    return
+  fi
+
+  drift_paths="$(
+    {
+      git diff --name-only -- "${SKILL_HYGIENE_INFRA_TARGETS[@]}"
+      git ls-files --others --exclude-standard -- "${SKILL_HYGIENE_INFRA_TARGETS[@]}"
+    } | sed '/^$/d' | sort -u
+  )"
+  if [ -n "$drift_paths" ]; then
+    first_path="$(printf '%s\n' "$drift_paths" | sed -n '1p')"
+    add_result "blocking" "fail" "skill-hygiene-infra-drift" \
+      "staged skill hygiene infrastructure differs from the worktree" \
+      "$first_path" "$command_text" 1
+    return
+  fi
+
+  add_result "blocking" "pass" "skill-hygiene-infra-drift" \
+    "staged skill hygiene infrastructure matches the worktree" "" "$command_text" 0
+}
+
 check_idea_to_ship_fixtures() {
   command_text="bash tests/idea-to-ship-eval-fixtures.sh"
 
@@ -584,7 +630,7 @@ check_skill_hygiene() {
   elif [ "$code" -eq 1 ]; then
     add_result "advisory" "warn" "skill-hygiene" \
       "skill hygiene checks reported issues" \
-      "$(join_output "$output")" "$command_text" 1
+      "$(join_finding_output "$output")" "$command_text" 1
   else
     add_result "advisory" "warn" "skill-hygiene" \
       "skill hygiene checks could not run" \
@@ -595,11 +641,7 @@ check_skill_hygiene() {
 check_skill_hygiene_fixtures() {
   command_text="bash tests/skill-hygiene-check-fixtures.sh"
 
-  if ! diff_touches_any \
-    "scripts/skill-hygiene-check.py" \
-    "scripts/release-gate.sh" \
-    "tests/skill-hygiene-*" \
-    "RELEASE-GATE.md"; then
+  if ! diff_touches_skill_hygiene_infra; then
     add_result "skipped" "skip" "skill-hygiene-fixtures" \
       "no $MODE diff touches skill hygiene fixture scope" "" "$command_text" 0
     return
@@ -632,11 +674,7 @@ check_skill_hygiene_fixtures() {
 check_skill_hygiene_release_gate_fixtures() {
   command_text="bash tests/skill-hygiene-release-gate-fixtures.sh --self-check"
 
-  if ! diff_touches_any \
-    "scripts/skill-hygiene-check.py" \
-    "scripts/release-gate.sh" \
-    "tests/skill-hygiene-*" \
-    "RELEASE-GATE.md"; then
+  if ! diff_touches_skill_hygiene_infra; then
     add_result "skipped" "skip" "skill-hygiene-release-gate-fixtures" \
       "no $MODE diff touches skill hygiene fixture scope" "" "$command_text" 0
     return
@@ -736,6 +774,7 @@ check_skill_frontmatter
 check_skill_metadata
 check_diff_whitespace
 check_secret_scan
+check_skill_hygiene_infra_drift
 check_skill_hygiene
 check_skill_hygiene_fixtures
 check_skill_hygiene_release_gate_fixtures
