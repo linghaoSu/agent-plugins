@@ -2,7 +2,7 @@
 
 **Slug:** ITS-ROADMAP-016-020
 **Date:** 2026-05-17
-**Status:** draft
+**Status:** implemented
 **Source:** `.idea-to-ship/roadmap.md` items `ITS-ROADMAP-016` through `ITS-ROADMAP-020`
 
 ## Problem

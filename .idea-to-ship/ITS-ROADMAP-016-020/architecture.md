@@ -2,7 +2,7 @@
 
 **Slug:** ITS-ROADMAP-016-020
 **Date:** 2026-05-17
-**Status:** draft
+**Status:** implemented
 **References:** requirements.md
 
 ## Summary

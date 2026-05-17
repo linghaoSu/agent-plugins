@@ -98,6 +98,7 @@ Advisory
   PASS skill-hygiene: skill hygiene checks passed
   PASS skill-hygiene-fixtures: skill hygiene fixture checks passed
   PASS skill-hygiene-release-gate-fixtures: skill hygiene release-gate fixture self-check passed
+  PASS skill-topology-fixtures: skill topology fixture checks passed
   PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
   PASS agent-playbook-fixtures: agent-playbook fixture checks passed
 ```
@@ -226,12 +227,12 @@ bash tests/idea-to-ship-eval-fixtures.sh
 This command is also run as the `idea-to-ship-fixtures` advisory check in
 `scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
 diff touches `idea-to-ship/` or its fixture files. It validates that the
-`/roadmap`, `/test`, and `/review-code` skill instructions still contain the
-required safety and traceability contracts, and that current roadmap/test-plan
-artifacts satisfy the generated-marker, draft-fallback, lane-schema, and
-traceability fixture checks. With `--strict`, fixture regressions block the
-gate. It does not prove that a future live model run will obey those
-instructions.
+`/roadmap`, `/test`, `/visual-test`, and `/review-code` skill instructions
+still contain the required safety, visual-evidence, and traceability contracts,
+and that current roadmap/test-plan artifacts satisfy the generated-marker,
+draft-fallback, lane-schema, and traceability fixture checks. With `--strict`,
+fixture regressions block the gate. It does not prove that a future live model
+run will obey those instructions.
 
 ## Agent-Playbook Contract Fixtures
 
