@@ -379,6 +379,108 @@ test_all_mode_missing_idea_to_ship_fixture_is_advisory() {
     "all mode missing agent-playbook fixture advisory"
 }
 
+test_its020_artifact_triggers_agent_playbook_fixtures() {
+  repo="$(make_fixture_repo its020_agent_fixture_scope)"
+  mkdir -p "$repo/.idea-to-ship/ITS-ROADMAP-020"
+  printf 'artifact-only spike update\n' >"$repo/.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md"
+  run_gate "$repo" --mode working
+  code="$?"
+  assert_exit "$code" 0 "ITS-020 artifact triggers agent-playbook fixtures"
+  assert_contains "$repo/out.txt" "WARN agent-playbook-fixtures" \
+    "ITS-020 artifact triggers agent-playbook fixtures"
+}
+
+test_adjacent_idea_to_ship_artifact_skips_agent_playbook_fixtures() {
+  repo="$(make_fixture_repo adjacent_idea_to_ship_artifact)"
+  mkdir -p "$repo/.idea-to-ship/ITS-ROADMAP-021"
+  printf 'unrelated artifact update\n' >"$repo/.idea-to-ship/ITS-ROADMAP-021/notes.md"
+  run_gate "$repo" --mode working
+  code="$?"
+  assert_exit "$code" 0 "adjacent idea-to-ship artifact skips agent-playbook fixtures"
+  assert_contains "$repo/out.txt" "SKIP agent-playbook-fixtures" \
+    "adjacent idea-to-ship artifact skips agent-playbook fixtures"
+}
+
+assert_agent_playbook_fixture_warns() {
+  repo="$1"
+  label="$2"
+  run_gate "$repo" --mode working
+  code="$?"
+  assert_exit "$code" 0 "$label"
+  assert_contains "$repo/out.txt" "WARN agent-playbook-fixtures" "$label"
+}
+
+test_agent_playbook_scope_triggers_catalog_surfaces() {
+  repo="$(make_fixture_repo agent_scope_root_readme)"
+  printf '# Root catalog\n' >"$repo/README.md"
+  assert_agent_playbook_fixture_warns "$repo" "root README triggers agent-playbook fixtures"
+
+  repo="$(make_fixture_repo agent_scope_plugin_readme)"
+  printf '# Plugin catalog\n' >"$repo/demo/README.md"
+  assert_agent_playbook_fixture_warns "$repo" "plugin README triggers agent-playbook fixtures"
+
+  repo="$(make_fixture_repo agent_scope_marketplace)"
+  tmp_json="$repo/.claude-plugin/marketplace.tmp"
+  jq '.plugins[0].description = "changed marketplace entry"' \
+    "$repo/.claude-plugin/marketplace.json" >"$tmp_json" &&
+    mv "$tmp_json" "$repo/.claude-plugin/marketplace.json"
+  assert_agent_playbook_fixture_warns "$repo" "marketplace manifest triggers agent-playbook fixtures"
+
+  repo="$(make_fixture_repo agent_scope_plugin_manifest)"
+  tmp_json="$repo/demo/.claude-plugin/plugin.tmp"
+  jq '.description = "changed plugin manifest"' \
+    "$repo/demo/.claude-plugin/plugin.json" >"$tmp_json" &&
+    mv "$tmp_json" "$repo/demo/.claude-plugin/plugin.json"
+  assert_agent_playbook_fixture_warns "$repo" "plugin manifest triggers agent-playbook fixtures"
+
+  repo="$(make_fixture_repo agent_scope_skill)"
+  printf '\nExtra bounded skill note.\n' >>"$repo/demo/skills/example/SKILL.md"
+  assert_agent_playbook_fixture_warns "$repo" "skill file triggers agent-playbook fixtures"
+
+  repo="$(make_fixture_repo agent_scope_openai_yaml)"
+  mkdir -p "$repo/demo/skills/example/agents"
+  cat >"$repo/demo/skills/example/agents/openai.yaml" <<'YAML'
+interface:
+  display_name: "Example"
+  short_description: "Example fixture metadata text"
+  default_prompt: "$demo:example"
+YAML
+  assert_agent_playbook_fixture_warns "$repo" "openai metadata triggers agent-playbook fixtures"
+}
+
+test_staged_agent_playbook_fixture_scope_drift_fails() {
+  repo="$(make_fixture_repo staged_agent_scope_drift)"
+  cat >"$repo/demo/skills/example/SKILL.md" <<'MD'
+---
+name: example
+description: Example skill fixture.
+allowed-tools: [Read]
+---
+
+# Example
+
+Whole repo orchestrator can git push changes.
+MD
+  (
+    cd "$repo" &&
+      git add demo/skills/example/SKILL.md
+  )
+  cat >"$repo/demo/skills/example/SKILL.md" <<'MD'
+---
+name: example
+description: Example skill fixture.
+allowed-tools: [Read]
+---
+
+# Example
+MD
+  run_gate "$repo" --mode staged
+  code="$?"
+  assert_exit "$code" 1 "staged agent-playbook fixture scope drift"
+  assert_contains "$repo/out.txt" "FAIL agent-playbook-fixture-scope-drift" \
+    "staged agent-playbook fixture scope drift"
+}
+
 require_cmd git
 require_cmd jq
 require_cmd python3
@@ -414,6 +516,10 @@ test_strict_advisory_fails
 test_invalid_mode_exits_2
 test_missing_secret_scanner_exits_2
 test_all_mode_missing_idea_to_ship_fixture_is_advisory
+test_its020_artifact_triggers_agent_playbook_fixtures
+test_adjacent_idea_to_ship_artifact_skips_agent_playbook_fixtures
+test_agent_playbook_scope_triggers_catalog_surfaces
+test_staged_agent_playbook_fixture_scope_drift_fails
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '%s test(s) failed\n' "$FAILURES" >&2

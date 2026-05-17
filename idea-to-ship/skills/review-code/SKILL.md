@@ -49,12 +49,29 @@ adversarial review prompts in the main context.
 
 ## Workflow
 
+Track the review loop with a checklist. Update the status after input
+verification, each reviewer iteration, each fix pass, final holistic review,
+and `code-review.md` handoff.
+
+```mermaid
+flowchart TD
+  A[Verify Inputs] --> B[Collect Diff]
+  B --> C[Multi-Agent Review]
+  C --> D{All Angles LGTM?}
+  D -- No --> E[Fix Kept Issues]
+  E --> C
+  D -- Yes --> F[Final Holistic Pass]
+  F --> G[Write code-review.md]
+```
+
 ### Step 1: Verify Inputs
 
 1. Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`. If missing,
    stop and tell the user to run `/brainstorm --slug <slug>` first. Read
    `requirements.md`, plus `architecture.md`, `interface-design.md`,
-   `implementation-log.md`, and `test-plan.md` if present.
+   `implementation-log.md`, `test-plan.md`, `visual-test-report.md`,
+   `visual-test-matrix.md`, `visual-artifact-rca.md`, and
+   `visual-test-selectors.md` if present.
 2. Check that there's a diff to review:
    ```bash
    git diff --shortstat
@@ -63,20 +80,78 @@ adversarial review prompts in the main context.
    ```
    If empty, tell the user there's nothing to review and stop.
 3. If `test-plan.md` is absent, remember that fact for the review context.
+4. If `visual-test-report.md` or `visual-test-matrix.md` is present, load all
+   visual-test artifacts that exist. If the diff is a UI-touching diff, require
+   both `visual-test-report.md` and `visual-test-matrix.md`; set
+   `VISUAL_TEST_REPORT_MISSING` or `VISUAL_TEST_MATRIX_MISSING` for whichever
+   artifact is absent.
+5. Build a bounded review context before contacting reviewers. Include exact
+   artifact paths and section anchors, then summarize long artifacts instead of
+   pasting them wholesale:
+   - Requirements, architecture, implementation log, and test plan: include
+     relevant sections first; cap each artifact at 200 lines or 16 KiB.
+   - Visual-test artifacts: include report summary, matrix status counts,
+     failed/flaky/missing/stale cells, baseline decisions, fingerprint fields,
+     and RCA summaries; cap combined visual evidence at 24 KiB.
+   - If any artifact is truncated, set `context_truncated: true` and list
+     omitted paths/sections so reviewers can ask for a focused follow-up.
 
 ### Step 2: Collect The Diff
 
 ```bash
-git diff HEAD
-git diff --cached
+git status --porcelain=v1 -z --untracked-files=no
+git diff --binary --full-index --no-ext-diff --no-color
+git diff --cached --binary --full-index --no-ext-diff --no-color
+git ls-files --others --exclude-standard -z
 ```
 
-Capture both staged and unstaged. This is the review target.
+Capture unstaged and staged diffs separately. This is the review target.
+
+For binary tracked changes, include path and SHA-256 summaries in the review
+payload instead of raw binary patches. Use full binary diffs only as hash input
+for `workspace_diff_fingerprint`, not as reviewer context.
+
+When visual-test artifacts exist or the diff touches UI, compute the current
+`workspace_diff_fingerprint` with the same contract as `$idea-to-ship:visual-test`:
+tracked porcelain status, full binary staged and unstaged diffs, and a sorted
+`untracked_files_manifest` from `git ls-files --others --exclude-standard -z`,
+excluding the current slug's visual evidence artifacts
+(`visual-test-selectors.md`, `visual-test-matrix.md`, `visual-artifact-rca.md`,
+and `visual-test-report.md`) from the fingerprint hash input.
+Every untracked file must be classified as a content-hashed relevant input or
+excluded with rationale. If the fingerprint cannot be computed, treat that as a
+visual evidence gap rather than "fresh." If it differs from
+`visual-test-report.md`, flag stale fingerprint evidence.
+
+Include bounded untracked file evidence in the review payload when those files
+are relevant to the diff or fingerprint: text file contents with path and
+truncation note, and binary files as path plus SHA-256 only. Sensitive
+auth/session/cookie/token/log/env-like untracked files must never be included as
+raw text; represent them as path + SHA-256 + redacted summary only. Run
+secret-scan or equivalent redaction before including any untracked text content.
+Do not let an untracked file affect freshness without giving reviewers either
+safe text content, a redacted sensitive summary, or its binary hash.
+
+Keep untracked text bounded: cap each text file excerpt at 200 lines or 8 KiB
+and cap total untracked text at 32 KiB. Include path, SHA-256, classification,
+and `truncated: true|false` for every relevant untracked entry. If the text diff
+is too large for one reviewer prompt, split review assignments by path group and
+include a complete changed-path manifest plus omitted-hunk notes.
 
 If `test-plan.md` is absent and the diff changes observable behavior, set
 `TEST_PLAN_MISSING=true`. This is review context, not an automatic failure: the
 reviewer must flag it as a verification gap unless the implementation log or
 current request documents why no test plan is applicable.
+
+If the diff touches UI, set `UI_DIFF=true`. If `UI_DIFF=true` and
+`visual-test-report.md` is absent, set `VISUAL_TEST_REPORT_MISSING=true`. If
+`UI_DIFF=true` and `visual-test-matrix.md` is absent, set
+`VISUAL_TEST_MATRIX_MISSING=true`. Either flag is missing visual evidence and
+reviewers must report it. If visual-test artifacts exist, compare the current
+`workspace_diff_fingerprint` to the report; stale fingerprint evidence must be
+flagged. Reviewers must also flag missing matrix evidence, unresolved visual
+failures, missing baseline approval, weak artifact anchors, and unjustified
+console/network failures.
 
 ### Step 3: Review Loop
 
@@ -110,6 +185,15 @@ SCOPE RULES (important):
   choices, visual tokens, interaction states, responsive behavior,
   accessibility, and visual QA expectations against it. Undocumented
   divergence is design drift.
+- If the diff touches UI and either `VISUAL_TEST_REPORT_MISSING` or
+  `VISUAL_TEST_MATRIX_MISSING` is true, flag missing visual evidence. If visual
+  artifacts are provided, check `aggregate_verdict`, `blocking_reasons`,
+  `visual-test-matrix.md`, `visual-artifact-rca.md`, and
+  `visual-test-selectors.md`. Flag stale fingerprint evidence, missing matrix
+  evidence, unresolved `FAIL`, `FLAKY`, `MISS`, or `NEEDS-RUN` cells,
+  non-de-scoped `SKIP-with-reason`, missing baseline approval, weak artifact
+  anchors, unclassified untracked files, and unjustified console/network
+  failures.
 - Check the diff against the test plan. If a behavior-changing implementation
   lacks traceability from requirement -> story -> acceptance criterion ->
   scenario -> test, flag it as a verification gap. For fixes or user-visible
@@ -134,11 +218,22 @@ SCOPE RULES (important):
 ## Test Plan (context, may be empty)
 <test-plan.md or "not provided">
 
+## Visual Test Evidence (context, may be empty)
+Report: <path plus bounded summary/anchors, or "not provided">
+Matrix: <path plus status counts and affected cell summaries, or "not provided">
+Artifact RCA: <path plus bounded summaries/anchors, or "not provided">
+Selectors: <path plus selector/state summary, or "not provided">
+UI-touching diff: <true|false>
+Missing visual evidence: <true|false>
+Current workspace_diff_fingerprint: <fingerprint or VISUAL_EVIDENCE_GAP when not computed>
+context_truncated: <true|false; include omitted paths/sections when true>
+
 ## Extra Focus From User
 <extra focus text, or "none">
 
 ## Diff To Review
-<full git diff HEAD + git diff --cached output>
+<full text diff when within budget, otherwise complete changed-path manifest plus focused hunks>
+<bounded relevant untracked file contents with SHA-256/classification/truncation, or binary path + SHA-256>
 
 For each issue, report:
 - Severity: critical / warning / nit
@@ -249,6 +344,14 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
    - If tests don't yet exist or are incomplete → `/test`.
    - Otherwise → user-owned: commit / open PR.
 3. Do not commit or push.
+
+## Related Skills
+
+- `$idea-to-ship:visual-test` produces frontend visual evidence consumed during
+  UI review.
+- `$idea-to-ship:test` produces story, scenario, and verification traceability.
+- `$idea-to-ship:implement` writes implementation logs and records design
+  deviations before review.
 
 ## Anti-Patterns
 

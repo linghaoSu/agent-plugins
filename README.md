@@ -82,6 +82,7 @@ Use skills through their plugin-qualified names, for example
 | [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create a stage-local red-first gate before `/implement`, or explicitly backfill missing tests. Writes test evidence only; not the full story test plan. |
 | [`test`](idea-to-ship/skills/test/SKILL.md) | Produce the full story-driven test plan from stories, acceptance criteria, and scenario matrices, then implement and run tests. Not a stage-local red-first gate. |
 | [`ui-design`](idea-to-ship/skills/ui-design/SKILL.md) | Design the UI/UX contract from requirements, architecture, existing UI, design-system evidence, and structured visual references. |
+| [`visual-test`](idea-to-ship/skills/visual-test/SKILL.md) | Run artifact-first frontend visual QA from interface-design/test-plan contracts, producing selector recipes, matrix evidence, bounded RCA, and visual-test reports. |
 
 ### issue-evaluator
 

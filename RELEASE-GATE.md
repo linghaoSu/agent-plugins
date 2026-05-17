@@ -37,6 +37,7 @@ blocking, advisory, and skipped checks.
 | `secret-scan` | `secret-scanner/scripts/scan.py --format json` reports no findings for the selected mode. | `1` |
 | `skill-hygiene-infra-drift` | In `--mode staged`, when staged changes touch skill-hygiene infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed checker/fixture code. | `1` |
 | `skill-topology-infra-drift` | In `--mode staged`, when staged changes touch skill-topology infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed scanner/fixture code. | `1` |
+| `agent-playbook-fixture-scope-drift` | In `--mode staged`, when staged changes touch agent-playbook fixture scope or broad-orchestrator scan surfaces, the corresponding worktree files match the index before worktree-based fixture scans run. | `1` |
 
 Missing required tools (`git`, `jq`, `python3`) or the required Python `yaml`
 module from PyYAML return exit `2`. A missing or non-runnable blocking checker
@@ -59,7 +60,7 @@ Advisory checks report risk without changing the release gate exit code unless
 | `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
 | `skill-topology-fixtures` | `all`, or `staged`/`working` when the diff touches skill-topology scanner, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-topology-scan-fixtures.sh` so the read-only topology scanner keeps reporting broken references, orphan skills, hub skills, skill-tree output, and README coverage gaps deterministically. | `WARN` (`FAIL` with `--strict`) |
 | `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
-| `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
+| `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope, `.idea-to-ship/ITS-ROADMAP-020/`, or a broad-orchestrator scan surface (`README.md`, `*/README.md`, `.claude-plugin/marketplace.json`, `*/.claude-plugin/plugin.json`, `*/skills/*/SKILL.md`, `*/skills/*/agents/openai.yaml`) | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts, orchestration-boundary guards, and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
 ## Secret Scan Hook Decision
 
@@ -244,11 +245,17 @@ bash tests/agent-playbook-eval-fixtures.sh
 This command is also run as the `agent-playbook-fixtures` advisory check in
 `scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
 diff touches agent-playbook fixture scope: `agent-playbook/`, `antifragile/`,
-`issue-evaluator/`, `skill-stats/`, `worktree-cleaner/`, or the fixture files.
-It validates that `/vibe-coding-health-check` keeps its scorecard dimensions,
-safe routing, stop rules, untracked-file handling, and artifact ownership
-contract; that cross-plugin safety gates remain documented; that worktree
-cleanup, issue-fix worktree setup, and PR-comment edit gates keep their
-behavior scenarios; and that skill `agents/openai.yaml` metadata follows the
-repo's expected interface shape. With `--strict`, fixture regressions block the
+`issue-evaluator/`, `skill-stats/`, `worktree-cleaner/`,
+`.idea-to-ship/ITS-ROADMAP-020/`, root/plugin README files,
+`.claude-plugin/marketplace.json`, plugin manifests, skill files, skill
+`agents/openai.yaml`, or the fixture files. It validates that
+`/vibe-coding-health-check` keeps its scorecard dimensions, safe routing, stop
+rules, untracked-file handling, and artifact ownership contract; that
+cross-plugin safety gates remain documented; that worktree cleanup, issue-fix
+worktree setup, and PR-comment edit gates keep their behavior scenarios; that
+broad-orchestrator routes cannot silently gain git/GitHub/plugin/deploy/self
+replication authority; and that skill `agents/openai.yaml` metadata follows the
+repo's expected interface shape. In staged mode, the blocking
+`agent-playbook-fixture-scope-drift` check fails when a staged scan-surface file
+differs from its worktree copy. With `--strict`, fixture regressions block the
 gate.

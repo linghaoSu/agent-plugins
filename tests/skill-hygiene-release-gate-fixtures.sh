@@ -589,7 +589,8 @@ EOF
   rm -rf -- "$staged_repo/harness-engineering/skills/scan-limited-template"
   printf '\n# unrelated dirty infrastructure allowed for ordinary staged skill checks\n' >>"$staged_repo/scripts/skill-hygiene-check.py"
 
-  staged_json="$(run_gate_json "$staged_repo" "staged" "false" 0 "release-gate-staged-ordinary-skill-dirty-infra-json")"
+  staged_json="$(run_gate_json "$staged_repo" "staged" "false" 1 "release-gate-staged-ordinary-skill-dirty-infra-json")"
+  assert_json_check "$staged_json" "agent-playbook-fixture-scope-drift" "blocking" "fail" 1
   assert_json_check "$staged_json" "skill-hygiene-infra-drift" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-topology-infra-drift" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-hygiene-fixtures" "skipped" "skip" 0

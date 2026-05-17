@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual Test"
+  short_description: "Run artifact-first frontend visual QA."
+  default_prompt: "Use $idea-to-ship:visual-test to run artifact-first frontend visual QA and produce visual-test evidence for review."

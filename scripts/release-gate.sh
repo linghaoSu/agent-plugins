@@ -72,6 +72,22 @@ SKILL_TOPOLOGY_TARGETS=(
   "tests/skill-topology-*"
   "RELEASE-GATE.md"
 )
+AGENT_PLAYBOOK_FIXTURE_TARGETS=(
+  "agent-playbook"
+  "antifragile"
+  "issue-evaluator"
+  "skill-stats"
+  "worktree-cleaner"
+  ".idea-to-ship/ITS-ROADMAP-020"
+  ".claude-plugin/marketplace.json"
+  "README.md"
+  "*/README.md"
+  "*/.claude-plugin/plugin.json"
+  "*/skills/*/SKILL.md"
+  "*/skills/*/agents/openai.yaml"
+  "tests/agent-playbook-eval-fixtures.py"
+  "tests/agent-playbook-eval-fixtures.sh"
+)
 trap 'rm -f "$RESULTS_FILE"' EXIT
 
 cd "$ROOT" || exit 2
@@ -548,6 +564,10 @@ diff_touches_skill_topology_infra() {
   diff_touches_any "${SKILL_TOPOLOGY_TARGETS[@]}"
 }
 
+diff_touches_agent_playbook_fixture_scope() {
+  diff_touches_any "${AGENT_PLAYBOOK_FIXTURE_TARGETS[@]}"
+}
+
 check_skill_hygiene_infra_drift() {
   command_text="git diff --cached --name-only -- <skill hygiene infrastructure>; git diff --name-only -- <skill hygiene infrastructure>"
 
@@ -612,6 +632,38 @@ check_skill_topology_infra_drift() {
     "staged skill topology infrastructure matches the worktree" "" "$command_text" 0
 }
 
+check_agent_playbook_fixture_scope_drift() {
+  command_text="git diff --cached --name-only -- <agent-playbook fixture scope>; git diff --name-only -- <agent-playbook fixture scope>"
+
+  if [ "$MODE" != "staged" ]; then
+    return
+  fi
+
+  staged_paths="$(git diff --cached --name-only -- "${AGENT_PLAYBOOK_FIXTURE_TARGETS[@]}")"
+  if [ -z "$staged_paths" ]; then
+    add_result "skipped" "skip" "agent-playbook-fixture-scope-drift" \
+      "no staged diff touches agent-playbook fixture scope" "" "$command_text" 0
+    return
+  fi
+
+  drift_paths="$(
+    {
+      git diff --name-only -- "${AGENT_PLAYBOOK_FIXTURE_TARGETS[@]}"
+      git ls-files --others --exclude-standard -- "${AGENT_PLAYBOOK_FIXTURE_TARGETS[@]}"
+    } | sed '/^$/d' | sort -u
+  )"
+  if [ -n "$drift_paths" ]; then
+    first_path="$(printf '%s\n' "$drift_paths" | sed -n '1p')"
+    add_result "blocking" "fail" "agent-playbook-fixture-scope-drift" \
+      "staged agent-playbook fixture scope differs from the worktree" \
+      "$first_path" "$command_text" 1
+    return
+  fi
+
+  add_result "blocking" "pass" "agent-playbook-fixture-scope-drift" \
+    "staged agent-playbook fixture scope matches the worktree" "" "$command_text" 0
+}
+
 check_idea_to_ship_fixtures() {
   command_text="bash tests/idea-to-ship-eval-fixtures.sh"
 
@@ -651,14 +703,7 @@ check_idea_to_ship_fixtures() {
 check_agent_playbook_fixtures() {
   command_text="bash tests/agent-playbook-eval-fixtures.sh"
 
-  if ! diff_touches_any \
-    "agent-playbook" \
-    "antifragile" \
-    "issue-evaluator" \
-    "skill-stats" \
-    "worktree-cleaner" \
-    "tests/agent-playbook-eval-fixtures.py" \
-    "tests/agent-playbook-eval-fixtures.sh"; then
+  if ! diff_touches_agent_playbook_fixture_scope; then
     add_result "skipped" "skip" "agent-playbook-fixtures" \
       "no $MODE diff touches agent-playbook fixture scope" "" "$command_text" 0
     return
@@ -886,6 +931,7 @@ check_diff_whitespace
 check_secret_scan
 check_skill_hygiene_infra_drift
 check_skill_topology_infra_drift
+check_agent_playbook_fixture_scope_drift
 check_skill_hygiene
 check_skill_hygiene_fixtures
 check_skill_hygiene_release_gate_fixtures

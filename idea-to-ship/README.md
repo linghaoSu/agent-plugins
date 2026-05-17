@@ -23,7 +23,11 @@ All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 ├── tdd-log.md            # from /tdd for stage gates or backfill tests
 ├── implementation-log.md # from /implement
 ├── code-review.md        # from /review-code
-└── test-plan.md          # from /test
+├── test-plan.md          # from /test
+├── visual-test-selectors.md # from /visual-test
+├── visual-test-matrix.md    # from /visual-test
+├── visual-artifact-rca.md   # from /visual-test
+└── visual-test-report.md    # from /visual-test
 ```
 
 Portfolio roadmaps land at `.idea-to-ship/roadmap.md`.
@@ -113,6 +117,16 @@ explicitly unsupported by the host/runtime, explicitly forbidden by the user, or
 the selected reviewer/model is explicitly unavailable or at capacity. Writes
 `code-review.md`.
 
+### `/visual-test [--baseline compare|create-requested|update-requested] [focus]`
+Runs artifact-first frontend visual QA from `interface-design.md` Visual QA
+expectations and optional `test-plan.md` UI rows. Writes
+`visual-test-selectors.md`, `visual-test-matrix.md`, `visual-artifact-rca.md`,
+and `visual-test-report.md`. The workflow records assertions before screenshot
+capture, baseline approval state, `workspace_diff_fingerprint`,
+`untracked_files_manifest`, console/network status, matrix coverage, and
+bounded Playwright/CI artifact RCA. It does not add browser tooling or update
+baselines without approval.
+
 ### `/test [focus]`
 Produces `test-plan.md` from user stories, acceptance criteria, scenario
 sequences, and unit/integration/e2e matrices. Every core story should cover a
@@ -142,6 +156,8 @@ not the stage-local red-first gate used by `/implement`.
 # staged TDD-first implementation for code-producing stages
 /test
 # story-driven test plan + implementation
+/visual-test
+# frontend visual QA matrix + screenshot/baseline/artifact evidence
 /review-code
 # adversarial review of the diff + test traceability
 ```
@@ -180,6 +196,10 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   failing test before production code, or document why the stage has no
   meaningful runtime behavior. `/tdd --backfill` is available for projects that
   need missing tests added after code already exists.
+- **Visual evidence**: `/visual-test` owns selector/state recipes, visual-test
+  matrix status, bounded artifact RCA, and `visual-test-report.md`.
+  `/review-code` consumes those artifacts when present and flags missing visual
+  evidence when UI is touched without them.
 - **Multi-agent review**: `/review-design` and `/review-code` require multiple
   independent reviewer agents, multiple angles, and multiple rounds by default.
   Same-context adversarial passes are supported only when reviewer sub-agents
