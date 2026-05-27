@@ -1,21 +1,32 @@
 ---
-goal: "吸收 Kagenti .claude/skills 中可迁移的技能组织模式，并定义前端 visual test skill"
-horizon: "status refresh after ITS-ROADMAP-016-020 implementation; next follow-up horizon not explicit"
-generated_at: "2026-05-17 09:46 CST"
-repo_head: "91618937a6f4d649c5b2b57d8b819f7178f7f7c4"
-dirty_worktree: "clean after visual-test implementation commit; docs refresh pending"
+goal: "将 steipete/agent-scripts 的 skill-cleaner 作为候选能力纳入 roadmap，并判断本仓库内的集成归属"
+horizon: "not explicit; candidate brief only until user approves implementation priority"
+generated_at: "2026-05-27 08:12 CST"
+repo_head: "aca4b783d5bdee835252f51ad7966af98aad5d8b"
+dirty_worktree: "clean before this roadmap edit"
 mode: "portfolio"
-source_scope: "current user request + local idea-to-ship artifacts + current git history/status; no GitHub issues or TODO scan"
+source_scope: "current user request + steipete skill-cleaner SKILL.md + local skill-stats, agent-playbook, release-gate, and portfolio docs; no GitHub issues or TODO scan"
 write_target: ".idea-to-ship/roadmap.md"
-final_lanes_written: "status snapshot only; no new Now/Next/Later prioritization"
-priority_approval: "completed items followed user-directed execution; remaining ITS-ROADMAP-008 and ITS-ROADMAP-011 still need closure decisions"
+final_lanes_written: "no; candidate brief updated only"
+priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority and horizon still not provided"
 ---
 
-# Roadmap - Kagenti Skills Intake And Frontend Visual Testing
+# Roadmap - Skill Cleaner Intake And Prior Skill Work
 
 ## Human-Owned Sections
 
-### Current Refresh Request
+### Current Refresh Request - 2026-05-27
+
+- User requested: add `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md` as a roadmap reference and decide which existing skill/plugin boundary should absorb it.
+- Explicit goal: evaluate `skill-cleaner` as a portable skill cleanup capability for this plugin marketplace.
+- Horizon is not explicit in the request; final Now / Next / Later lanes remain blocked until a horizon and candidate priority are approved.
+- User decision after intake: extend the existing `skill-stats` workflow rather than adding a separate public skill.
+- User decision after intake: wrap the external analyzer rather than porting or rewriting it in the first pass.
+- User decision after intake: support both report-only mode and an explicit confirmation-gated apply mode.
+- Recommended integration target: `skill-stats`, expanded carefully so the default behavior remains report-only and any cleanup/write behavior is isolated behind an apply-confirm path.
+- Secondary consumers: `agent-playbook:context-audit` and the repo release gate can consume its reports or reuse checks, but they should not own the user-facing cleanup workflow.
+
+### Previous Refresh Request - Kagenti Intake
 
 - User requested: understand the skills under `https://github.com/kagenti/kagenti/tree/main/.claude/skills`, find ideas worth absorbing into the subsequent roadmap, and think through how a visual-test skill should be defined for frontend projects.
 - Explicit goal: absorb transferable skill-system patterns and define a frontend visual-testing workflow.
@@ -58,6 +69,10 @@ priority_approval: "completed items followed user-directed execution; remaining 
 
 Included sources:
 
+- Current user request: add steipete `skill-cleaner` as a roadmap reference and decide which existing skill/plugin boundary should absorb it.
+- steipete `skill-cleaner` skill file: `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L1-L56` for trigger scope, analyzer invocation, report categories, Codex-like skill rendering assumptions, usage-log heuristics, and output policy.
+- Local `skill-stats` ownership and constraints: `skill-stats/skills/skill-stats/SKILL.md:11-47`, `skill-stats/WORKFLOW-CONTRACTS.md:7-24`, `skill-stats/scripts/track-skill.sh:1-25`, `README.md:106-110`, and `PORTFOLIO.md:55`.
+- Local adjacent boundaries: `agent-playbook/skills/context-audit/SKILL.md:40-67` and `agent-playbook/skills/context-audit/SKILL.md:123-128` for context/tool-sprawl audit scope; `agent-playbook/skills/tool-review/SKILL.md:173-174` for suite-level tool sprawl routing; `scripts/skill-hygiene-check.py:224-259` and `RELEASE-GATE.md:56-63` for repo-local skill hygiene and topology checks.
 - Current user request: analyze Kagenti `.claude/skills`, identify reusable ideas, update the future roadmap, and define a frontend visual-test skill.
 - Kagenti skill tree from `https://github.com/kagenti/kagenti/tree/main/.claude/skills`; remote recursive tree snapshot downloaded to `/private/tmp/kagenti-tree.json`.
 - Kagenti README: `.claude/skills/README.md:24-30` for parent-skill routing and sandbox/management boundaries; `.claude/skills/README.md:94-120` for the test workflow; `.claude/skills/README.md:311-410` for the complete skill tree, auto-approve policy, and generated README maintenance.
@@ -72,6 +87,7 @@ Included sources:
 
 Excluded sources:
 
+- External `skill-cleaner` analyzer implementation under `scripts/skill-cleaner.ts`; this run used only the user-provided `SKILL.md` reference, so implementation effort, license fit, and exact parser behavior remain open.
 - GitHub issues, PRs, milestones, and discussions in both repos.
 - TODO/FIXME scan and git-history mining.
 - Full deep read of every Kagenti domain skill; sampled high-signal skills by category instead.
@@ -94,6 +110,7 @@ Excluded sources:
 | ITS-ROADMAP-018 | Add context-safe CI and Playwright artifact RCA guidance. | Completed | Maintenance | Repo | Medium | `idea-to-ship/templates/visual-artifact-rca.md`; `idea-to-ship/skills/visual-test/SKILL.md` | Closed by bounded artifact RCA template and visual-test gates. |
 | ITS-ROADMAP-019 | Add matrix-driven verification loops for visual and multi-env checks. | Completed | Feature | Repo | Medium | `idea-to-ship/templates/visual-test-matrix.md`; `.idea-to-ship/ITS-ROADMAP-016-020/architecture.md` | Closed by visual matrix template, carry-forward rules, and fixture coverage. |
 | ITS-ROADMAP-020 | Evaluate a repo orchestration / bootstrap skill. | Spike complete | Spike | Repo | Medium | `.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md`; `tests/agent-playbook-eval-fixtures.py` | Closed as "adapt narrow intake patterns; reject broad repo orchestrator." |
+| ITS-ROADMAP-021 | Extend `skill-stats` with steipete `skill-cleaner` via an external-wrapper analyzer. | Candidate | Feature | Explicit | High | User request; user decisions: expand existing, external wrapper, report-only plus confirmation-gated apply; `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L8-L56`; `skill-stats/skills/skill-stats/SKILL.md:11-47`; `skill-stats/WORKFLOW-CONTRACTS.md:7-24`; `PORTFOLIO.md:55` | Run `/brainstorm --slug ITS-ROADMAP-021` before implementation. Owner is `skill-stats`; `agent-playbook:context-audit` should consume/report its findings, not own the workflow. |
 
 ### ITS-ROADMAP-008 - Collapse idea-to-ship implement repetition
 
@@ -318,8 +335,25 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 **Dependencies:** None.
 **Risk:** medium - broad orchestration can become a backlog generator instead of a focused workflow.
 
+### ITS-ROADMAP-021 - Extend skill-stats with steipete skill-cleaner
+
+**Status:** Candidate
+**Work Type:** Feature
+**Evidence Class:** Explicit
+**Confidence:** High
+**Source Anchors:** User request; user decisions: expand existing, external wrapper, report-only plus confirmation-gated apply; `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L8-L56`; `skill-stats/skills/skill-stats/SKILL.md:11-47`; `skill-stats/WORKFLOW-CONTRACTS.md:7-24`; `skill-stats/scripts/track-skill.sh:1-25`; `README.md:106-110`; `PORTFOLIO.md:55`
+**Why Now / Why Next / Why Later:** The external skill's core signals are installed skill roots, skill usage evidence, duplicates, prompt-budget pressure, description candidates, and cleanup recommendations. That is a direct extension of `skill-stats`, which already owns usage logs and unused-skill reporting. The approved shape is to expand the existing `skill-stats` workflow, wrap the external analyzer, keep report-only as the default path, and support cleanup only behind explicit confirmation. `agent-playbook:context-audit` should remain a repo-context and tool-sprawl audit that can cite this analyzer output, while `scripts/skill-hygiene-check.py` remains the repo release-gate checker for source-controlled skill files.
+**Owner:** Unassigned
+**Decision Owner:** User
+**Release Gate:** Entry: accepted requirements define the expanded `skill-stats` user surface, external wrapper dependency/version policy, report-only default, and confirmation-gated apply semantics. Exit: external-wrapper analyzer/report covers skill budget, duplicates, stale/unused candidates, root summary, and description candidates with bounded log/root scans; report-only mode remains non-mutating; apply mode requires an explicit confirmation summary naming every edit/delete/disable target; fixtures cover malformed logs, missing external script, duplicate names, symlinked roots, truncation, dry-run/report-only behavior, and confirmation refusal. No-go: default deletion/disable behavior, unbounded personal-directory scans, silent edits to ignored/untracked skill dirs, or making local usage logs a repo release blocker.
+**Evidence Required:** `.idea-to-ship/ITS-ROADMAP-021/requirements.md`; architecture documenting wrapper dependency/version/fallback behavior; analyzer wrapper tests or fixtures; updated `skill-stats/WORKFLOW-CONTRACTS.md` and README/portfolio docs because `skill-stats` gains a mutating apply-confirm mode; passing `scripts/release-gate.sh --mode all --strict`.
+**Dependencies:** Existing `skill-stats` usage log and current read-only output contract, which must be split into report-only mode and apply-confirm mode. External `skill-cleaner` script availability/version becomes a runtime dependency unless the architecture provides a vendored or fallback path.
+**Risk:** medium - cleanup reports can create false confidence if usage evidence is heuristic, and scanning personal roots/logs can leak noisy local paths unless output is bounded and redacted where needed.
+
 ## Unverified Signals
 
+- The external `skill-cleaner` script implementation was not inspected in this roadmap refresh; only its `SKILL.md` contract was used as evidence.
+- The user selected an external-wrapper strategy, but the external script implementation, versioning, dependency installation, and license/attribution details still need architecture review.
 - The full Kagenti skill tree has roughly one hundred `SKILL.md` leaves; this brief sampled high-signal categories instead of reading every domain-specific Kubernetes/auth skill.
 - Kagenti's session analytics skills may be relevant, but this repo already has `skill-stats`; no candidate is promoted until usage-data requirements are explicit.
 - Kagenti's domain-specific HyperShift, OpenShift, Kind, Keycloak, and Kubernetes skills are mostly not portable as-is; only their routing, artifact, and test-matrix patterns are candidates here.
@@ -328,6 +362,8 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 
 ## Conflicts
 
+- `skill-cleaner` includes cleanup application guidance when asked, including grouped commits and deletion/config-disable recommendations. Local `skill-stats` is currently explicitly read-only and conversation-only; the approved apply-confirm behavior requires a contract update that preserves report-only as the default non-mutating path and labels any apply path as mutating.
+- Local `scripts/skill-hygiene-check.py` and skill-topology release-gate checks already cover source-controlled repo skill hygiene. `skill-cleaner` should not duplicate those as another release-gate blocker; it should cover local installed roots, personal roots, and usage-log-informed cleanup.
 - The preserved human-owned section above still references the previous "next 3 commits" stability roadmap. This generated brief now keeps those prior candidates and appends Kagenti intake candidates, instead of treating the new scan as a replacement.
 - Kagenti assumes Claude Code-specific skill invocation, TaskList, AskUserQuestion, and `.claude/settings.json` auto-approve behavior. Local adoption must translate those ideas to this Codex/plugin repo rather than copying host-specific mechanics.
 - A dedicated visual-test skill overlaps with existing `ui-design`, `test`, `tdd`, and `review-code` UI gates. The new skill should execute visual verification, while the existing skills continue to own design contract, story test plan, red-first gates, and code review verdicts.
@@ -338,11 +374,17 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 |---|---|---|---|---|---|
 | Does `ITS-ROADMAP-008` need a fresh closure artifact? | A: close from earlier template-extraction commits; B: run a focused ITS-008 closure pass | B if traceability must be strict | User | Before claiming all roadmap items are done | Without this, the roadmap has one unresolved cleanup item even if related code may already be partially addressed. |
 | Should `ITS-ROADMAP-011` be implemented? | A: implement shared audit/safety checklist; B: defer; C: close as intentionally not needed | A if audit-skill repetition remains material | User | Next cleanup cycle | Without a decision, audit checklist consolidation remains the only clear unimplemented candidate. |
+| Where should `skill-cleaner` be integrated? | A: new `skill-stats:skill-cleaner`; B: expand `skill-stats:skill-stats`; C: make it part of `agent-playbook:context-audit`; D: make it a release-gate check | Resolved: B | User | Resolved 2026-05-27 | Implementation should expand existing `skill-stats` while keeping the broadened responsibility explicit in the workflow contract. |
+| Which implementation strategy should be used? | A: port/adapt external TypeScript; B: implement local analyzer in the repo's current language/tooling; C: shell out to an external checkout | Resolved: C | User/maintainer | Resolved 2026-05-27 | Architecture must define external script location, version pinning/update policy, missing-dependency fallback, and attribution/licensing expectations. |
+| Can cleanup be applied automatically? | A: report-only first; B: optional apply mode later with explicit confirmation; C: immediate delete/disable support | Resolved: A plus B | User | Resolved 2026-05-27 | Default path must remain report-only; apply mode must require explicit confirmation and name every planned edit/delete/disable target first. |
 | Should visual baselines be generated automatically in downstream projects? | A: create only with explicit user/design approval; B: create on first run and flag for review; C: compare only, never create | A | User/design owner per project | Before each real visual-test run | Automatic baseline creation can bless broken UI and hide regressions. |
 | Should Kagenti-style topology docs become generated README sections? | A: generated sections in root README; B: separate report command; C: release-gate-only output | B remains current | User | Future topology-doc cycle | Generated README churn can create noisy diffs if the schema is not stable. |
 
 ## Rejected / Not Roadmap-Relevant
 
+- Making `agent-playbook:context-audit` the primary owner for `skill-cleaner`: rejected because context-audit owns repo agent-context hygiene and writes a repo punch-list, while `skill-cleaner` centers on local skill roots, usage logs, duplicates, and prompt-budget cleanup.
+- Making `skill-cleaner` a release-gate blocker in the first pass: rejected because personal installed roots and usage logs are not source-controlled release state. Release-gate integration can come later only for repo-local deterministic checks.
+- Copying the deletion/config-disable behavior without a confirmation gate: rejected. Local policy should support report-only output by default and require explicit user approval before any cleanup edits.
 - Copying Kagenti's domain skills wholesale: rejected because many are platform-specific to Kagenti, HyperShift, OpenShift, Keycloak, and Kubernetes.
 - Replacing local `idea-to-ship` with Kagenti `orchestrate`: rejected for now because their ownership differs. `idea-to-ship` owns product/feature artifacts; `orchestrate` is a repo enablement pipeline.
 - Making screenshot diff approval a pure model judgment: rejected. Visual-test should produce deterministic artifacts, assertions, and user/design approval for baseline changes.
@@ -350,6 +392,9 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 
 ## Acceptance Checks
 
+- Skill-cleaner intake: `ITS-ROADMAP-021` was added as a candidate with explicit source anchors, user-approved target shape (`skill-stats` expansion), external-wrapper strategy, and report-only plus confirmation-gated apply behavior.
+- Final-lane gate: no final Now/Next/Later lanes were written because horizon and implementation priority are not explicit in the current request.
+- Boundary discipline: `agent-playbook:context-audit` and release-gate checks are recorded as consumers/adjacent checks, not the primary owner.
 - Status-refresh run: final lanes were not rewritten; this update records completion state after user-directed implementation work.
 - Preservation: `ITS-ROADMAP-008` and `ITS-ROADMAP-011` remain unresolved instead of being marked done without direct closure artifacts.
 - Artifact safety: existing human-owned sections were preserved; generated content was replaced inside `idea-to-ship:roadmap` markers.
