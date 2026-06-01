@@ -12,7 +12,7 @@ Review one tool against the tool-writing checklist from
 plus CLI-vs-MCP sanity from [Peekaboo 2.0](https://steipete.me/posts/2025/peekaboo-2-freeing-the-cli-from-its-mcp-shackles).
 Cites `../../PRINCIPLES.md` Principle 4 and
 `../../WORKFLOW-CONTRACTS.md` for output, token, error, safety, and evaluation
-contracts.
+contracts, including the **Shared Safety And Evaluation Checklist** section.
 
 ## Arguments
 
@@ -44,6 +44,18 @@ reason. Degraded mode still runs the same angles and rounds sequentially; it
 only loses independent agents.
 
 ## Workflow
+
+Track review progress by marking each step complete before moving to the next
+round.
+
+```mermaid
+flowchart TD
+  A[Gather Artifact] --> B[Round 1 Angle Reviews]
+  B --> C[Round 2 Synthesis]
+  C --> D[Round 3 Sanity Pass]
+  D --> E[Write Punch List]
+  E --> F[Hand Off]
+```
 
 ### Step 1: Gather the artifact
 
@@ -172,3 +184,9 @@ candidates, or keep-as-is sections.
   wrapper author; the score belongs to the vendor.
 - For evaluating a *suite* of tools (surface-area, overlap), use
   `/context-audit` with `focus tools` instead.
+
+## Related Skills
+
+- $agent-playbook:context-audit for suite-level tool and context sprawl.
+- $agent-playbook:vibe-coding-health-check for lightweight routing before a
+  deeper review.

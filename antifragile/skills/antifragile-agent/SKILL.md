@@ -14,9 +14,22 @@ Audit the Claude Code plugin/hook/skill ecosystem for fragility. Produce a grade
 This skill is read-only against the target infrastructure and writes no local
 artifact by default; the report goes to stdout/conversation. Apply the shared
 output, token, and error contract from `../../WORKFLOW-CONTRACTS.md`. When
-comparing with agent-playbook audits, also apply its shared safety checklist:
-boundary truth, human gates for destructive changes, token honesty, typed
-errors, and realistic scenario fixtures.
+comparing with agent-playbook audits, also apply
+`../../../agent-playbook/WORKFLOW-CONTRACTS.md` § **Shared Safety And
+Evaluation Checklist** rather than duplicating common boundary, human-gate,
+token, error, evaluation, and report-ownership rules.
+
+## Workflow
+
+Track progress through discovery, dimension scoring, and stdout hand-off.
+
+```mermaid
+flowchart TD
+  A[Discover Hooks And Skills] --> B[Audit Dimensions]
+  B --> C[Rank Findings]
+  C --> D[Write Stdout Report]
+  D --> E[Name Next Action]
+```
 
 ## Audit Dimensions
 
@@ -76,3 +89,12 @@ Write the report to stdout in this format:
 ```
 
 Keep findings actionable — each one should say what to change, not just what's wrong.
+
+## Related Skills
+
+- $antifragile:antifragile-system for target application resilience instead of
+  agent/plugin infrastructure.
+- $agent-playbook:context-audit for agent memory, rules, MCP, and context
+  hygiene.
+- $agent-playbook:vibe-coding-health-check for lightweight routing before a
+  deeper audit.

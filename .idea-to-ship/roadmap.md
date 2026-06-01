@@ -39,7 +39,7 @@ priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority a
 - Completed with tracked idea-to-ship artifacts and clean review: `ITS-ROADMAP-009`, `ITS-ROADMAP-010`, `ITS-ROADMAP-012`, `ITS-ROADMAP-013`, `ITS-ROADMAP-014`, `ITS-ROADMAP-015`, and the grouped `ITS-ROADMAP-016-020` implementation.
 - `ITS-ROADMAP-016` through `ITS-ROADMAP-019` are closed by the new `$idea-to-ship:visual-test` skill, visual-test templates, review-code handoff, visual matrix/fingerprint rules, and release-gate fixtures.
 - `ITS-ROADMAP-020` is closed as a spike, not as a new broad orchestrator: `.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md` records "adapt narrow intake patterns; reject a broad repo orchestrator."
-- `ITS-ROADMAP-008` is closed by the focused 2026-06-01 closure pass under `.idea-to-ship/ITS-ROADMAP-008/`; remaining roadmap candidate needing explicit closure: `ITS-ROADMAP-011`.
+- `ITS-ROADMAP-008` is closed by the focused 2026-06-01 closure pass under `.idea-to-ship/ITS-ROADMAP-008/`; `ITS-ROADMAP-011` is closed by the focused 2026-06-01 shared-audit-checklist pass under `.idea-to-ship/ITS-ROADMAP-011/`.
 - Latest verification recorded before this refresh: `scripts/release-gate.sh --mode staged`, `scripts/release-gate.sh --mode working --strict`, and `scripts/release-gate.sh --mode all --strict` passed for the visual-test implementation.
 
 ### Strategic Objective
@@ -51,6 +51,8 @@ priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority a
 - Requested horizon: next 3 commits.
 - Requested scope: entire `agent-plugins`.
 - Requested optimization goal: stability, lower token use, and less repeated maintenance.
+- Roadmap review policy: every roadmap-item review must be adversarial review,
+  not a passive summary or rubber-stamp check.
 - Priority approval for a new final Now/Next/Later plan is still pending; this file now records a completion snapshot for user-directed work already executed.
 
 ### Out of Scope / Non-Goals
@@ -83,7 +85,7 @@ Included sources:
 - Kagenti orchestration / matrix loop samples: `.claude/skills/orchestrate/SKILL.md:41-120`, `.claude/skills/orchestrate:plan/SKILL.md:39-76`, `.claude/skills/orchestrate:tests/SKILL.md:25-115`, `.claude/skills/graph-loop/SKILL.md:11-31`, `.claude/skills/graph-loop/SKILL.md:115-177`.
 - Local skill contracts: `idea-to-ship/skills/ui-design/SKILL.md:168-189`, `idea-to-ship/skills/test/SKILL.md:122-124`, `idea-to-ship/skills/test/SKILL.md:214-217`, `idea-to-ship/skills/review-code/SKILL.md:40-42`, `idea-to-ship/skills/review-code/SKILL.md:109-112`, `idea-to-ship/skills/tdd/SKILL.md:125-130`, `idea-to-ship/skills/tdd/SKILL.md:195-196`.
 - Current repo inventory and hygiene hooks: `README.md:42-115`; `scripts/skill-hygiene-check.py:19-25`, `scripts/skill-hygiene-check.py:181-243`.
-- Previously approved local cleanup candidates are retained; this status refresh marks artifact-closed items complete and leaves only `ITS-ROADMAP-008` and `ITS-ROADMAP-011` unresolved.
+- Previously approved local cleanup candidates are retained; this status refresh marks artifact-closed items complete, including `ITS-ROADMAP-008` and `ITS-ROADMAP-011`.
 
 Excluded sources:
 
@@ -100,7 +102,7 @@ Excluded sources:
 | ITS-ROADMAP-008 | Collapse `idea-to-ship:implement` routing and log-template repetition into shared contracts/templates. | Completed | Maintenance | Repo | High | `idea-to-ship/skills/implement/SKILL.md`; `idea-to-ship/templates/implementation-log.md`; `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136`; `.idea-to-ship/ITS-ROADMAP-008/code-review.md` | Closed with focused closure artifacts, template contract tightening, and passing idea-to-ship fixtures. |
 | ITS-ROADMAP-009 | Extract `issue-evaluator:evaluate-issue` long adversarial prompts and report template. | Completed | Maintenance | Repo | High | `issue-evaluator/skills/evaluate-issue/SKILL.md:128-187`; `issue-evaluator/skills/evaluate-issue/SKILL.md:194-280`; `issue-evaluator/WORKFLOW-CONTRACTS.md:6-84`; `.idea-to-ship/ITS-ROADMAP-009/code-review.md` | Closed with clean multi-angle review. |
 | ITS-ROADMAP-010 | Add hygiene checks for repeated inline prompts/templates and moderate skill bloat. | Completed | Maintenance | Repo | Medium | `scripts/skill-hygiene-check.py:19-25`; `scripts/skill-hygiene-check.py:181-243`; `RELEASE-GATE.md:42-51`; `.idea-to-ship/ITS-ROADMAP-010/code-review.md` | Closed with repeated-prompt/template, bloat, and release-gate fixture coverage. |
-| ITS-ROADMAP-011 | Extract shared audit/safety checklist used by tool-review, context-audit, vibe health, and antifragile-agent. | Candidate | Maintenance | Repo | Medium | `agent-playbook/skills/tool-review/SKILL.md:89-138`; `agent-playbook/skills/context-audit/SKILL.md:68-115`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:108-130` | Keep as follow-up cleanup; do not let it displace higher-confidence 008/009/013 unless requested. |
+| ITS-ROADMAP-011 | Extract shared audit/safety checklist used by tool-review, context-audit, vibe health, and antifragile-agent. | Completed | Maintenance | Repo | Medium | `agent-playbook/WORKFLOW-CONTRACTS.md`; `tests/agent-playbook-eval-fixtures.py`; `.idea-to-ship/ITS-ROADMAP-011/code-review.md` | Closed with explicit shared-checklist citations, section-bounded fixture coverage, and clean adversarial review. |
 | ITS-ROADMAP-012 | Normalize agent-playbook audit report templates into `templates/`. | Completed | Maintenance | Repo | Medium | `agent-playbook/skills/tool-review/SKILL.md:146-180`; `agent-playbook/skills/context-audit/SKILL.md:116-158`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:145-190`; `.idea-to-ship/ITS-ROADMAP-012/code-review.md` | Closed with template extraction and clean multi-angle review. |
 | ITS-ROADMAP-013 | Strengthen skill frontmatter validation against real loader YAML semantics and installed-cache drift. | Completed | Maintenance | Repo | High | `worktree-cleaner/skills/clean-worktrees/SKILL.md:4`; `scripts/skill-hygiene-check.py:181-243`; `RELEASE-GATE.md:42-51`; `.idea-to-ship/ITS-ROADMAP-013/code-review.md` | Closed with YAML frontmatter gate and fixtures. |
 | ITS-ROADMAP-014 | Add skill topology scan and connection analysis. | Completed | Maintenance | Repo | High | Kagenti `.claude/skills/skills:scan/SKILL.md:103-180`; Kagenti `.claude/skills/skills:scan/SKILL.md:224-236`; `scripts/skill-topology-scan.py`; `.idea-to-ship/ITS-ROADMAP-014/code-review.md` | Closed with read-only topology scanner, fixtures, and release-gate integration. |
@@ -159,16 +161,16 @@ Excluded sources:
 
 ### ITS-ROADMAP-011 - Extract shared audit and safety checklist
 
-**Status:** Candidate
+**Status:** Completed
 **Work Type:** Maintenance
 **Evidence Class:** Repo
 **Confidence:** Medium
 **Source Anchors:** `agent-playbook/skills/tool-review/SKILL.md:89-138`; `agent-playbook/skills/context-audit/SKILL.md:68-115`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:108-130`; `README.md:48-59`
-**Why Now / Why Next / Why Later:** This remains useful because audit skills overlap by design, but their shared safety and eval criteria should be maintained once instead of duplicated across several skill bodies.
+**Why Now / Why Next / Why Later:** Completed with a focused closure pass because audit skills overlap by design, but their shared safety and eval criteria should be maintained once instead of duplicated across several skill bodies.
 **Owner:** Unassigned
 **Decision Owner:** User
 **Release Gate:** Entry: identify shared checklist items that are truly common and keep skill-specific criteria local. Exit: shared checklist file is cited from each audit skill, and each skill keeps a short boundary-focused local checklist. No-go: forcing all audit skills into one generic checklist that loses domain-specific judgment.
-**Evidence Required:** Shared checklist under `agent-playbook/` or a repo-wide contracts location; updated audit skill references; passing agent-playbook fixtures and strict release gate.
+**Evidence Required:** Satisfied by `agent-playbook/WORKFLOW-CONTRACTS.md`, updated audit skill references, section-bounded `tests/agent-playbook-eval-fixtures.py` coverage, passing strict release gate, and `.idea-to-ship/ITS-ROADMAP-011/code-review.md`.
 **Dependencies:** Can pair with `ITS-ROADMAP-010` if the hygiene check watches for duplicated checklist headings.
 **Risk:** medium - over-extraction can hide the differences between context hygiene, tool review, vibe health, and antifragile audits.
 
@@ -208,9 +210,9 @@ Excluded sources:
 2. `ITS-ROADMAP-014` and `ITS-ROADMAP-015` are complete and reviewed.
 3. `ITS-ROADMAP-016-020` is complete and reviewed, with `ITS-ROADMAP-020` closed as a spike decision rather than a new orchestrator skill.
 4. `ITS-ROADMAP-008` is complete and reviewed with closure artifacts.
-5. Remaining cleanup: run or close `ITS-ROADMAP-011`.
+5. `ITS-ROADMAP-011` is complete and reviewed with closure artifacts.
 
-Recommended next action is a focused decision for `ITS-ROADMAP-011`, not a new Kagenti intake feature.
+Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm if the user wants to proceed with skill-cleaner integration.
 
 ### ITS-ROADMAP-014 - Add skill topology scan and connection analysis
 
@@ -373,8 +375,8 @@ Recommended next action is a focused decision for `ITS-ROADMAP-011`, not a new K
 
 | Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
 |---|---|---|---|---|---|
-| Does `ITS-ROADMAP-008` need a fresh closure artifact? | Resolved: focused ITS-008 closure pass completed | B was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-008/`; only `ITS-ROADMAP-011` remains from this cleanup pair. |
-| Should `ITS-ROADMAP-011` be implemented? | A: implement shared audit/safety checklist; B: defer; C: close as intentionally not needed | A if audit-skill repetition remains material | User | Next cleanup cycle | Without a decision, audit checklist consolidation remains the only clear unimplemented candidate. |
+| Does `ITS-ROADMAP-008` need a fresh closure artifact? | Resolved: focused ITS-008 closure pass completed | B was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-008/`. |
+| Should `ITS-ROADMAP-011` be implemented? | Resolved: focused shared audit/safety checklist closure completed | A was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-011/`, with section-bounded fixture coverage and clean adversarial review. |
 | Where should `skill-cleaner` be integrated? | A: new `skill-stats:skill-cleaner`; B: expand `skill-stats:skill-stats`; C: make it part of `agent-playbook:context-audit`; D: make it a release-gate check | Resolved: B | User | Resolved 2026-05-27 | Implementation should expand existing `skill-stats` while keeping the broadened responsibility explicit in the workflow contract. |
 | Which implementation strategy should be used? | A: port/adapt external TypeScript; B: implement local analyzer in the repo's current language/tooling; C: shell out to an external checkout | Resolved: C | User/maintainer | Resolved 2026-05-27 | Architecture must define external script location, version pinning/update policy, missing-dependency fallback, and attribution/licensing expectations. |
 | Can cleanup be applied automatically? | A: report-only first; B: optional apply mode later with explicit confirmation; C: immediate delete/disable support | Resolved: A plus B | User | Resolved 2026-05-27 | Default path must remain report-only; apply mode must require explicit confirmation and name every planned edit/delete/disable target first. |
@@ -397,11 +399,11 @@ Recommended next action is a focused decision for `ITS-ROADMAP-011`, not a new K
 - Final-lane gate: no final Now/Next/Later lanes were written because horizon and implementation priority are not explicit in the current request.
 - Boundary discipline: `agent-playbook:context-audit` and release-gate checks are recorded as consumers/adjacent checks, not the primary owner.
 - Status-refresh run: final lanes were not rewritten; this update records completion state after user-directed implementation work.
-- Preservation: `ITS-ROADMAP-008` is now marked complete only with direct closure artifacts; `ITS-ROADMAP-011` remains unresolved.
+- Preservation: `ITS-ROADMAP-008` and `ITS-ROADMAP-011` are now marked complete only with direct closure artifacts and clean review.
 - Artifact safety: existing human-owned sections were preserved; generated content was replaced inside `idea-to-ship:roadmap` markers.
 - Source discipline: Kagenti GitHub content is cited as remote path/line anchors; low-confidence domain-specific ideas stay in Unverified Signals or Rejected.
 - Visual-test completion: `$idea-to-ship:visual-test`, selector/matrix/RCA/report templates, review-code handoff, and broad-orchestrator spike guards are committed in `91618937a6f4d649c5b2b57d8b819f7178f7f7c4`.
 - ITS-ROADMAP-008 completion: focused closure artifacts, implementation-log template tightening, implement-skill shared contract references, and idea-to-ship fixture coverage were added on 2026-06-01.
-- Next action: close or explicitly defer `ITS-ROADMAP-011`; only then claim this roadmap batch is fully closed.
+- Next action: run `/brainstorm --slug ITS-ROADMAP-021` if the user wants to proceed with skill-cleaner integration.
 
 <!-- idea-to-ship:roadmap generated:end -->

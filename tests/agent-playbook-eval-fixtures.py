@@ -94,6 +94,34 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "agent-playbook-shared-safety-evaluation-checklist-contract",
+        "agent-playbook/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("shared checklist heading", (r"## Shared Safety And Evaluation Checklist",)),
+            InvariantGroup("boundary field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Boundary truth:\*\*",)),
+            InvariantGroup("human gate field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Human gate:\*\*",)),
+            InvariantGroup("token field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Token honesty:\*\*",)),
+            InvariantGroup("error field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Error shape:\*\*",)),
+            InvariantGroup("evaluation field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Evaluation realism:\*\*",)),
+            InvariantGroup("report ownership field", (r"(?m)^## Shared Safety And Evaluation Checklist(?:(?!^## ).)*\*\*Local report ownership:\*\*",)),
+        ),
+    ),
+    ContractCheck(
+        "tool-review-shared-checklist-reference-contract",
+        "agent-playbook/skills/tool-review/SKILL.md",
+        (
+            InvariantGroup("workflow contracts loaded", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("shared checklist section cited", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md[\s\S]{0,180}Shared Safety And\s+Evaluation\s+Checklist",)),
+            InvariantGroup("purpose boundaries local", (r"(?m)^\*\*Purpose & boundaries\*\*",)),
+            InvariantGroup("namespacing local", (r"(?m)^\*\*Namespacing\*\*",)),
+            InvariantGroup("inputs local", (r"(?m)^\*\*Inputs\*\*",)),
+            InvariantGroup("outputs local", (r"(?m)^\*\*Outputs\*\*",)),
+            InvariantGroup("errors local", (r"(?m)^\*\*Errors\*\*",)),
+            InvariantGroup("cli mcp local", (r"(?m)^\*\*CLI-vs-MCP sanity\*\*",)),
+            InvariantGroup("evaluation hooks local", (r"(?m)^\*\*Evaluation hooks\*\*",)),
+        ),
+    ),
+    ContractCheck(
         "tool-review-template-reference-contract",
         "agent-playbook/skills/tool-review/SKILL.md",
         (
@@ -121,6 +149,20 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("how field", (r"\*\*How:\*\*",)),
             InvariantGroup("kill candidates", (r"## Kill candidates",)),
             InvariantGroup("keep as is", (r"## Keep as-is",)),
+        ),
+    ),
+    ContractCheck(
+        "context-audit-shared-checklist-reference-contract",
+        "agent-playbook/skills/context-audit/SKILL.md",
+        (
+            InvariantGroup("workflow contracts loaded", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("shared checklist section cited", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md[\s\S]{0,220}Shared Safety And\s+Evaluation\s+Checklist",)),
+            InvariantGroup("memory hygiene local", (r"(?m)^\*\*Memory hygiene\*\*",)),
+            InvariantGroup("path scoped rules local", (r"(?m)^\*\*Path-scoped rules\*\*",)),
+            InvariantGroup("tool hygiene local", (r"(?m)^\*\*Tool hygiene\*\*",)),
+            InvariantGroup("verification loop local", (r"(?m)^\*\*Verification loop\*\*",)),
+            InvariantGroup("workflow hygiene local", (r"(?m)^\*\*Workflow hygiene\*\*",)),
+            InvariantGroup("failure patterns local", (r"(?m)^\*\*Failure patterns\*\*",)),
         ),
     ),
     ContractCheck(
@@ -181,6 +223,18 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "vibe-health-shared-checklist-reference-contract",
+        "agent-playbook/skills/vibe-coding-health-check/SKILL.md",
+        (
+            InvariantGroup("workflow contracts loaded", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("shared checklist section cited", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md[\s\S]{0,180}Shared Safety And\s+Evaluation\s+Checklist",)),
+            InvariantGroup("scorecard local", (r"(?m)^### Step 2:\s+Fast Signals",)),
+            InvariantGroup("safe checks local", (r"(?m)^### Step 3:\s+Run Safe Checks",)),
+            InvariantGroup("routing local", (r"(?m)^### Step 4:\s+Route To Deep Audits",)),
+            InvariantGroup("stop rules local", (r"(?m)^## Stop Rules",)),
+        ),
+    ),
+    ContractCheck(
         "antifragile-output-token-error-contract",
         "antifragile/WORKFLOW-CONTRACTS.md",
         (
@@ -190,6 +244,19 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("next action", (r"`next_action`",)),
             InvariantGroup("truncated field", (r"`truncated`", r"`true` or `false`")),
             InvariantGroup("token budget", (r"Default token budget", r"100 source/config/hook/script/skill files")),
+        ),
+    ),
+    ContractCheck(
+        "antifragile-agent-shared-checklist-reference-contract",
+        "antifragile/skills/antifragile-agent/SKILL.md",
+        (
+            InvariantGroup("local workflow contracts loaded", (r"\.\./\.\./WORKFLOW-CONTRACTS\.md",)),
+            InvariantGroup("agent-playbook shared checklist cited", (r"agent-playbook/WORKFLOW-CONTRACTS\.md[\s\S]{0,180}Shared Safety And\s+Evaluation\s+Checklist",)),
+            InvariantGroup("hook robustness local", (r"(?m)^### 1\.\s+Hook Robustness",)),
+            InvariantGroup("dependency chain local", (r"(?m)^### 2\.\s+Dependency Chain",)),
+            InvariantGroup("state pollution local", (r"(?m)^### 3\.\s+State Pollution",)),
+            InvariantGroup("removal resilience local", (r"(?m)^### 4\.\s+Removal Resilience",)),
+            InvariantGroup("data recovery local", (r"(?m)^### 5\.\s+Data Corruption Recovery",)),
         ),
     ),
     ContractCheck(

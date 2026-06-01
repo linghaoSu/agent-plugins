@@ -16,13 +16,17 @@ This is a router plus scorecard. Do not duplicate the full audits from
 this skill to collect the first signals and route to the right deeper workflow.
 
 Before scoring, read `../../PRINCIPLES.md` and
-`../../WORKFLOW-CONTRACTS.md`. In particular, apply "Verify over vibe" and
-"Explore -> Plan -> Code -> Verify": every green decision needs a runnable
-check or cited evidence, not confidence from the same model that made the
-change. Also apply the local 12-rule execution contract: name assumptions,
-conflicts, skipped checks, token-budget pressure, and residual risk instead of
-smoothing them over. If the user asks to fix the findings after this diagnosis,
-hand off to the Vibe Health To Fix Contract via `agent-playbook:vibe-coding-fix`.
+`../../WORKFLOW-CONTRACTS.md`, including its **Shared Safety And Evaluation
+Checklist** section. In particular, apply "Verify over vibe" and "Explore ->
+Plan -> Code -> Verify": every green decision needs a runnable check or cited
+evidence, not confidence from the same model that made the change. Also apply
+the local 12-rule execution contract: name assumptions, conflicts, skipped
+checks, token-budget pressure, and residual risk instead of smoothing them
+over. For `--deep` and audit-safety conclusions, cite the shared checklist
+instead of restating common boundary, human-gate, token, error, evaluation, and
+report-ownership rules. If the user asks to fix the findings after this
+diagnosis, hand off to the Vibe Health To Fix Contract via
+`agent-playbook:vibe-coding-fix`.
 
 ## Arguments
 
@@ -48,6 +52,19 @@ Parse:
 - Remaining text -> focus notes.
 
 ## Workflow
+
+Track progress from bootstrap through scoring, safe checks, routing, decision,
+artifact write, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Bootstrap State] --> B[Score Fast Signals]
+  B --> C[Run Safe Checks]
+  C --> D[Route Deep Audits]
+  D --> E[Choose Decision]
+  E --> F[Write Artifact]
+  F --> G[Hand Off]
+```
 
 ### Step 1: Bootstrap
 
@@ -177,3 +194,10 @@ Stop and mark `red` when any of these are true:
   resume path.
 - The repo's agent instructions are contradictory enough that future agents are
   likely to ignore important rules.
+
+## Related Skills
+
+- $agent-playbook:vibe-coding-fix for explicitly authorized local fixes after
+  this diagnostic artifact exists.
+- $agent-playbook:context-audit for deeper agent-context hygiene review.
+- $agent-playbook:tool-review for one tool, CLI, or MCP surface.

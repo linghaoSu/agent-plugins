@@ -109,7 +109,9 @@ artifact path in `next_action`.
 
 Use this checklist from `tool-review`, `context-audit`, `antifragile-agent`,
 and `vibe-coding-health-check --deep` instead of copying slightly different
-rules into each skill:
+rules into each skill. This section owns only the shared audit/safety fields;
+tool design, context hygiene, vibe-health routing, and antifragile
+hook/state/recovery criteria stay in their owning skills:
 
 - **Boundary truth:** distinguish read-only-on-target, local artifact writes,
   git mutations, GitHub mutations, and external-system mutations.

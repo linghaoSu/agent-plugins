@@ -15,9 +15,9 @@ Read-only means this skill never changes target repo behavior, git state,
 GitHub state, hooks, or installed tools. It may write only the documented local
 report under `.agent-playbook/<slug>/`.
 
-Apply the shared output, token, error, and safety checklist from
-`../../WORKFLOW-CONTRACTS.md`; set `truncated: true` if repo-wide inventory
-caps are hit.
+Apply `../../WORKFLOW-CONTRACTS.md`, including its **Shared Safety And
+Evaluation Checklist** section, for the shared output, token, error, and safety
+contract; set `truncated: true` if repo-wide inventory caps are hit.
 
 ## Arguments
 
@@ -30,7 +30,19 @@ Parse:
 
 ## Workflow
 
+Track progress through the inventory, scoring, report, and hand-off steps.
+
+```mermaid
+flowchart TD
+  A[Bootstrap Report Path] --> B[Inventory Agent Context]
+  B --> C[Score Checklist]
+  C --> D[Write Report]
+  D --> E[Hand Off Fix Routes]
+```
+
 ### Step 1: Bootstrap
+
+Replace `<slug>` with the parsed artifact slug before running this example.
 
 ```bash
 ARTIFACT_DIR=".agent-playbook/<slug>"
@@ -135,3 +147,11 @@ noted-but-not-fixing, or next-steps sections.
   and stop. Do not invent issues.
 - If the user asks "is this ready for autonomous agents", grade
   harshly: any ❌ on verification or tool hygiene → "not yet".
+
+## Related Skills
+
+- $agent-playbook:tool-review for detailed review of one tool, CLI, or MCP.
+- $agent-playbook:vibe-coding-health-check for lightweight health routing
+  before a deeper audit.
+- $agent-playbook:bootstrap-project-memory for applying memory-file cleanup
+  after this read-only audit.
