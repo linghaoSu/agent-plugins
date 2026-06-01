@@ -17,6 +17,14 @@ Use this template when creating or appending
 ## Stage <N> - <name>
 **Completed:** <YYYY-MM-DD HH:MM>
 
+### Pre-Stage Assumptions
+- architecture.md: <assumption checked, or "none beyond the stage contract">
+- interface-design.md: <UI assumption checked, "not applicable", or required UI contract path>
+- codebase: <current-state assumption verified before editing>
+
+### Success Criteria
+- <command, test, or observable behavior that proves this stage is complete>
+
 ### Files touched
 - `path/to/file.ext` - <what changed, 1 line>
 
@@ -36,5 +44,7 @@ Use this template when creating or appending
 - tdd: `tdd-log.md` entry <timestamp>, failing test then passed (`<command>`) / not applicable (`<reason>`)
 
 ### Cross-Skill Checks
-- `<skill or "none">` - <trigger/result/impact>
+| Skill | Trigger | Result | Impact |
+|---|---|---|---|
+| `<skill or "none">` | <why it applied, or "no trigger"> | <ran/skipped/recommended and outcome> | <fix/follow-up/no impact> |
 ```

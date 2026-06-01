@@ -40,6 +40,18 @@ Parse:
 
 ## Workflow
 
+```mermaid
+flowchart TD
+  A[Load Context] --> B[Pick Stage]
+  B --> C[Pre-Stage Sanity Check]
+  C --> D[Assumptions And TDD Gate]
+  D --> E[Implement Stage]
+  E --> F[Verify]
+  F --> G[Cross-Skill Checks]
+  G --> H[Update implementation-log.md]
+  H --> I[Hand-off]
+```
+
 ### Step 1: Load Context
 
 1. Resolve `.idea-to-ship/<slug>/`.
@@ -52,9 +64,10 @@ Parse:
    `interface-design.md` as harmless until the selected stage has been checked
    for UI work in Step 3.
 5. Read or create `implementation-log.md` using
-   `../../templates/implementation-log.md`. Mirror the stages from
-   `architecture.md` § Staged Implementation Plan in its `## Stage Status`
-   list.
+   `../../templates/implementation-log.md`. Use the template for stage status,
+   assumptions, decisions, deviations, verification, TDD evidence, and
+   cross-skill check fields. Mirror the stages from `architecture.md`
+   § Staged Implementation Plan in its `## Stage Status` list.
 
 ### Step 2: Pick The Stage
 
@@ -202,8 +215,10 @@ triggered route in the `### Cross-Skill Checks` section from
 ### Step 6: Update The Log
 
 Append a stage section to `implementation-log.md` using
-`../../templates/implementation-log.md`. Tick the stage's checkbox in the
-`## Stage Status` list at the top.
+`../../templates/implementation-log.md`. Keep the template's named fields for
+pre-stage assumptions, success criteria, decisions, deviations, verification,
+TDD evidence, and cross-skill checks instead of inventing an inline log shape.
+Tick the stage's checkbox in the `## Stage Status` list at the top.
 
 ### Step 7: Hand-off
 
@@ -212,6 +227,17 @@ Append a stage section to `implementation-log.md` using
    - If more stages remain and mode is `all` → ask "Continue to stage N+1?" and loop on confirmation.
    - Otherwise suggest: "Run `/test` for traceability if needed, then `/review-code` for adversarial review."
 3. Do **not** commit.
+
+## Related Skills
+
+- `$idea-to-ship:tdd` creates the stage-local failing test gate for production
+  code or behavior-changing stages.
+- `$idea-to-ship:ui-design` writes the required UI contract before UI stages.
+- `$idea-to-ship:test` owns broad story, scenario, and verification
+  traceability.
+- `$idea-to-ship:review-code` performs adversarial review after implementation.
+- `$agent-playbook:implementation-tournament` is available only when explicitly
+  requested by `--compete`, `--tournament`, or the user.
 
 ## Anti-Patterns
 

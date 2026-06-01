@@ -39,7 +39,7 @@ priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority a
 - Completed with tracked idea-to-ship artifacts and clean review: `ITS-ROADMAP-009`, `ITS-ROADMAP-010`, `ITS-ROADMAP-012`, `ITS-ROADMAP-013`, `ITS-ROADMAP-014`, `ITS-ROADMAP-015`, and the grouped `ITS-ROADMAP-016-020` implementation.
 - `ITS-ROADMAP-016` through `ITS-ROADMAP-019` are closed by the new `$idea-to-ship:visual-test` skill, visual-test templates, review-code handoff, visual matrix/fingerprint rules, and release-gate fixtures.
 - `ITS-ROADMAP-020` is closed as a spike, not as a new broad orchestrator: `.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md` records "adapt narrow intake patterns; reject a broad repo orchestrator."
-- Remaining roadmap candidates needing explicit closure: `ITS-ROADMAP-008` and `ITS-ROADMAP-011`.
+- `ITS-ROADMAP-008` is closed by the focused 2026-06-01 closure pass under `.idea-to-ship/ITS-ROADMAP-008/`; remaining roadmap candidate needing explicit closure: `ITS-ROADMAP-011`.
 - Latest verification recorded before this refresh: `scripts/release-gate.sh --mode staged`, `scripts/release-gate.sh --mode working --strict`, and `scripts/release-gate.sh --mode all --strict` passed for the visual-test implementation.
 
 ### Strategic Objective
@@ -97,7 +97,7 @@ Excluded sources:
 
 | ID | Title | Status | Work Type | Evidence Class | Confidence | Source Anchors | Suggested Action |
 |---|---|---|---|---|---|---|---|
-| ITS-ROADMAP-008 | Collapse `idea-to-ship:implement` routing and log-template repetition into shared contracts/templates. | Needs closure artifact | Maintenance | Repo | High | `idea-to-ship/skills/implement/SKILL.md:199-229`; `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136` | Decide whether earlier template-extraction commits satisfy this or run a focused closure pass. |
+| ITS-ROADMAP-008 | Collapse `idea-to-ship:implement` routing and log-template repetition into shared contracts/templates. | Completed | Maintenance | Repo | High | `idea-to-ship/skills/implement/SKILL.md`; `idea-to-ship/templates/implementation-log.md`; `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136`; `.idea-to-ship/ITS-ROADMAP-008/code-review.md` | Closed with focused closure artifacts, template contract tightening, and passing idea-to-ship fixtures. |
 | ITS-ROADMAP-009 | Extract `issue-evaluator:evaluate-issue` long adversarial prompts and report template. | Completed | Maintenance | Repo | High | `issue-evaluator/skills/evaluate-issue/SKILL.md:128-187`; `issue-evaluator/skills/evaluate-issue/SKILL.md:194-280`; `issue-evaluator/WORKFLOW-CONTRACTS.md:6-84`; `.idea-to-ship/ITS-ROADMAP-009/code-review.md` | Closed with clean multi-angle review. |
 | ITS-ROADMAP-010 | Add hygiene checks for repeated inline prompts/templates and moderate skill bloat. | Completed | Maintenance | Repo | Medium | `scripts/skill-hygiene-check.py:19-25`; `scripts/skill-hygiene-check.py:181-243`; `RELEASE-GATE.md:42-51`; `.idea-to-ship/ITS-ROADMAP-010/code-review.md` | Closed with repeated-prompt/template, bloat, and release-gate fixture coverage. |
 | ITS-ROADMAP-011 | Extract shared audit/safety checklist used by tool-review, context-audit, vibe health, and antifragile-agent. | Candidate | Maintenance | Repo | Medium | `agent-playbook/skills/tool-review/SKILL.md:89-138`; `agent-playbook/skills/context-audit/SKILL.md:68-115`; `agent-playbook/skills/vibe-coding-health-check/SKILL.md:108-130` | Keep as follow-up cleanup; do not let it displace higher-confidence 008/009/013 unless requested. |
@@ -114,16 +114,16 @@ Excluded sources:
 
 ### ITS-ROADMAP-008 - Collapse idea-to-ship implement repetition
 
-**Status:** Needs closure decision
+**Status:** Completed
 **Work Type:** Maintenance
 **Evidence Class:** Repo
 **Confidence:** High
 **Source Anchors:** `idea-to-ship/skills/implement/SKILL.md:199-229`; `idea-to-ship/skills/implement/SKILL.md:231-259`; `idea-to-ship/skills/implement/SKILL.md:293-317`; `idea-to-ship/WORKFLOW-CONTRACTS.md:98-136`
-**Why Now / Why Next / Why Later:** This remains the strongest first local cleanup because `implement` is central, currently carries repeated cross-skill routing and inline log/report structure, and already has shared contracts it can cite instead.
+**Why Now / Why Next / Why Later:** Completed with a focused closure pass because `implement` is central and now explicitly delegates shared routing to `WORKFLOW-CONTRACTS.md` and implementation-log field shape to `templates/implementation-log.md`.
 **Owner:** Unassigned
 **Decision Owner:** User
-**Release Gate:** Entry: current `implement` behavior and output contract are captured. Exit: repeated routing text is replaced by references to shared contracts/templates, fixtures still pass, and no public skill name changes. No-go: removing safety routing or weakening TDD/review gates for brevity.
-**Evidence Required:** Updated `idea-to-ship/skills/implement/SKILL.md`; new or reused template files under `idea-to-ship/templates/`; passing `tests/idea-to-ship-eval-fixtures.sh`; passing strict release gate if touched files require it.
+**Release Gate:** Entry: current `implement` behavior and output contract are captured. Exit: repeated routing/log-field detail is represented by shared contract/template references, fixtures pass, and no public skill name changes. No-go: removing safety routing or weakening TDD/review gates for brevity.
+**Evidence Required:** Satisfied by updated `idea-to-ship/skills/implement/SKILL.md`, updated `idea-to-ship/templates/implementation-log.md`, `tests/idea-to-ship-eval-fixtures.sh` passing, and `.idea-to-ship/ITS-ROADMAP-008/` closure artifacts. Full strict release gate remains environment-blocked locally by missing `PyYAML`.
 **Dependencies:** Existing `idea-to-ship/WORKFLOW-CONTRACTS.md`.
 **Risk:** medium - reducing prompt text can accidentally remove a behavioral gate unless the contract reference is explicit and fixture coverage remains green.
 
@@ -207,9 +207,10 @@ Excluded sources:
 1. `ITS-ROADMAP-009`, `ITS-ROADMAP-010`, `ITS-ROADMAP-012`, and `ITS-ROADMAP-013` are complete and reviewed.
 2. `ITS-ROADMAP-014` and `ITS-ROADMAP-015` are complete and reviewed.
 3. `ITS-ROADMAP-016-020` is complete and reviewed, with `ITS-ROADMAP-020` closed as a spike decision rather than a new orchestrator skill.
-4. Remaining cleanup: decide whether earlier template-extraction commits close `ITS-ROADMAP-008`, then run or close `ITS-ROADMAP-011`.
+4. `ITS-ROADMAP-008` is complete and reviewed with closure artifacts.
+5. Remaining cleanup: run or close `ITS-ROADMAP-011`.
 
-Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS-ROADMAP-011`, not a new Kagenti intake feature.
+Recommended next action is a focused decision for `ITS-ROADMAP-011`, not a new Kagenti intake feature.
 
 ### ITS-ROADMAP-014 - Add skill topology scan and connection analysis
 
@@ -372,7 +373,7 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 
 | Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
 |---|---|---|---|---|---|
-| Does `ITS-ROADMAP-008` need a fresh closure artifact? | A: close from earlier template-extraction commits; B: run a focused ITS-008 closure pass | B if traceability must be strict | User | Before claiming all roadmap items are done | Without this, the roadmap has one unresolved cleanup item even if related code may already be partially addressed. |
+| Does `ITS-ROADMAP-008` need a fresh closure artifact? | Resolved: focused ITS-008 closure pass completed | B was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-008/`; only `ITS-ROADMAP-011` remains from this cleanup pair. |
 | Should `ITS-ROADMAP-011` be implemented? | A: implement shared audit/safety checklist; B: defer; C: close as intentionally not needed | A if audit-skill repetition remains material | User | Next cleanup cycle | Without a decision, audit checklist consolidation remains the only clear unimplemented candidate. |
 | Where should `skill-cleaner` be integrated? | A: new `skill-stats:skill-cleaner`; B: expand `skill-stats:skill-stats`; C: make it part of `agent-playbook:context-audit`; D: make it a release-gate check | Resolved: B | User | Resolved 2026-05-27 | Implementation should expand existing `skill-stats` while keeping the broadened responsibility explicit in the workflow contract. |
 | Which implementation strategy should be used? | A: port/adapt external TypeScript; B: implement local analyzer in the repo's current language/tooling; C: shell out to an external checkout | Resolved: C | User/maintainer | Resolved 2026-05-27 | Architecture must define external script location, version pinning/update policy, missing-dependency fallback, and attribution/licensing expectations. |
@@ -396,10 +397,11 @@ Recommended next action is a focused closure pass for `ITS-ROADMAP-008` and `ITS
 - Final-lane gate: no final Now/Next/Later lanes were written because horizon and implementation priority are not explicit in the current request.
 - Boundary discipline: `agent-playbook:context-audit` and release-gate checks are recorded as consumers/adjacent checks, not the primary owner.
 - Status-refresh run: final lanes were not rewritten; this update records completion state after user-directed implementation work.
-- Preservation: `ITS-ROADMAP-008` and `ITS-ROADMAP-011` remain unresolved instead of being marked done without direct closure artifacts.
+- Preservation: `ITS-ROADMAP-008` is now marked complete only with direct closure artifacts; `ITS-ROADMAP-011` remains unresolved.
 - Artifact safety: existing human-owned sections were preserved; generated content was replaced inside `idea-to-ship:roadmap` markers.
 - Source discipline: Kagenti GitHub content is cited as remote path/line anchors; low-confidence domain-specific ideas stay in Unverified Signals or Rejected.
 - Visual-test completion: `$idea-to-ship:visual-test`, selector/matrix/RCA/report templates, review-code handoff, and broad-orchestrator spike guards are committed in `91618937a6f4d649c5b2b57d8b819f7178f7f7c4`.
-- Next action: close or explicitly defer `ITS-ROADMAP-008` and `ITS-ROADMAP-011`; only then claim this roadmap batch is fully closed.
+- ITS-ROADMAP-008 completion: focused closure artifacts, implementation-log template tightening, implement-skill shared contract references, and idea-to-ship fixture coverage were added on 2026-06-01.
+- Next action: close or explicitly defer `ITS-ROADMAP-011`; only then claim this roadmap batch is fully closed.
 
 <!-- idea-to-ship:roadmap generated:end -->
