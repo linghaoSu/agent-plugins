@@ -39,6 +39,10 @@ budgets and report `truncated: true` when caps are hit.
 Use skills through their plugin-qualified names, for example
 `$idea-to-ship:brainstorm` or `$issue-evaluator:review-pr`.
 
+For explanations, usage examples, artifact locations, and mutation boundaries
+for every current skill, see [`SKILLS.md`](SKILLS.md). The table below is the
+quick index.
+
 ### agent-playbook
 
 | Skill | Purpose |
