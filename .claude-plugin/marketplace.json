@@ -31,7 +31,7 @@
     },
     {
       "name": "agent-playbook",
-      "description": "Operator-facing distillation of the best-practice literature (Cursor, Claude Code, Codex, Anthropic engineering, Peter Steinberger). Commands: /bootstrap-project-memory, /context-audit, /vibe-coding-health-check, /vibe-coding-fix, /implementation-tournament, /tool-review, /commit-changes.",
+      "description": "Operator-facing distillation of the best-practice literature (Cursor, Claude Code, Codex, Anthropic engineering, Peter Steinberger). Commands: /workflow-router, /bootstrap-project-memory, /context-audit, /vibe-coding-health-check, /vibe-coding-fix, /implementation-tournament, /tool-review, /commit-changes.",
       "source": "./agent-playbook"
     },
     {

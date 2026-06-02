@@ -9,6 +9,14 @@ Read-only skills may still write their documented local report artifact; they
 must not mutate target code, git state, GitHub, hooks, or installed tools unless
 their entry explicitly says so.
 
+## Start Here
+
+If you are unsure which capability owns the work, start with
+`$agent-playbook:workflow-router`. It returns a route card with the recommended
+workflow, ordered steps, required inputs, mutation points, stop conditions, and
+the next prompt to run. It is conversation-only and does not execute downstream
+skills.
+
 ## Common Invocation Pattern
 
 ```text
@@ -36,6 +44,7 @@ Operational hygiene for repos, tools, fast AI-assisted work, and commits.
 | `$agent-playbook:tool-review` | An agent tool, CLI, MCP server, or schema needs a safety and usability review. | `$agent-playbook:tool-review --slug tool-audit path/to/tool` | Multi-agent read-only review; writes a ranked punch-list focused on boundaries, naming, token cost, errors, and eval hooks. |
 | `$agent-playbook:vibe-coding-fix` | A prior vibe-coding health-check produced bounded local fixes to apply. | `$agent-playbook:vibe-coding-fix --slug current --apply` | Mutates only accepted local fixes from the report, verifies each, and routes unsafe/domain-specific work to owning skills. |
 | `$agent-playbook:vibe-coding-health-check` | Fast AI-assisted coding needs a quick drift, fragility, and verification control check. | `$agent-playbook:vibe-coding-health-check --slug current --scope diff` | Writes `.agent-playbook/<slug>/vibe-health-check.md`; routes to deeper audits when risk is high. |
+| `$agent-playbook:workflow-router` | You are unsure whether work belongs to idea-to-ship, issue-evaluator, agent-playbook, antifragile, harness-engineering, secret-scanner, or worktree-cleaner. | `$agent-playbook:workflow-router which workflow should handle this PR feedback?` | Conversation-only route card; does not run downstream skills or mutate code, git, GitHub, hooks, or installed tools. |
 
 ## antifragile
 

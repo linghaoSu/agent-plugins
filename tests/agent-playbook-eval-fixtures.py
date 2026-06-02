@@ -3,13 +3,14 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterable
+from typing import Any, Iterable
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,17 @@ class BroadOrchestratorScenario:
     name: str
     entry: BroadOrchestratorEntry
     expected: str
+
+
+@dataclass(frozen=True)
+class WorkflowRouterScenarioExpectation:
+    scenario_id: str
+    expected_workflow: str
+    next_prompt_contains: str
+    mutation_signals: tuple[str, ...]
+    stop_signals: tuple[str, ...]
+    requires_assumptions: bool = False
+    requires_clarifying_questions: bool = False
 
 
 CHECKS: tuple[ContractCheck, ...] = (
@@ -232,6 +244,58 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("safe checks local", (r"(?m)^### Step 3:\s+Run Safe Checks",)),
             InvariantGroup("routing local", (r"(?m)^### Step 4:\s+Route To Deep Audits",)),
             InvariantGroup("stop rules local", (r"(?m)^## Stop Rules",)),
+        ),
+    ),
+    ContractCheck(
+        "workflow-router-route-card-contract",
+        "agent-playbook/skills/workflow-router/SKILL.md",
+        (
+            InvariantGroup("frontmatter name", (r"(?m)^name:\s+workflow-router",)),
+            InvariantGroup("conversation only description", (r"Conversation-only route card",)),
+            InvariantGroup("does not execute downstream", (r"does not execute downstream skills",)),
+            InvariantGroup("workflow diagram", (r"flowchart TD", r"Build Route Card")),
+            InvariantGroup("recommended workflow field", (r"recommended_workflow:",)),
+            InvariantGroup("steps field", (r"steps:",)),
+            InvariantGroup("required inputs field", (r"required_inputs:",)),
+            InvariantGroup("mutation points field", (r"mutation_points:",)),
+            InvariantGroup("stop conditions field", (r"stop_conditions:",)),
+            InvariantGroup("next prompt field", (r"next_prompt:",)),
+        ),
+    ),
+    ContractCheck(
+        "workflow-router-route-coverage-contract",
+        "agent-playbook/skills/workflow-router/SKILL.md",
+        (
+            InvariantGroup("feature workflow", (r"\$idea-to-ship:brainstorm[\s\S]*\$idea-to-ship:architect[\s\S]*\$idea-to-ship:review-code",)),
+            InvariantGroup("issue workflow", (r"\$issue-evaluator:evaluate-issue[\s\S]*\$issue-evaluator:fix-issue[\s\S]*\$issue-evaluator:review-fix",)),
+            InvariantGroup("pr workflow", (r"\$issue-evaluator:review-pr[\s\S]*\$issue-evaluator:fix-pr-comments[\s\S]*\$issue-evaluator:update-code-style",)),
+            InvariantGroup("tool audit workflow", (r"\$agent-playbook:context-audit[\s\S]*\$agent-playbook:tool-review",)),
+            InvariantGroup("resilience workflow", (r"\$antifragile:antifragile-agent[\s\S]*\$antifragile:antifragile-system[\s\S]*\$harness-engineering:harness-design[\s\S]*\$harness-engineering:harness-audit[\s\S]*\$harness-engineering:goal-mode[\s\S]*\$harness-engineering:resilience-plan[\s\S]*\$harness-engineering:sprint-contract",)),
+            InvariantGroup("secret workflow", (r"\$secret-scanner:scan-secrets",)),
+            InvariantGroup("secret hook workflow", (r"\$secret-scanner:install-precommit-hook",)),
+            InvariantGroup("worktree workflow", (r"\$worktree-cleaner:clean-worktrees",)),
+        ),
+    ),
+    ContractCheck(
+        "workflow-router-boundary-disambiguation-contract",
+        "agent-playbook/skills/workflow-router/SKILL.md",
+        (
+            InvariantGroup("review code idea-to-ship only", (r"Use `\$idea-to-ship:review-code` only for an idea-to-ship artifact-backed",)),
+            InvariantGroup("review fix issue only", (r"Use `\$issue-evaluator:review-fix` only for issue, bug-fix, or reviewer-comment",)),
+            InvariantGroup("tool review single surface", (r"Use `\$agent-playbook:tool-review` only for a single tool surface",)),
+            InvariantGroup("context audit suite level", (r"Use\s+`\$agent-playbook:context-audit` for suite-level memory",)),
+            InvariantGroup("no artifacts", (r"Conversation-only: do not write route artifacts",)),
+            InvariantGroup("no git or github mutation", (r"do not edit files, run fixes, stage,\s+commit, push, open PRs, post GitHub comments",)),
+        ),
+    ),
+    ContractCheck(
+        "workflow-router-doc-start-here-contract",
+        "SKILLS.md",
+        (
+            InvariantGroup("start here section", (r"## Start Here",)),
+            InvariantGroup("router start", (r"\$agent-playbook:workflow-router",)),
+            InvariantGroup("route card fields", (r"recommended\s+workflow[\s\S]{0,180}mutation points[\s\S]{0,180}next prompt",)),
+            InvariantGroup("conversation only docs", (r"conversation-only", r"does not execute downstream")),
         ),
     ),
     ContractCheck(
@@ -783,6 +847,198 @@ PR_COMMENT_GATE_SCENARIOS: tuple[PrCommentGateScenario, ...] = (
     PrCommentGateScenario("report-only skips implementation", True, True, 3, "report_only"),
     PrCommentGateScenario("confirmed accepted comments may execute", True, False, 2, "executor_allowed"),
     PrCommentGateScenario("no accepted comments has no executor work", True, False, 0, "analysis_only"),
+)
+
+
+ROUTE_CARD_REQUIRED_FIELDS = (
+    "recommended_workflow",
+    "steps",
+    "required_inputs",
+    "mutation_points",
+    "stop_conditions",
+    "next_prompt",
+)
+
+
+WORKFLOW_ROUTER_SCENARIOS: tuple[WorkflowRouterScenarioExpectation, ...] = (
+    WorkflowRouterScenarioExpectation(
+        "feature-idea",
+        "$idea-to-ship:brainstorm",
+        "$idea-to-ship:brainstorm",
+        ("artifacts",),
+        ("slug",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "commercial-roadmap",
+        "$idea-to-ship:commercialize",
+        "$idea-to-ship:commercialize",
+        ("artifacts",),
+        ("slug",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "github-issue-bug",
+        "$issue-evaluator:evaluate-issue",
+        "$issue-evaluator:evaluate-issue",
+        ("code",),
+        ("issue",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "pr-review",
+        "$issue-evaluator:review-pr",
+        "$issue-evaluator:review-pr",
+        ("none",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "pr-reviewer-comments",
+        "$issue-evaluator:fix-pr-comments",
+        "$issue-evaluator:fix-pr-comments",
+        ("local", "code"),
+        ("approval",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "secret-scan",
+        "$secret-scanner:scan-secrets",
+        "$secret-scanner:scan-secrets",
+        ("none",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "secret-hook-install",
+        "$secret-scanner:install-precommit-hook",
+        "$secret-scanner:install-precommit-hook",
+        ("hook",),
+        ("approval", "overwrite"),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "style-rule-drift",
+        "$issue-evaluator:update-code-style",
+        "$issue-evaluator:update-code-style",
+        ("style",),
+        ("source",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "bootstrap-repo-memory",
+        "$agent-playbook:bootstrap-project-memory",
+        "$agent-playbook:bootstrap-project-memory",
+        ("CLAUDE.md", "AGENTS.md"),
+        ("approval",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "context-audit-tool-sprawl",
+        "$agent-playbook:context-audit",
+        "$agent-playbook:context-audit",
+        ("report",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "single-tool-review",
+        "$agent-playbook:tool-review",
+        "$agent-playbook:tool-review",
+        ("report",),
+        ("tool",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "vibe-health-check",
+        "$agent-playbook:vibe-coding-health-check",
+        "$agent-playbook:vibe-coding-health-check",
+        ("report",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "antifragile-agent-audit",
+        "$antifragile:antifragile-agent",
+        "$antifragile:antifragile-agent",
+        ("none",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "antifragile-system-audit",
+        "$antifragile:antifragile-system",
+        "$antifragile:antifragile-system",
+        ("none",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "harness-design",
+        "$harness-engineering:harness-design",
+        "$harness-engineering:harness-design",
+        ("artifact",),
+        ("slug",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "harness-audit",
+        "$harness-engineering:harness-audit",
+        "$harness-engineering:harness-audit",
+        ("artifact",),
+        ("target",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "goal-mode",
+        "$harness-engineering:goal-mode",
+        "$harness-engineering:goal-mode",
+        ("goal state",),
+        ("objective",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "resilience-plan",
+        "$harness-engineering:resilience-plan",
+        "$harness-engineering:resilience-plan",
+        ("artifact",),
+        ("slug",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "sprint-contract",
+        "$harness-engineering:sprint-contract",
+        "$harness-engineering:sprint-contract",
+        ("artifact",),
+        ("success",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "local-fix-review",
+        "$issue-evaluator:review-fix",
+        "$issue-evaluator:review-fix",
+        ("none",),
+        ("none",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "harness-ambiguous",
+        "needs_clarification",
+        "$agent-playbook:workflow-router",
+        ("none",),
+        ("ambiguous",),
+        requires_clarifying_questions=True,
+    ),
+    WorkflowRouterScenarioExpectation(
+        "ambiguous-secret-concern",
+        "$secret-scanner:scan-secrets",
+        "$secret-scanner:scan-secrets",
+        ("none",),
+        ("none",),
+        requires_assumptions=True,
+    ),
+    WorkflowRouterScenarioExpectation(
+        "worktree-cleanup",
+        "$worktree-cleaner:clean-worktrees",
+        "$worktree-cleaner:clean-worktrees",
+        ("worktree",),
+        ("approval", "apply"),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "commit-handoff",
+        "$agent-playbook:commit-changes",
+        "$agent-playbook:commit-changes",
+        ("git commit", "draft PR"),
+        ("approval",),
+    ),
+    WorkflowRouterScenarioExpectation(
+        "secret-redaction",
+        "$secret-scanner:scan-secrets",
+        "$secret-scanner:scan-secrets",
+        ("none",),
+        ("none",),
+        requires_assumptions=True,
+    ),
 )
 
 
@@ -1855,6 +2111,230 @@ def run_metadata_checks(root: Path) -> list[tuple[str, str | None]]:
     return results
 
 
+def as_search_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return " ".join(f"{key} {as_search_text(item)}" for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return " ".join(as_search_text(item) for item in value)
+    return str(value)
+
+
+def extract_frontmatter(text: str) -> str:
+    match = re.match(r"\A---\n(.*?)\n---\n", text, flags=re.DOTALL)
+    return match.group(1) if match else ""
+
+
+def parse_route_card_scalar(value: str) -> str:
+    value = value.strip()
+    if value.startswith(("'", '"')):
+        try:
+            parsed = ast.literal_eval(value)
+        except (SyntaxError, ValueError) as exc:
+            raise ValueError(f"invalid quoted scalar {value!r}") from exc
+        if not isinstance(parsed, str):
+            raise ValueError(f"quoted scalar must be a string, got {type(parsed).__name__}")
+        return parsed
+    return value
+
+
+def parse_route_card_yaml_block(block: str) -> dict[str, Any]:
+    """Parse the small YAML subset allowed for router route-card fixtures."""
+    parsed: dict[str, Any] = {}
+    current_list_key: str | None = None
+    for line_number, raw_line in enumerate(block.splitlines(), start=1):
+        if not raw_line.strip():
+            continue
+        if raw_line.startswith("  - "):
+            if current_list_key is None or not isinstance(parsed.get(current_list_key), list):
+                raise ValueError(f"line {line_number}: list item without a list field")
+            parsed[current_list_key].append(parse_route_card_scalar(raw_line[4:]))
+            continue
+        if raw_line.startswith((" ", "\t")):
+            raise ValueError(f"line {line_number}: unsupported indentation")
+
+        key, separator, raw_value = raw_line.partition(":")
+        if not separator:
+            raise ValueError(f"line {line_number}: missing ':'")
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_-]*$", key):
+            raise ValueError(f"line {line_number}: invalid key {key!r}")
+
+        value = raw_value.strip()
+        if value:
+            parsed[key] = parse_route_card_scalar(value)
+            current_list_key = None
+        else:
+            parsed[key] = []
+            current_list_key = key
+    return parsed
+
+
+def extract_route_card_examples(text: str) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    section_match = re.search(
+        r"(?ms)^### Route Card Examples\s*(.*?)(?=^## |^### |\Z)",
+        text,
+    )
+    if not section_match:
+        return {}, ["missing ### Route Card Examples section"]
+
+    section = section_match.group(1)
+    blocks = re.findall(r"```ya?ml\s*\n(.*?)\n```", section, flags=re.IGNORECASE | re.DOTALL)
+    if not blocks:
+        return {}, ["Route Card Examples section has no fenced YAML examples"]
+
+    examples: dict[str, dict[str, Any]] = {}
+    failures: list[str] = []
+    for index, block in enumerate(blocks, start=1):
+        try:
+            parsed = parse_route_card_yaml_block(block)
+        except ValueError as exc:
+            failures.append(f"example {index} YAML subset parse error: {exc}")
+            continue
+        scenario_id = parsed.get("scenario_id")
+        if not isinstance(scenario_id, str) or not scenario_id.strip():
+            failures.append(f"example {index} missing scenario_id")
+            continue
+        if scenario_id in examples:
+            failures.append(f"duplicate scenario_id: {scenario_id}")
+            continue
+        examples[scenario_id] = parsed
+    return examples, failures
+
+
+def has_generic_harness_handoff(route_card: dict[str, Any]) -> bool:
+    route_text = as_search_text(
+        {
+            "recommended_workflow": route_card.get("recommended_workflow", ""),
+            "steps": route_card.get("steps", []),
+            "next_prompt": route_card.get("next_prompt", ""),
+        }
+    )
+    if re.search(r"(?<![\w:/-])\$?harness-engineering:\*", route_text):
+        return True
+    if re.search(r"(?<![\w:$-])harness-engineering(?![\w:-])", route_text):
+        return True
+    return False
+
+
+def validate_route_card_scenario(
+    route_card: dict[str, Any],
+    expected: WorkflowRouterScenarioExpectation,
+) -> list[str]:
+    failures: list[str] = []
+    missing_fields = [field for field in ROUTE_CARD_REQUIRED_FIELDS if field not in route_card]
+    if missing_fields:
+        failures.append(f"missing required field(s): {', '.join(missing_fields)}")
+
+    for list_field in ("steps", "required_inputs", "mutation_points", "stop_conditions"):
+        value = route_card.get(list_field)
+        if not isinstance(value, list) or not value:
+            failures.append(f"{list_field} must be a non-empty list")
+
+    workflow = route_card.get("recommended_workflow")
+    if workflow != expected.expected_workflow:
+        failures.append(f"expected recommended_workflow {expected.expected_workflow}, got {workflow!r}")
+
+    steps_text = as_search_text(route_card.get("steps", ""))
+    if expected.expected_workflow != "needs_clarification" and expected.expected_workflow not in steps_text:
+        failures.append(f"steps missing {expected.expected_workflow}")
+
+    next_prompt = str(route_card.get("next_prompt", ""))
+    if expected.next_prompt_contains not in next_prompt:
+        failures.append(f"next_prompt missing {expected.next_prompt_contains}")
+
+    mutation_text = as_search_text(route_card.get("mutation_points", "")).lower()
+    for signal in expected.mutation_signals:
+        if signal.lower() not in mutation_text:
+            failures.append(f"mutation_points missing {signal}")
+
+    stop_text = as_search_text(route_card.get("stop_conditions", "")).lower()
+    for signal in expected.stop_signals:
+        if signal.lower() not in stop_text:
+            failures.append(f"stop_conditions missing {signal}")
+
+    assumptions = route_card.get("assumptions", [])
+    if expected.requires_assumptions and not assumptions:
+        failures.append("assumptions required but absent")
+
+    questions = route_card.get("clarifying_questions", [])
+    if expected.requires_clarifying_questions:
+        if not isinstance(questions, list) or not questions:
+            failures.append("clarifying_questions required but absent")
+        elif len(questions) > 3:
+            failures.append("clarifying_questions has more than three questions")
+
+    if expected.expected_workflow == "needs_clarification":
+        if "$agent-playbook:workflow-router" not in next_prompt:
+            failures.append("clarification next_prompt must route back to workflow-router")
+        if "$harness-engineering:" in next_prompt or "$secret-scanner:" in next_prompt:
+            failures.append("clarification next_prompt must not route to a mutating downstream skill")
+
+    if expected.scenario_id == "secret-redaction":
+        card_text = as_search_text(route_card).lower()
+        if "redacted secret material" not in card_text and "redacted" not in card_text:
+            failures.append("secret-redaction scenario output is not redacted")
+        if "unsafe_fake_secret" in card_text:
+            failures.append("secret-redaction scenario echoed scanner sentinel")
+
+    if has_generic_harness_handoff(route_card):
+        failures.append("route card contains generic or wildcard harness handoff")
+
+    return failures
+
+
+def run_workflow_router_route_card_checks(root: Path) -> list[tuple[str, str | None]]:
+    results: list[tuple[str, str | None]] = []
+    text = read_text(root, "agent-playbook/skills/workflow-router/SKILL.md")
+
+    frontmatter = extract_frontmatter(text)
+    if "Bash" in frontmatter:
+        results.append(("workflow-router-frontmatter-disallows-bash", "allowed-tools still includes Bash"))
+    else:
+        results.append(("workflow-router-frontmatter-disallows-bash", None))
+
+    if re.search(r"(?<![\w:/-])\$?harness-engineering:\*", text):
+        results.append(("workflow-router-forbidden-harness-wildcard", "route catalog still contains harness-engineering wildcard"))
+    else:
+        results.append(("workflow-router-forbidden-harness-wildcard", None))
+
+    if re.search(r"\|\s*Agent harness[^|\n]*\|\s*`?harness-engineering`?\s*\|", text):
+        results.append(("workflow-router-forbidden-generic-harness-owner", "signal table still routes to generic harness-engineering"))
+    else:
+        results.append(("workflow-router-forbidden-generic-harness-owner", None))
+
+    generic_signal_owners = sorted(
+        set(re.findall(r"(?m)^\|[^|\n]+\|\s*`(idea-to-ship|issue-evaluator|agent-playbook)`\s*\|", text))
+    )
+    if generic_signal_owners:
+        results.append(
+            (
+                "workflow-router-forbidden-generic-signal-owner",
+                f"signal table still routes to generic owner(s): {', '.join(generic_signal_owners)}",
+            )
+        )
+    else:
+        results.append(("workflow-router-forbidden-generic-signal-owner", None))
+
+    examples, extraction_failures = extract_route_card_examples(text)
+    if extraction_failures:
+        results.append(("workflow-router-route-card-examples-parse", "; ".join(extraction_failures)))
+    else:
+        results.append(("workflow-router-route-card-examples-parse", None))
+
+    for expected in WORKFLOW_ROUTER_SCENARIOS:
+        route_card = examples.get(expected.scenario_id)
+        check_id = f"workflow-router-route-card-scenario-{expected.scenario_id}"
+        if route_card is None:
+            results.append((check_id, "missing route-card example"))
+            continue
+        failures = validate_route_card_scenario(route_card, expected)
+        if failures:
+            results.append((check_id, "; ".join(failures)))
+        else:
+            results.append((check_id, None))
+
+    return results
+
+
 def run_behavior_scenarios() -> list[tuple[str, str | None]]:
     results: list[tuple[str, str | None]] = []
 
@@ -2161,6 +2641,14 @@ def run_all(root: Path, checks: Iterable[ContractCheck]) -> int:
             print(f"FAIL {check_id}: {failure}")
         else:
             print(f"PASS {check_id}: behavior scenario passed")
+
+    print("Agent-playbook workflow-router route-card fixtures")
+    for check_id, failure in run_workflow_router_route_card_checks(root):
+        if failure:
+            failures += 1
+            print(f"FAIL {check_id}: {failure}")
+        else:
+            print(f"PASS {check_id}: workflow-router route-card fixture passed")
 
     print("Agent-playbook broad-orchestrator fixtures")
     for check_id, failure in run_broad_orchestrator_checks(root):

@@ -1,6 +1,6 @@
 {
   "name": "agent-playbook",
-  "description": "Operator-facing playbook distilled from Cursor, Claude Code, Codex, Anthropic engineering, and Peter Steinberger's practice blogs. Skills: bootstrap repo memory, audit context hygiene, run and fix vibe-coding health checks, compare independent implementations, review tool/CLI/MCP design, and create human-authored commits plus GitHub draft PRs.",
+  "description": "Operator-facing playbook distilled from Cursor, Claude Code, Codex, Anthropic engineering, and Peter Steinberger's practice blogs. Skills: choose the owning workflow, bootstrap repo memory, audit context hygiene, run and fix vibe-coding health checks, compare independent implementations, review tool/CLI/MCP design, and create human-authored commits plus GitHub draft PRs.",
   "author": {
     "name": "linghao"
   }

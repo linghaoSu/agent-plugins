@@ -1,19 +1,37 @@
 ---
-goal: "将 steipete/agent-scripts 的 skill-cleaner 作为候选能力纳入 roadmap，并判断本仓库内的集成归属"
-horizon: "not explicit; candidate brief only until user approves implementation priority"
-generated_at: "2026-05-27 08:12 CST"
-repo_head: "aca4b783d5bdee835252f51ad7966af98aad5d8b"
-dirty_worktree: "clean before this roadmap edit"
+goal: "同步 agent-playbook workflow-router 当前任务到 idea-to-ship portfolio roadmap"
+horizon: "current workflow-router change; candidate brief only until final priority approved"
+generated_at: "2026-06-02 12:55 CST"
+repo_head: "109d20907e724af4fb70feaa0b2db9f1197a0e64"
+dirty_worktree: "workflow-router diff in progress; roadmap edit requested before commit"
 mode: "portfolio"
-source_scope: "current user request + steipete skill-cleaner SKILL.md + local skill-stats, agent-playbook, release-gate, and portfolio docs; no GitHub issues or TODO scan"
+source_scope: "current user request + workflow-router diff + local review comments + existing roadmap; no GitHub issues or TODO scan"
 write_target: ".idea-to-ship/roadmap.md"
 final_lanes_written: "no; candidate brief updated only"
-priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority and horizon still not provided"
+priority_approval: "ITS-ROADMAP-022 intake approved by current user request; final lane priority still not provided"
 ---
 
-# Roadmap - Skill Cleaner Intake And Prior Skill Work
+# Roadmap - Workflow Router Intake And Prior Skill Work
 
 ## Human-Owned Sections
+
+### Current Refresh Request - 2026-06-02
+
+- User requested: sync the current workflow-router task into the
+  `idea-to-ship` roadmap.
+- Current task: add `$agent-playbook:workflow-router` as the Start Here route
+  card for choosing and sequencing existing plugin workflows.
+- Current implementation state: local diff adds the new skill, metadata,
+  README / SKILLS catalog entries, marketplace descriptions, and
+  agent-playbook fixture coverage.
+- Review status: user-provided review found two P2 routing bugs that must be
+  resolved before marking the roadmap item complete:
+  route pre-commit hook installation to
+  `$secret-scanner:install-precommit-hook`, and replace
+  `$harness-engineering:*` with concrete harness-engineering skills.
+- Roadmap action: track this as `ITS-ROADMAP-022` in the candidate brief. Do
+  not write final Now / Next / Later lanes until priority and horizon are
+  explicitly approved.
 
 ### Current Refresh Request - 2026-05-27
 
@@ -71,6 +89,19 @@ priority_approval: "ITS-ROADMAP-021 target shape approved; final lane priority a
 
 Included sources:
 
+- Current user request: sync the workflow-router task into the idea-to-ship
+  portfolio roadmap.
+- Current workflow-router diff: `agent-playbook/skills/workflow-router/SKILL.md:1-169`,
+  `agent-playbook/skills/workflow-router/agents/openai.yaml:1-4`,
+  `README.md:42-65`, `SKILLS.md:12-47`,
+  `agent-playbook/README.md:36-40`,
+  `.claude-plugin/marketplace.json:32-35`,
+  `agent-playbook/.claude-plugin/plugin.json:1-7`, and
+  `tests/agent-playbook-eval-fixtures.py:237-287`.
+- User-provided review comments for the current workflow-router diff: P2 route
+  hook-install requests to `$secret-scanner:install-precommit-hook`; P2 replace
+  `$harness-engineering:*` with concrete harness-engineering skills so
+  `next_prompt` remains copy-pasteable.
 - Current user request: add steipete `skill-cleaner` as a roadmap reference and decide which existing skill/plugin boundary should absorb it.
 - steipete `skill-cleaner` skill file: `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L1-L56` for trigger scope, analyzer invocation, report categories, Codex-like skill rendering assumptions, usage-log heuristics, and output policy.
 - Local `skill-stats` ownership and constraints: `skill-stats/skills/skill-stats/SKILL.md:11-47`, `skill-stats/WORKFLOW-CONTRACTS.md:7-24`, `skill-stats/scripts/track-skill.sh:1-25`, `README.md:106-110`, and `PORTFOLIO.md:55`.
@@ -113,6 +144,7 @@ Excluded sources:
 | ITS-ROADMAP-019 | Add matrix-driven verification loops for visual and multi-env checks. | Completed | Feature | Repo | Medium | `idea-to-ship/templates/visual-test-matrix.md`; `.idea-to-ship/ITS-ROADMAP-016-020/architecture.md` | Closed by visual matrix template, carry-forward rules, and fixture coverage. |
 | ITS-ROADMAP-020 | Evaluate a repo orchestration / bootstrap skill. | Spike complete | Spike | Repo | Medium | `.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md`; `tests/agent-playbook-eval-fixtures.py` | Closed as "adapt narrow intake patterns; reject broad repo orchestrator." |
 | ITS-ROADMAP-021 | Extend `skill-stats` with steipete `skill-cleaner` via an external-wrapper analyzer. | Completed | Feature | Explicit | High | User request; user decisions: expand existing, external wrapper, report-only plus confirmation-gated apply; `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L8-L56`; `skill-stats/skills/skill-stats/SKILL.md`; `skill-stats/WORKFLOW-CONTRACTS.md`; `.idea-to-ship/ITS-ROADMAP-021/code-review.md` | Closed with local wrapper, report/preflight/apply fixtures, public contract/docs updates, release-gate wiring, and clean adversarial review. |
+| ITS-ROADMAP-022 | Add `$agent-playbook:workflow-router` as a Start Here route card and fix review-discovered routing gaps. | In progress | Feature | Explicit | High | User request; `agent-playbook/skills/workflow-router/SKILL.md:1-169`; `README.md:42-65`; `SKILLS.md:12-47`; `tests/agent-playbook-eval-fixtures.py:237-287`; user-provided P2 review comments | Fix hook-install routing to `$secret-scanner:install-precommit-hook`, replace `$harness-engineering:*` with concrete harness skills, update fixture coverage, and rerun strict release gates. |
 
 ### ITS-ROADMAP-008 - Collapse idea-to-ship implement repetition
 
@@ -212,7 +244,7 @@ Excluded sources:
 4. `ITS-ROADMAP-008` is complete and reviewed with closure artifacts.
 5. `ITS-ROADMAP-011` is complete and reviewed with closure artifacts.
 
-Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm if the user wants to proceed with skill-cleaner integration.
+Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, then rerun the agent-playbook fixtures and strict release gate. `ITS-ROADMAP-021` remains complete.
 
 ### ITS-ROADMAP-014 - Add skill topology scan and connection analysis
 
@@ -353,8 +385,25 @@ Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm 
 **Dependencies:** Existing `skill-stats` usage log and current read-only output contract, which must be split into report-only mode and apply-confirm mode. External `skill-cleaner` script availability/version becomes a runtime dependency unless the architecture provides a vendored or fallback path.
 **Risk:** medium - cleanup reports can create false confidence if usage evidence is heuristic, and scanning personal roots/logs can leak noisy local paths unless output is bounded and redacted where needed.
 
+### ITS-ROADMAP-022 - Add agent-playbook workflow-router
+
+**Status:** In progress
+**Work Type:** Feature
+**Evidence Class:** Explicit
+**Confidence:** High
+**Source Anchors:** User request to add a workflow-router Start Here entry; user request to sync the current task into roadmap; `agent-playbook/skills/workflow-router/SKILL.md:1-169`; `agent-playbook/skills/workflow-router/agents/openai.yaml:1-4`; `README.md:42-65`; `SKILLS.md:12-47`; `agent-playbook/README.md:36-40`; `.claude-plugin/marketplace.json:32-35`; `agent-playbook/.claude-plugin/plugin.json:1-7`; `tests/agent-playbook-eval-fixtures.py:237-287`; user-provided P2 review comments on hook-install routing and harness wildcard routing.
+**Why Now / Why Next / Why Later:** The plugin suite now has many specialized owners, and users need a safe Start Here workflow that selects and sequences existing skills without becoming a broad autopilot. The first implementation adds the new route-card skill, catalog entries, metadata, marketplace text, and fixture coverage, but the user-provided review found two route bugs that affect supported workflows and must be fixed before closure.
+**Owner:** Unassigned
+**Decision Owner:** User
+**Release Gate:** Entry: current diff introduces `agent-playbook:workflow-router` as a conversation-only route-card skill plus docs and fixtures. Exit: router outputs copy-pasteable route cards for feature, issue, PR, tool/context audit, resilience, secret scan, worktree cleanup, and commit-readiness requests; pre-commit hook installation routes to `$secret-scanner:install-precommit-hook`; secret scans continue to route to `$secret-scanner:scan-secrets`; harness requests route to concrete skills such as `$harness-engineering:harness-design`, `$harness-engineering:harness-audit`, `$harness-engineering:resilience-plan`, `$harness-engineering:goal-mode`, or `$harness-engineering:sprint-contract`; route-card fixtures cover those distinctions; `bash tests/agent-playbook-eval-fixtures.sh`, `python3 scripts/skill-hygiene-check.py --mode all .`, `python3 scripts/skill-topology-scan.py .`, and `scripts/release-gate.sh --mode all --strict` pass. No-go: wildcard skill names in `next_prompt`, sending mutating hook-install requests to read-only scan workflows, executing downstream skills from the router, or weakening the broad-orchestrator mutation guard.
+**Evidence Required:** Updated `agent-playbook/skills/workflow-router/SKILL.md`, `tests/agent-playbook-eval-fixtures.py`, docs/catalog entries if wording changes, and fresh verification after fixing review findings. Prior verification passed before the P2 review comments, so closure requires rerunning gates after those comments are addressed.
+**Dependencies:** Existing `agent-playbook` operator workflows, `secret-scanner:scan-secrets`, `secret-scanner:install-precommit-hook`, and concrete `harness-engineering` skills.
+**Risk:** medium - the router is user-facing and low-code, so small wording mistakes can send users to the wrong owner or produce non-invocable prompts even when release fixtures pass.
+
 ## Unverified Signals
 
+- The workflow-router implementation has not yet been updated after the
+  user-provided P2 review comments in this refresh.
 - The external `skill-cleaner` script implementation was not inspected in this roadmap refresh; only its `SKILL.md` contract was used as evidence.
 - The user selected an external-wrapper strategy, but the external script implementation, versioning, dependency installation, and license/attribution details still need architecture review.
 - The full Kagenti skill tree has roughly one hundred `SKILL.md` leaves; this brief sampled high-signal categories instead of reading every domain-specific Kubernetes/auth skill.
@@ -365,6 +414,19 @@ Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm 
 
 ## Conflicts
 
+- The current `workflow-router` text groups "pre-commit secret concern" under
+  `$secret-scanner:scan-secrets`, but hook installation and enforcement are
+  mutating local hook/config work owned by
+  `$secret-scanner:install-precommit-hook`. Keep scan/audit requests on
+  `$secret-scanner:scan-secrets`; route install/enforce requests to the
+  installer.
+- The current route catalog emits `$harness-engineering:*` for harness work
+  while the route-card contract promises copy-pasteable `next_prompt` values.
+  Replace the wildcard with concrete routing to
+  `$harness-engineering:harness-design`,
+  `$harness-engineering:harness-audit`,
+  `$harness-engineering:resilience-plan`, `$harness-engineering:goal-mode`,
+  and `$harness-engineering:sprint-contract` by request intent.
 - `skill-cleaner` includes cleanup application guidance when asked, including grouped commits and deletion/config-disable recommendations. Local `skill-stats` is currently explicitly read-only and conversation-only; the approved apply-confirm behavior requires a contract update that preserves report-only as the default non-mutating path and labels any apply path as mutating.
 - Local `scripts/skill-hygiene-check.py` and skill-topology release-gate checks already cover source-controlled repo skill hygiene. `skill-cleaner` should not duplicate those as another release-gate blocker; it should cover local installed roots, personal roots, and usage-log-informed cleanup.
 - The preserved human-owned section above still references the previous "next 3 commits" stability roadmap. This generated brief now keeps those prior candidates and appends Kagenti intake candidates, instead of treating the new scan as a replacement.
@@ -375,6 +437,8 @@ Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm 
 
 | Decision | Options | Recommended Option | Decision Owner | Needed By | Impact If Delayed |
 |---|---|---|---|---|---|
+| How should `workflow-router` route pre-commit secret hook requests? | A: route every secret concern to `$secret-scanner:scan-secrets`; B: route scan/audit to `$secret-scanner:scan-secrets` and install/enforce to `$secret-scanner:install-precommit-hook` | B | User/maintainer | Before `ITS-ROADMAP-022` closure | Wrong owner sends users to a read-only workflow for hook installation. |
+| How should `workflow-router` route harness-engineering requests? | A: emit `$harness-engineering:*`; B: select a concrete harness skill by intent | B | User/maintainer | Before `ITS-ROADMAP-022` closure | Wildcard output prevents copy-pasteable `next_prompt` handoff. |
 | Does `ITS-ROADMAP-008` need a fresh closure artifact? | Resolved: focused ITS-008 closure pass completed | B was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-008/`. |
 | Should `ITS-ROADMAP-011` be implemented? | Resolved: focused shared audit/safety checklist closure completed | A was selected | User | Resolved 2026-06-01 | Closure artifacts now exist under `.idea-to-ship/ITS-ROADMAP-011/`, with section-bounded fixture coverage and clean adversarial review. |
 | Where should `skill-cleaner` be integrated? | A: new `skill-stats:skill-cleaner`; B: expand `skill-stats:skill-stats`; C: make it part of `agent-playbook:context-audit`; D: make it a release-gate check | Resolved: B | User | Resolved 2026-05-27 | Implementation should expand existing `skill-stats` while keeping the broadened responsibility explicit in the workflow contract. |
@@ -395,6 +459,11 @@ Recommended next action is the separately approved `ITS-ROADMAP-021` brainstorm 
 
 ## Acceptance Checks
 
+- Workflow-router intake: `ITS-ROADMAP-022` was added as an in-progress
+  candidate with explicit source anchors, review-discovered P2 defects, and
+  exit gates for fixture and release-gate verification.
+- Review sync: hook-install routing and harness wildcard findings are recorded
+  as `ITS-ROADMAP-022` release-gate exit conditions, not as closed work.
 - Skill-cleaner intake: `ITS-ROADMAP-021` was added as a candidate with explicit source anchors, user-approved target shape (`skill-stats` expansion), external-wrapper strategy, and report-only plus confirmation-gated apply behavior.
 - Final-lane gate: no final Now/Next/Later lanes were written because horizon and implementation priority are not explicit in the current request.
 - Boundary discipline: `agent-playbook:context-audit` and release-gate checks are recorded as consumers/adjacent checks, not the primary owner.

@@ -33,6 +33,12 @@ cite it. Shared output, token, error, safety, and evaluation contracts live in
 
 ## Commands
 
+### `/workflow-router [goal, issue, PR, audit, cleanup, or "which workflow?"]`
+Start here when the owning capability is unclear. Produces a conversation-only
+route card with `recommended_workflow`, `steps`, `required_inputs`,
+`mutation_points`, `stop_conditions`, and `next_prompt`. It does not execute
+downstream skills or mutate code, git, GitHub, hooks, or installed tools.
+
 ### `/bootstrap-project-memory [notes]`
 Create or refine `CLAUDE.md` (and optionally `AGENTS.md`) for the current
 repo via Socratic Q&A. Produces a short, specific, under-200-line memory
@@ -91,9 +97,10 @@ trailers.
   can diff changes over time. Default slug: `current`.
 - **Read-only by default.** `/context-audit` and `/tool-review` never
   mutate your repo or external systems, but they may write their documented
-  local report artifacts. `/bootstrap-project-memory` writes only after showing
-  you the proposed file. `/vibe-coding-fix` applies only bounded local cleanup
-  from a prior health check when explicitly authorized.
+  local report artifacts. `/workflow-router` is conversation-only and writes no
+  route artifact. `/bootstrap-project-memory` writes only after showing you the
+  proposed file. `/vibe-coding-fix` applies only bounded local cleanup from a
+  prior health check when explicitly authorized.
   `/implementation-tournament` mutates only when explicitly invoked: it creates
   isolated candidate worktrees and applies the selected patch back to the
   caller worktree, but it does not commit or push. `/commit-changes` mutates

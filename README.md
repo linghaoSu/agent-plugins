@@ -39,6 +39,14 @@ budgets and report `truncated: true` when caps are hit.
 Use skills through their plugin-qualified names, for example
 `$idea-to-ship:brainstorm` or `$issue-evaluator:review-pr`.
 
+### Start Here
+
+If the right owner is not obvious, start with
+`$agent-playbook:workflow-router`. It returns a route card with the recommended
+workflow, ordered steps, required inputs, mutation points, stop conditions, and
+the next prompt. It is conversation-only and does not execute downstream
+skills.
+
 For explanations, usage examples, artifact locations, and mutation boundaries
 for every current skill, see [`SKILLS.md`](SKILLS.md). The table below is the
 quick index.
@@ -54,6 +62,7 @@ quick index.
 | [`tool-review`](agent-playbook/skills/tool-review/SKILL.md) | Multi-agent review of an agent tool, CLI, or MCP server for boundaries, naming, token cost, errors, safety, and eval hooks. |
 | [`vibe-coding-fix`](agent-playbook/skills/vibe-coding-fix/SKILL.md) | Apply bounded local fixes from a vibe-coding health-check report, then verify. |
 | [`vibe-coding-health-check`](agent-playbook/skills/vibe-coding-health-check/SKILL.md) | Audit a repo or current diff after fast AI-assisted coding for drift, fragility, missing verification, and context/tool hygiene. |
+| [`workflow-router`](agent-playbook/skills/workflow-router/SKILL.md) | Conversation-only Start Here router that selects the owning workflow and next prompt without executing downstream skills. |
 
 ### antifragile
 
