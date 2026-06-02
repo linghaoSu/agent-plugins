@@ -1,2 +1,4 @@
 .DS_Store
 .agent-playbook/current/
+__pycache__/
+*.pyc

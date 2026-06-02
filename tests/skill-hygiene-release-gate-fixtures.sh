@@ -20,6 +20,17 @@ SKILL_TOPOLOGY_TARGETS=(
   "tests/skill-topology-*"
   "RELEASE-GATE.md"
 )
+SKILL_STATS_CLEANER_TARGETS=(
+  ".claude-plugin/marketplace.json"
+  "skill-stats"
+  "skill-stats/.claude-plugin/plugin.json"
+  "tests/skill-stats-cleaner-*"
+  "scripts/release-gate.sh"
+  "tests/skill-hygiene-release-gate-fixtures.sh"
+  "RELEASE-GATE.md"
+  "README.md"
+  "PORTFOLIO.md"
+)
 
 cleanup() {
   if [ "$TMP_DIRS_COUNT" -eq 0 ]; then
@@ -101,6 +112,26 @@ release_gate_topology_targets() {
   ' "$RELEASE_GATE"
 }
 
+release_gate_skill_stats_cleaner_targets() {
+  awk '
+    /^SKILL_STATS_CLEANER_TARGETS=\(/ {
+      in_targets = 1
+      next
+    }
+    in_targets && /^\)/ {
+      exit
+    }
+    in_targets {
+      line = $0
+      sub(/^[ \t]*/, "", line)
+      gsub(/"/, "", line)
+      if (line != "") {
+        print line
+      }
+    }
+  ' "$RELEASE_GATE"
+}
+
 require_infra_targets_match() {
   expected="$(release_gate_infra_targets)"
   actual="$(printf '%s\n' "${SKILL_HYGIENE_INFRA_TARGETS[@]}")"
@@ -120,6 +151,17 @@ require_topology_targets_match() {
     pass "self-check-skill-topology-targets"
   else
     fail "self-check-skill-topology-targets" "fixture target list differs from release gate"
+  fi
+}
+
+require_skill_stats_cleaner_targets_match() {
+  expected="$(release_gate_skill_stats_cleaner_targets)"
+  actual="$(printf '%s\n' "${SKILL_STATS_CLEANER_TARGETS[@]}")"
+
+  if [ "$actual" = "$expected" ]; then
+    pass "self-check-skill-stats-cleaner-targets"
+  else
+    fail "self-check-skill-stats-cleaner-targets" "fixture target list differs from release gate"
   fi
 }
 
@@ -184,6 +226,7 @@ make_candidate_repo() {
     {
       git -C "$ROOT" ls-files --cached --others --exclude-standard -- "${SKILL_HYGIENE_INFRA_TARGETS[@]}"
       git -C "$ROOT" ls-files --cached --others --exclude-standard -- "${SKILL_TOPOLOGY_TARGETS[@]}"
+      git -C "$ROOT" ls-files --cached --others --exclude-standard -- "${SKILL_STATS_CLEANER_TARGETS[@]}"
     } | sed '/^$/d' | sort -u
   )"
   while IFS= read -r file; do
@@ -465,11 +508,16 @@ self_check() {
   require_grep "unsafe-command-example" "$ROOT/RELEASE-GATE.md" "self-check-authoring-command-id"
   require_grep "skill-topology-fixtures" "$RELEASE_GATE" "self-check-skill-topology-fixtures-id"
   require_grep "skill-topology-infra-drift" "$RELEASE_GATE" "self-check-skill-topology-infra-drift-id"
+  require_grep "skill-stats-cleaner-fixtures" "$RELEASE_GATE" "self-check-skill-stats-cleaner-fixtures-id"
+  require_grep "skill-stats-cleaner-scope-drift" "$RELEASE_GATE" "self-check-skill-stats-cleaner-scope-drift-id"
   require_grep "tests/skill-hygiene-check-fixtures.sh" "$RELEASE_GATE" "self-check-checker-fixture-command"
   require_grep "tests/skill-hygiene-release-gate-fixtures.sh --self-check" "$RELEASE_GATE" "self-check-non-recursive-command"
   require_grep "tests/skill-topology-scan-fixtures.sh" "$RELEASE_GATE" "self-check-topology-fixture-command"
+  require_grep "tests/skill-stats-cleaner-fixtures.sh" "$RELEASE_GATE" "self-check-skill-stats-cleaner-fixture-command"
+  require_grep "skill-stats-cleaner-fixtures" "$ROOT/RELEASE-GATE.md" "self-check-skill-stats-cleaner-docs-id"
   require_infra_targets_match
   require_topology_targets_match
+  require_skill_stats_cleaner_targets_match
 }
 
 full_check() {
@@ -488,6 +536,7 @@ full_check() {
   assert_json_check "$all_json" "skill-hygiene-fixtures" "advisory" "pass" 0
   assert_json_check "$all_json" "skill-hygiene-release-gate-fixtures" "advisory" "pass" 0
   assert_json_check "$all_json" "skill-topology-fixtures" "advisory" "pass" 0
+  assert_json_check "$all_json" "skill-stats-cleaner-fixtures" "advisory" "pass" 0
   assert_json_check "$all_json" "skill-hygiene" "advisory" "warn" 1
   assert_json_evidence_contains "$all_json" "skill-hygiene" "moderate-skill-bloat" "json-all-moderate-bloat-evidence"
   assert_json_evidence_contains "$all_json" "skill-hygiene" "repeated-inline-template" "json-all-repeated-template-evidence"
@@ -530,6 +579,7 @@ full_check() {
   assert_json_check "$working_pass_json" "skill-hygiene-fixtures" "advisory" "pass" 0
   assert_json_check "$working_pass_json" "skill-hygiene-release-gate-fixtures" "advisory" "pass" 0
   assert_json_check "$working_pass_json" "skill-topology-fixtures" "advisory" "pass" 0
+  assert_json_check "$working_pass_json" "skill-stats-cleaner-fixtures" "advisory" "pass" 0
 
   checker_fixture_fail_repo="$(make_candidate_repo)"
   printf '\nchecker fixture failure touch\n' >>"$checker_fixture_fail_repo/RELEASE-GATE.md"
@@ -573,6 +623,20 @@ EOF
   topology_fixture_strict_json="$(run_gate_json "$topology_fixture_fail_repo" "working" "true" 1 "release-gate-topology-fixture-strict-json")"
   assert_json_check "$topology_fixture_strict_json" "skill-topology-fixtures" "advisory" "fail" 1
 
+  skill_stats_fixture_fail_repo="$(make_candidate_repo)"
+  printf '\nskill-stats cleaner fixture failure touch\n' >>"$skill_stats_fixture_fail_repo/skill-stats/WORKFLOW-CONTRACTS.md"
+  cat >"$skill_stats_fixture_fail_repo/tests/skill-stats-cleaner-fixtures.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+  chmod +x "$skill_stats_fixture_fail_repo/tests/skill-stats-cleaner-fixtures.sh"
+
+  skill_stats_fixture_warn_json="$(run_gate_json "$skill_stats_fixture_fail_repo" "working" "false" 0 "release-gate-skill-stats-cleaner-fixture-warn-json")"
+  assert_json_check "$skill_stats_fixture_warn_json" "skill-stats-cleaner-fixtures" "advisory" "warn" 1
+
+  skill_stats_fixture_strict_json="$(run_gate_json "$skill_stats_fixture_fail_repo" "working" "true" 1 "release-gate-skill-stats-cleaner-fixture-strict-json")"
+  assert_json_check "$skill_stats_fixture_strict_json" "skill-stats-cleaner-fixtures" "advisory" "fail" 1
+
   staged_topology_pass_repo="$(make_candidate_repo)"
   printf '\n# staged topology fixture pass\n' >>"$staged_topology_pass_repo/scripts/skill-topology-scan.py"
   git -C "$staged_topology_pass_repo" add scripts/skill-topology-scan.py
@@ -580,6 +644,14 @@ EOF
   staged_topology_pass_json="$(run_gate_json "$staged_topology_pass_repo" "staged" "false" 0 "release-gate-staged-topology-pass-json")"
   assert_json_check "$staged_topology_pass_json" "skill-topology-infra-drift" "blocking" "pass" 0
   assert_json_check "$staged_topology_pass_json" "skill-topology-fixtures" "advisory" "pass" 0
+
+  staged_skill_stats_pass_repo="$(make_candidate_repo)"
+  printf '\n# staged skill-stats cleaner fixture pass\n' >>"$staged_skill_stats_pass_repo/skill-stats/WORKFLOW-CONTRACTS.md"
+  git -C "$staged_skill_stats_pass_repo" add skill-stats/WORKFLOW-CONTRACTS.md
+
+  staged_skill_stats_pass_json="$(run_gate_json "$staged_skill_stats_pass_repo" "staged" "false" 0 "release-gate-staged-skill-stats-cleaner-pass-json")"
+  assert_json_check "$staged_skill_stats_pass_json" "skill-stats-cleaner-scope-drift" "blocking" "pass" 0
+  assert_json_check "$staged_skill_stats_pass_json" "skill-stats-cleaner-fixtures" "advisory" "pass" 0
 
   staged_repo="$(make_candidate_repo)"
   write_scan_limited_prompt_skill "$staged_repo"
@@ -593,9 +665,11 @@ EOF
   assert_json_check "$staged_json" "agent-playbook-fixture-scope-drift" "blocking" "fail" 1
   assert_json_check "$staged_json" "skill-hygiene-infra-drift" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-topology-infra-drift" "skipped" "skip" 0
+  assert_json_check "$staged_json" "skill-stats-cleaner-scope-drift" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-hygiene-fixtures" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-hygiene-release-gate-fixtures" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-topology-fixtures" "skipped" "skip" 0
+  assert_json_check "$staged_json" "skill-stats-cleaner-fixtures" "skipped" "skip" 0
   assert_json_check "$staged_json" "skill-hygiene" "advisory" "warn" 1
   assert_json_evidence_contains "$staged_json" "skill-hygiene" "repetition-scan-limited" "json-staged-scan-limited-evidence"
   assert_json_evidence_contains "$staged_json" "skill-hygiene" "scan-limited-prompt" "json-staged-prompt-scan-limited-evidence"
@@ -626,6 +700,18 @@ EOF
   topology_drift_json="$(run_gate_json "$topology_drift_repo" "staged" "false" 1 "release-gate-staged-untracked-topology-drift-json")"
   assert_json_check "$topology_drift_json" "skill-topology-infra-drift" "blocking" "fail" 1
   assert_json_evidence_contains "$topology_drift_json" "skill-topology-infra-drift" "tests/skill-topology-helper.sh" "json-staged-untracked-topology-drift-evidence"
+
+  skill_stats_drift_repo="$(make_candidate_repo)"
+  printf '\n# staged skill-stats cleaner drift fixture\n' >>"$skill_stats_drift_repo/skill-stats/WORKFLOW-CONTRACTS.md"
+  git -C "$skill_stats_drift_repo" add skill-stats/WORKFLOW-CONTRACTS.md
+  cat >"$skill_stats_drift_repo/tests/skill-stats-cleaner-helper.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+
+  skill_stats_drift_json="$(run_gate_json "$skill_stats_drift_repo" "staged" "false" 1 "release-gate-staged-untracked-skill-stats-cleaner-drift-json")"
+  assert_json_check "$skill_stats_drift_json" "skill-stats-cleaner-scope-drift" "blocking" "fail" 1
+  assert_json_evidence_contains "$skill_stats_drift_json" "skill-stats-cleaner-scope-drift" "tests/skill-stats-cleaner-helper.sh" "json-staged-untracked-skill-stats-cleaner-drift-evidence"
 }
 
 case "${1:-}" in

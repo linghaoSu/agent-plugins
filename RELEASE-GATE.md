@@ -37,6 +37,7 @@ blocking, advisory, and skipped checks.
 | `secret-scan` | `secret-scanner/scripts/scan.py --format json` reports no findings for the selected mode. | `1` |
 | `skill-hygiene-infra-drift` | In `--mode staged`, when staged changes touch skill-hygiene infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed checker/fixture code. | `1` |
 | `skill-topology-infra-drift` | In `--mode staged`, when staged changes touch skill-topology infrastructure, the corresponding worktree files match the index so staged gates do not validate mixed scanner/fixture code. | `1` |
+| `skill-stats-cleaner-scope-drift` | In `--mode staged`, when staged changes touch skill-stats cleaner scope, the corresponding worktree files match the index so staged gates do not validate mixed wrapper/fixture code. | `1` |
 | `agent-playbook-fixture-scope-drift` | In `--mode staged`, when staged changes touch agent-playbook fixture scope or broad-orchestrator scan surfaces, the corresponding worktree files match the index before worktree-based fixture scans run. | `1` |
 
 Missing required tools (`git`, `jq`, `python3`) or the required Python `yaml`
@@ -59,6 +60,7 @@ Advisory checks report risk without changing the release gate exit code unless
 | `skill-hygiene-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-check-fixtures.sh` so checker snapshot and existing-check regression fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
 | `skill-topology-fixtures` | `all`, or `staged`/`working` when the diff touches skill-topology scanner, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-topology-scan-fixtures.sh` so the read-only topology scanner keeps reporting broken references, orphan skills, hub skills, skill-tree output, and README coverage gaps deterministically. | `WARN` (`FAIL` with `--strict`) |
+| `skill-stats-cleaner-fixtures` | `all`, or `staged`/`working` when the diff touches `skill-stats`, skill-stats plugin metadata, marketplace metadata, `tests/skill-stats-cleaner-*`, release-gate wiring, README, or portfolio docs | Runs `bash tests/skill-stats-cleaner-fixtures.sh` so the skill-cleaner report/apply wrapper keeps its analyzer setup, evidence bundle, plan hash, approval, and scoped mutation fixtures intact. | `WARN` (`FAIL` with `--strict`) |
 | `idea-to-ship-fixtures` | `all`, or `staged`/`working` when the diff touches `idea-to-ship/` or its fixture files | Runs `bash tests/idea-to-ship-eval-fixtures.sh` so critical idea-to-ship instruction contracts and artifact safety fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `agent-playbook-fixtures` | `all`, or `staged`/`working` when the diff touches agent-playbook fixture scope, `.idea-to-ship/ITS-ROADMAP-020/`, or a broad-orchestrator scan surface (`README.md`, `*/README.md`, `.claude-plugin/marketplace.json`, `*/.claude-plugin/plugin.json`, `*/skills/*/SKILL.md`, `*/skills/*/agents/openai.yaml`) | Runs `bash tests/agent-playbook-eval-fixtures.sh` so critical agent-playbook/tool-safety instruction contracts, orchestration-boundary guards, and skill metadata fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 
@@ -99,6 +101,7 @@ Advisory
   PASS skill-hygiene-fixtures: skill hygiene fixture checks passed
   PASS skill-hygiene-release-gate-fixtures: skill hygiene release-gate fixture self-check passed
   PASS skill-topology-fixtures: skill topology fixture checks passed
+  PASS skill-stats-cleaner-fixtures: skill-stats cleaner fixture checks passed
   PASS idea-to-ship-fixtures: idea-to-ship fixture checks passed
   PASS agent-playbook-fixtures: agent-playbook fixture checks passed
 ```

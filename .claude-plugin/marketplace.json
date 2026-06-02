@@ -41,7 +41,7 @@
     },
     {
       "name": "skill-stats",
-      "description": "Track skill invocations via PostToolUse hook and display usage statistics. Run /skill-stats to see call counts, last-used times, daily trends, and identify unused skills.",
+      "description": "Track skill invocations, display usage statistics, and optionally run report-only skill-cleaner analysis with explicit apply-confirm cleanup.",
       "source": "./skill-stats"
     },
     {

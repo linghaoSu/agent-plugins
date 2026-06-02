@@ -107,7 +107,7 @@ Use skills through their plugin-qualified names, for example
 
 | Skill | Purpose |
 |---|---|
-| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Conversation-only read of local skill usage statistics: call counts, last-used time, unused skills, and truncation status. Never edits logs or hooks. |
+| [`skill-stats`](skill-stats/skills/skill-stats/SKILL.md) | Conversation-only read of local skill usage statistics, plus a report-only by default skill-cleaner report via `--cleaner`. Configure the external analyzer with `--analyzer` or `SKILL_STATS_CLEANER_ANALYZER`; report mode may write a wrapper-owned evidence bundle but does not edit skill roots. Mutating cleanup uses apply-confirm with `--apply`, an exact `/plan` approval, and a checked plan hash. |
 
 ### worktree-cleaner
 

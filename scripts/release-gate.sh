@@ -72,6 +72,17 @@ SKILL_TOPOLOGY_TARGETS=(
   "tests/skill-topology-*"
   "RELEASE-GATE.md"
 )
+SKILL_STATS_CLEANER_TARGETS=(
+  ".claude-plugin/marketplace.json"
+  "skill-stats"
+  "skill-stats/.claude-plugin/plugin.json"
+  "tests/skill-stats-cleaner-*"
+  "scripts/release-gate.sh"
+  "tests/skill-hygiene-release-gate-fixtures.sh"
+  "RELEASE-GATE.md"
+  "README.md"
+  "PORTFOLIO.md"
+)
 AGENT_PLAYBOOK_FIXTURE_TARGETS=(
   "agent-playbook"
   "antifragile"
@@ -564,6 +575,10 @@ diff_touches_skill_topology_infra() {
   diff_touches_any "${SKILL_TOPOLOGY_TARGETS[@]}"
 }
 
+diff_touches_skill_stats_cleaner() {
+  diff_touches_any "${SKILL_STATS_CLEANER_TARGETS[@]}"
+}
+
 diff_touches_agent_playbook_fixture_scope() {
   diff_touches_any "${AGENT_PLAYBOOK_FIXTURE_TARGETS[@]}"
 }
@@ -630,6 +645,38 @@ check_skill_topology_infra_drift() {
 
   add_result "blocking" "pass" "skill-topology-infra-drift" \
     "staged skill topology infrastructure matches the worktree" "" "$command_text" 0
+}
+
+check_skill_stats_cleaner_scope_drift() {
+  command_text="git diff --cached --name-only -- <skill-stats cleaner scope>; git diff --name-only -- <skill-stats cleaner scope>"
+
+  if [ "$MODE" != "staged" ]; then
+    return
+  fi
+
+  staged_paths="$(git diff --cached --name-only -- "${SKILL_STATS_CLEANER_TARGETS[@]}")"
+  if [ -z "$staged_paths" ]; then
+    add_result "skipped" "skip" "skill-stats-cleaner-scope-drift" \
+      "no staged diff touches skill-stats cleaner scope" "" "$command_text" 0
+    return
+  fi
+
+  drift_paths="$(
+    {
+      git diff --name-only -- "${SKILL_STATS_CLEANER_TARGETS[@]}"
+      git ls-files --others --exclude-standard -- "${SKILL_STATS_CLEANER_TARGETS[@]}"
+    } | sed '/^$/d' | sort -u
+  )"
+  if [ -n "$drift_paths" ]; then
+    first_path="$(printf '%s\n' "$drift_paths" | sed -n '1p')"
+    add_result "blocking" "fail" "skill-stats-cleaner-scope-drift" \
+      "staged skill-stats cleaner scope differs from the worktree" \
+      "$first_path" "$command_text" 1
+    return
+  fi
+
+  add_result "blocking" "pass" "skill-stats-cleaner-scope-drift" \
+    "staged skill-stats cleaner scope matches the worktree" "" "$command_text" 0
 }
 
 check_agent_playbook_fixture_scope_drift() {
@@ -859,6 +906,39 @@ check_skill_topology_fixtures() {
   fi
 }
 
+check_skill_stats_cleaner_fixtures() {
+  command_text="bash tests/skill-stats-cleaner-fixtures.sh"
+
+  if ! diff_touches_skill_stats_cleaner; then
+    add_result "skipped" "skip" "skill-stats-cleaner-fixtures" \
+      "no $MODE diff touches skill-stats cleaner fixture scope" "" "$command_text" 0
+    return
+  fi
+
+  if [ ! -f "tests/skill-stats-cleaner-fixtures.sh" ]; then
+    add_result "advisory" "warn" "skill-stats-cleaner-fixtures" \
+      "skill-stats cleaner fixture command is missing" \
+      "tests/skill-stats-cleaner-fixtures.sh" "$command_text" 2
+    return
+  fi
+
+  output="$(bash tests/skill-stats-cleaner-fixtures.sh 2>&1)"
+  code="$?"
+
+  if [ "$code" -eq 0 ]; then
+    add_result "advisory" "pass" "skill-stats-cleaner-fixtures" \
+      "skill-stats cleaner fixture checks passed" "" "$command_text" 0
+  elif [ "$code" -eq 1 ]; then
+    add_result "advisory" "warn" "skill-stats-cleaner-fixtures" \
+      "skill-stats cleaner fixture checks reported regressions" \
+      "$(join_output "$output")" "$command_text" 1
+  else
+    add_result "advisory" "warn" "skill-stats-cleaner-fixtures" \
+      "skill-stats cleaner fixture checks could not run" \
+      "$(join_output "$output")" "$command_text" "$code"
+  fi
+}
+
 emit_human() {
   printf 'Release gate: %s\n\n' "$MODE"
   printf 'Blocking\n'
@@ -931,11 +1011,13 @@ check_diff_whitespace
 check_secret_scan
 check_skill_hygiene_infra_drift
 check_skill_topology_infra_drift
+check_skill_stats_cleaner_scope_drift
 check_agent_playbook_fixture_scope_drift
 check_skill_hygiene
 check_skill_hygiene_fixtures
 check_skill_hygiene_release_gate_fixtures
 check_skill_topology_fixtures
+check_skill_stats_cleaner_fixtures
 check_idea_to_ship_fixtures
 check_agent_playbook_fixtures
 
