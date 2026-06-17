@@ -1,19 +1,34 @@
 ---
-goal: "同步 agent-playbook workflow-router 当前任务到 idea-to-ship portfolio roadmap"
-horizon: "current workflow-router change; candidate brief only until final priority approved"
-generated_at: "2026-06-02 12:55 CST"
-repo_head: "109d20907e724af4fb70feaa0b2db9f1197a0e64"
-dirty_worktree: "workflow-router diff in progress; roadmap edit requested before commit"
+goal: "记录 roadmap 转外部项目管理工具 issue 列表能力到 idea-to-ship portfolio roadmap"
+horizon: "candidate brief only until final priority and implementation horizon are approved"
+generated_at: "2026-06-17 10:16 CST"
+repo_head: "16bc4f6c5984aec8fbcd57141819d633c3375417"
+dirty_worktree: "roadmap edit requested by user; existing workspace may contain unrelated changes"
 mode: "portfolio"
-source_scope: "current user request + workflow-router diff + local review comments + existing roadmap; no GitHub issues or TODO scan"
+source_scope: "current user request + multi-agent brainstorm + local roadmap/contract/template evidence; no live Linear/GitLab/GitHub access"
 write_target: ".idea-to-ship/roadmap.md"
 final_lanes_written: "no; candidate brief updated only"
-priority_approval: "ITS-ROADMAP-022 intake approved by current user request; final lane priority still not provided"
+priority_approval: "ITS-ROADMAP-023 intake approved by current user request; final lane priority and horizon still not provided"
 ---
 
 # Roadmap - Workflow Router Intake And Prior Skill Work
 
 ## Human-Owned Sections
+
+### Current Refresh Request - 2026-06-17
+
+- User requested: support converting `idea-to-ship` roadmap output into
+  external project-management tool issue lists, including Linear and GitLab,
+  record the capability in the current roadmap, and use multi-agent
+  brainstorming to think through best practices.
+- Multi-agent conclusion: the safest first capability is export-only local
+  issue-list generation with stable roadmap IDs, field mapping, loss/conflict
+  reporting, and provider-specific import artifacts. Direct Linear/GitLab
+  writes, sync, or write-back should be separate, explicit-authorization
+  follow-up stages.
+- Roadmap action: track this as `ITS-ROADMAP-023` in the candidate brief. Do
+  not write final Now / Next / Later lanes until priority and implementation
+  horizon are explicitly approved.
 
 ### Current Refresh Request - 2026-06-02
 
@@ -89,6 +104,29 @@ priority_approval: "ITS-ROADMAP-022 intake approved by current user request; fin
 
 Included sources:
 
+- Current user request: support roadmap conversion to external project
+  management tools such as Linear and GitLab issue lists, record it in the
+  current skill roadmap, think through best practices, and use multi-agent
+  brainstorming.
+- Multi-agent brainstorm outputs in this session:
+  product/export mapping, skill-boundary analysis, and safety/idempotency
+  analysis.
+- Local roadmap ownership and gates:
+  `idea-to-ship/skills/roadmap/SKILL.md:16-27`,
+  `idea-to-ship/skills/roadmap/SKILL.md:51-59`,
+  `idea-to-ship/skills/roadmap/SKILL.md:105-113`,
+  `idea-to-ship/skills/roadmap/SKILL.md:221-249`,
+  `idea-to-ship/skills/roadmap/SKILL.md:271-283`, and
+  `idea-to-ship/skills/roadmap/SKILL.md:314-323`.
+- Local external-mutation and read-only boundaries:
+  `idea-to-ship/WORKFLOW-CONTRACTS.md:104-110`,
+  `README.md:32-35`, and `SKILLS.md:7-10`.
+- Local roadmap schema and fixture patterns:
+  `idea-to-ship/templates/roadmap-item-schema.md:3-36`,
+  `idea-to-ship/templates/roadmap-candidate-brief.md:6-23`,
+  `tests/idea-to-ship-eval-fixtures.py:56-71`,
+  `tests/idea-to-ship-eval-fixtures.py:825-837`, and
+  `tests/idea-to-ship-eval-fixtures.py:1312-1372`.
 - Current user request: sync the workflow-router task into the idea-to-ship
   portfolio roadmap.
 - Current workflow-router diff: `agent-playbook/skills/workflow-router/SKILL.md:1-169`,
@@ -120,6 +158,12 @@ Included sources:
 
 Excluded sources:
 
+- Live Linear, GitLab, GitHub, Jira, or other project-management APIs.
+- Current Linear/GitLab API documentation and provider-specific field limits;
+  those belong in `ITS-ROADMAP-023` requirements/architecture before
+  implementation.
+- Existing external issue trackers, milestones, labels, assignees, or team
+  configuration.
 - External `skill-cleaner` analyzer implementation under `scripts/skill-cleaner.ts`; this run used only the user-provided `SKILL.md` reference, so implementation effort, license fit, and exact parser behavior remain open.
 - GitHub issues, PRs, milestones, and discussions in both repos.
 - TODO/FIXME scan and git-history mining.
@@ -145,6 +189,7 @@ Excluded sources:
 | ITS-ROADMAP-020 | Evaluate a repo orchestration / bootstrap skill. | Spike complete | Spike | Repo | Medium | `.idea-to-ship/ITS-ROADMAP-020/orchestration-spike.md`; `tests/agent-playbook-eval-fixtures.py` | Closed as "adapt narrow intake patterns; reject broad repo orchestrator." |
 | ITS-ROADMAP-021 | Extend `skill-stats` with steipete `skill-cleaner` via an external-wrapper analyzer. | Completed | Feature | Explicit | High | User request; user decisions: expand existing, external wrapper, report-only plus confirmation-gated apply; `https://github.com/steipete/agent-scripts/blob/main/skills/skill-cleaner/SKILL.md#L8-L56`; `skill-stats/skills/skill-stats/SKILL.md`; `skill-stats/WORKFLOW-CONTRACTS.md`; `.idea-to-ship/ITS-ROADMAP-021/code-review.md` | Closed with local wrapper, report/preflight/apply fixtures, public contract/docs updates, release-gate wiring, and clean adversarial review. |
 | ITS-ROADMAP-022 | Add `$agent-playbook:workflow-router` as a Start Here route card and fix review-discovered routing gaps. | In progress | Feature | Explicit | High | User request; `agent-playbook/skills/workflow-router/SKILL.md:1-169`; `README.md:42-65`; `SKILLS.md:12-47`; `tests/agent-playbook-eval-fixtures.py:237-287`; user-provided P2 review comments | Fix hook-install routing to `$secret-scanner:install-precommit-hook`, replace `$harness-engineering:*` with concrete harness skills, update fixture coverage, and rerun strict release gates. |
+| ITS-ROADMAP-023 | Export `idea-to-ship` roadmaps to Linear/GitLab-ready issue lists. | Candidate | Feature | Explicit | High | User request; multi-agent brainstorm; `idea-to-ship/skills/roadmap/SKILL.md:16-27`; `idea-to-ship/skills/roadmap/SKILL.md:51-59`; `idea-to-ship/templates/roadmap-item-schema.md:3-36`; `idea-to-ship/WORKFLOW-CONTRACTS.md:104-110`; `tests/idea-to-ship-eval-fixtures.py:825-837` | Run `/brainstorm --slug ITS-ROADMAP-023` to define export-only MVP, provider field mapping, local artifact format, item eligibility rules, and post-MVP sync/write-back authorization gates. |
 
 ### ITS-ROADMAP-008 - Collapse idea-to-ship implement repetition
 
@@ -244,7 +289,9 @@ Excluded sources:
 4. `ITS-ROADMAP-008` is complete and reviewed with closure artifacts.
 5. `ITS-ROADMAP-011` is complete and reviewed with closure artifacts.
 
-Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, then rerun the agent-playbook fixtures and strict release gate. `ITS-ROADMAP-021` remains complete.
+Recommended next action is to resolve the `ITS-ROADMAP-022` review comments
+before closing workflow-router work. For the new external-PM roadmap capability,
+run `/brainstorm --slug ITS-ROADMAP-023` before design or implementation.
 
 ### ITS-ROADMAP-014 - Add skill topology scan and connection analysis
 
@@ -400,8 +447,30 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 **Dependencies:** Existing `agent-playbook` operator workflows, `secret-scanner:scan-secrets`, `secret-scanner:install-precommit-hook`, and concrete `harness-engineering` skills.
 **Risk:** medium - the router is user-facing and low-code, so small wording mistakes can send users to the wrong owner or produce non-invocable prompts even when release fixtures pass.
 
+### ITS-ROADMAP-023 - Export idea-to-ship roadmaps to external PM issue lists
+
+**Status:** Candidate
+**Work Type:** Feature
+**Evidence Class:** Explicit
+**Confidence:** High
+**Source Anchors:** User request on 2026-06-17 to support roadmap conversion to external project management tools such as Linear and GitLab issue lists; multi-agent brainstorm results in the current session; `idea-to-ship/skills/roadmap/SKILL.md:16-27`; `idea-to-ship/skills/roadmap/SKILL.md:51-59`; `idea-to-ship/skills/roadmap/SKILL.md:105-113`; `idea-to-ship/skills/roadmap/SKILL.md:221-249`; `idea-to-ship/skills/roadmap/SKILL.md:271-283`; `idea-to-ship/templates/roadmap-item-schema.md:3-36`; `idea-to-ship/WORKFLOW-CONTRACTS.md:104-110`; `README.md:32-35`; `SKILLS.md:7-10`; `tests/idea-to-ship-eval-fixtures.py:56-71`; `tests/idea-to-ship-eval-fixtures.py:825-837`.
+**Why Now / Why Next / Why Later:** The user explicitly asked for this capability and it has high leverage because `idea-to-ship` roadmaps already carry stable IDs, evidence, release gates, dependencies, and risk fields that map naturally to external issue trackers. Best practice is to start with deterministic export-only local artifacts and loss/conflict reports, then add explicit-authorized sync/write-back only after requirements, provider mapping, idempotency, and safety gates are designed. Because final priority and horizon were not approved, this stays in the Candidate Brief instead of entering Now.
+**Owner:** Unassigned
+**Decision Owner:** User/maintainer
+**Release Gate:** Entry: run `/brainstorm --slug ITS-ROADMAP-023`; approve provider scope, export-only MVP, target field mapping, item eligibility, local artifact paths, and whether Linear/GitLab are first-class targets or examples of a generic provider contract. Exit: deterministic local export artifacts can produce Linear/GitLab-ready issue lists from sourced roadmap items; stable roadmap IDs are preserved as the primary key; exported bodies retain status, work type, evidence class, confidence, source anchors, lane rationale, release gate, evidence required, dependencies, and risk; missing provider mappings produce warnings instead of guessed assignees/projects; weak, unknown, inferred, or unverified items are blocked from executable issue output unless explicitly approved; fixtures cover schema loss, generated-marker preservation, rerun idempotency, duplicate prevention strategy, and provider-free export behavior. No-go: direct Linear/GitLab API writes from `/roadmap`, creating issues from Candidate Backlog or Unverified Signals by default, title-only duplicate detection, guessed assignees/projects/milestones, overwriting remote human content, live-provider tests in the release gate, or sync/write-back without two-phase plan/apply approval.
+**Evidence Required:** `.idea-to-ship/ITS-ROADMAP-023/requirements.md`, `architecture.md`, `test-plan.md`, `tdd-log.md`, `implementation-log.md`, and `code-review.md`; focused provider-free export fixtures; fake-provider sync fixtures if sync is implemented; updated roadmap/export templates or skill docs if the public contract changes; `tests/idea-to-ship-eval-fixtures.sh`; and `scripts/release-gate.sh --mode all --strict`.
+**Dependencies:** Existing roadmap item schema, generated-marker preservation, brainstorm requirements gate, and external-mutation authorization rules. Post-MVP sync depends on provider configuration, auth handling, stable remote markers/custom fields, and a local sidecar mapping.
+**Risk:** high - direct external PM writes can duplicate or mutate team backlogs if stable IDs, search-before-create, conflict detection, and explicit approval gates are missing.
+
 ## Unverified Signals
 
+- `ITS-ROADMAP-023` has no accepted requirements yet; this brief records
+  direction and safety constraints, not an implementation design.
+- No live Linear/GitLab provider access or current provider API documentation
+  was used in this refresh; exact provider fields, limits, and auth flows need
+  `ITS-ROADMAP-023` requirements and architecture.
+- The multi-agent brainstorm recommended export-only first, but target artifact
+  paths, formats, and provider matrix are not yet approved.
 - The workflow-router implementation has not yet been updated after the
   user-provided P2 review comments in this refresh.
 - The external `skill-cleaner` script implementation was not inspected in this roadmap refresh; only its `SKILL.md` contract was used as evidence.
@@ -432,6 +501,10 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 - The preserved human-owned section above still references the previous "next 3 commits" stability roadmap. This generated brief now keeps those prior candidates and appends Kagenti intake candidates, instead of treating the new scan as a replacement.
 - Kagenti assumes Claude Code-specific skill invocation, TaskList, AskUserQuestion, and `.claude/settings.json` auto-approve behavior. Local adoption must translate those ideas to this Codex/plugin repo rather than copying host-specific mechanics.
 - A dedicated visual-test skill overlaps with existing `ui-design`, `test`, `tdd`, and `review-code` UI gates. The new skill should execute visual verification, while the existing skills continue to own design contract, story test plan, red-first gates, and code review verdicts.
+- External PM sync is valuable, but existing roadmap and cross-skill safety
+  rules prevent default external mutation. `ITS-ROADMAP-023` resolves this by
+  scoping the first stage to export-only local artifacts and keeping live sync
+  or write-back behind explicit plan/apply authorization.
 
 ## Resolved And Open Decisions
 
@@ -444,6 +517,10 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 | Where should `skill-cleaner` be integrated? | A: new `skill-stats:skill-cleaner`; B: expand `skill-stats:skill-stats`; C: make it part of `agent-playbook:context-audit`; D: make it a release-gate check | Resolved: B | User | Resolved 2026-05-27 | Implementation should expand existing `skill-stats` while keeping the broadened responsibility explicit in the workflow contract. |
 | Which implementation strategy should be used? | A: port/adapt external TypeScript; B: implement local analyzer in the repo's current language/tooling; C: shell out to an external checkout | Resolved: C | User/maintainer | Resolved 2026-05-27 | Architecture must define external script location, version pinning/update policy, missing-dependency fallback, and attribution/licensing expectations. |
 | Can cleanup be applied automatically? | A: report-only first; B: optional apply mode later with explicit confirmation; C: immediate delete/disable support | Resolved: A plus B | User | Resolved 2026-05-27 | Default path must remain report-only; apply mode must require explicit confirmation and name every planned edit/delete/disable target first. |
+| What should the first external-PM capability be? | A: export-only local issue lists and reports; B: live create/update sync; C: write-back from PM tools to roadmap | A | User/maintainer | Before `ITS-ROADMAP-023` requirements closure | Starting with live sync risks duplicate issues and unintended backlog mutation before the schema, mapping, and approval gates are proven. |
+| Which providers and formats are in scope for `ITS-ROADMAP-023`? | A: Linear and GitLab-ready local Markdown/JSONL or CSV artifacts; B: add GitHub/Jira immediately; C: generic provider adapter first | A as the initial requirement candidate | User/maintainer | During `/brainstorm --slug ITS-ROADMAP-023` | Over-broad provider scope will turn a bounded export into a generic backlog orchestrator. |
+| How should external writes be authorized after export-only works? | A: never write externally; B: two-phase plan/apply with exact provider scope, action list, and approval hash; C: direct sync from roadmap generation | B for a post-MVP stage | User/maintainer | Before any sync/write-back implementation | Without explicit approval and stable action identity, sync can overwrite remote human edits or create duplicate issues. |
+| What remains the source of truth after external sync exists? | A: roadmap remains authoritative and external tools are execution views; B: external tools can write back automatically; C: bidirectional merge by latest timestamp | A, with drift reports first | User/maintainer | Before write-back design | Latest-timestamp merges can silently replace requirements-backed roadmap decisions with low-context PM edits. |
 | Should visual baselines be generated automatically in downstream projects? | A: create only with explicit user/design approval; B: create on first run and flag for review; C: compare only, never create | A | User/design owner per project | Before each real visual-test run | Automatic baseline creation can bless broken UI and hide regressions. |
 | Should Kagenti-style topology docs become generated README sections? | A: generated sections in root README; B: separate report command; C: release-gate-only output | B remains current | User | Future topology-doc cycle | Generated README churn can create noisy diffs if the schema is not stable. |
 
@@ -456,6 +533,16 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 - Replacing local `idea-to-ship` with Kagenti `orchestrate`: rejected for now because their ownership differs. `idea-to-ship` owns product/feature artifacts; `orchestrate` is a repo enablement pipeline.
 - Making screenshot diff approval a pure model judgment: rejected. Visual-test should produce deterministic artifacts, assertions, and user/design approval for baseline changes.
 - Treating Playwright demo-video testing as equivalent to visual regression testing: rejected. Kagenti separates functional UI tests from demo recording; local visual-test should do the same.
+- Adding Linear/GitLab write APIs directly to `/roadmap`: rejected because
+  roadmap owns sequencing, evidence, release gates, and human decisions; live
+  external mutation needs a separately authorized sync/apply stage.
+- Treating Candidate Backlog or Unverified Signals as an import queue:
+  rejected because weak, unknown, inferred, and unsourced work must not become
+  executable external issues by default.
+- Using title-only matching for external issue idempotency: rejected because
+  titles drift and are not stable enough to prevent duplicate issue creation.
+- Making live Linear/GitLab provider calls part of the release gate: rejected
+  because release verification must remain deterministic and provider-free.
 
 ## Acceptance Checks
 
@@ -465,7 +552,12 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 - Review sync: hook-install routing and harness wildcard findings are recorded
   as `ITS-ROADMAP-022` release-gate exit conditions, not as closed work.
 - Skill-cleaner intake: `ITS-ROADMAP-021` was added as a candidate with explicit source anchors, user-approved target shape (`skill-stats` expansion), external-wrapper strategy, and report-only plus confirmation-gated apply behavior.
+- External-PM roadmap intake: `ITS-ROADMAP-023` was added as a candidate with
+  multi-agent brainstorm evidence, export-only MVP guidance, explicit sync and
+  write-back safety gates, and provider-free fixture expectations.
 - Final-lane gate: no final Now/Next/Later lanes were written because horizon and implementation priority are not explicit in the current request.
+- External mutation gate: no Linear, GitLab, GitHub, or other external PM API
+  was called; this refresh only updates the local roadmap artifact.
 - Boundary discipline: `agent-playbook:context-audit` and release-gate checks are recorded as consumers/adjacent checks, not the primary owner.
 - Status-refresh run: final lanes were not rewritten; this update records completion state after user-directed implementation work.
 - Preservation: `ITS-ROADMAP-008` and `ITS-ROADMAP-011` are now marked complete only with direct closure artifacts and clean review.
@@ -473,6 +565,8 @@ Recommended next action is to resolve the `ITS-ROADMAP-022` review comments, the
 - Source discipline: Kagenti GitHub content is cited as remote path/line anchors; low-confidence domain-specific ideas stay in Unverified Signals or Rejected.
 - Visual-test completion: `$idea-to-ship:visual-test`, selector/matrix/RCA/report templates, review-code handoff, and broad-orchestrator spike guards are committed in `91618937a6f4d649c5b2b57d8b819f7178f7f7c4`.
 - ITS-ROADMAP-008 completion: focused closure artifacts, implementation-log template tightening, implement-skill shared contract references, and idea-to-ship fixture coverage were added on 2026-06-01.
-- Next action: run `/brainstorm --slug ITS-ROADMAP-021` if the user wants to proceed with skill-cleaner integration.
+- Next action: run `/brainstorm --slug ITS-ROADMAP-023` to turn the external
+  PM export/sync direction into accepted requirements before architecture or
+  implementation.
 
 <!-- idea-to-ship:roadmap generated:end -->
