@@ -7,7 +7,8 @@
 **State**: <open/merged/closed> | Review decision: <approved/changes_requested/review_required/none>
 **Worktree**: `<FIX_WORKTREE>` (detached HEAD on `<short-sha>`)
 **Pipeline**: analysis -> executor -> multi-agent adversarial review
-**Review mode**: <multi-agent | degraded-same-context-review>
+**Review intensity**: <quick|standard|deep> (<auto|forced>: <reason>)
+**Review mode**: <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Comments triaged**: <total> total -> <actionable> actionable -> <accepted> accepted, <rejected> rejected, <deferred> deferred, <answered> answered, <human> need-input
 **Adversarial review verdict**: <CLEAN / NEEDS_TOUCHUP / NEEDS_REWORK>

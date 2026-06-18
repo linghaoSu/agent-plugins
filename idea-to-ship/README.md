@@ -81,11 +81,11 @@ priority approval, and overwrite safety gates are satisfied. Optional
 `--include-git`, `--include-todos`, and `--include-github` inputs are
 quarantined as lower-authority signals unless confirmed.
 
-### `/review-design [focus]`
-Multi-agent, multi-angle, multi-round adversarial review of `architecture.md`. Independent
-reviewer agents check architecture correctness, implementation/testability, and
-UI/UX when `interface-design.md` exists. Iterates until every angle returns
-LGTM (max 5 rounds). Same-context review is only the recorded fallback when
+### `/review-design [--review-depth quick|standard|deep] [focus]`
+Risk-scaled review of `architecture.md`. By default it auto-selects `quick`,
+`standard`, or `deep` from architecture risk; pass `--review-depth` to force a
+tier. `deep` keeps the multi-agent, multi-angle, multi-round adversarial loop.
+Same-context review is either selected `quick` or the recorded fallback when
 reviewer sub-agents are explicitly unsupported by the host/runtime, explicitly
 forbidden by the user, or the selected reviewer/model is explicitly unavailable
 or at capacity.
@@ -107,15 +107,13 @@ evidence to `test-plan.md` and `tdd-log.md` before production code changes. In
 diff without pretending those passing tests are TDD. It does not write
 production code and does not replace the full `/test` story matrix.
 
-### `/review-code [focus]`
-Multi-agent, multi-angle, multi-round adversarial code review of the current diff, looping
-fix→review until every required angle is clean. Similar to
+### `/review-code [--review-depth quick|standard|deep] [focus]`
+Risk-scaled code review of the current diff. By default it auto-selects
+`quick`, `standard`, or `deep`; pass `--review-depth` to force a tier. `deep`
+keeps the multi-agent, multi-angle, multi-round adversarial loop. Similar to
 `issue-evaluator/review-fix` but scoped to this flow and aware of requirements,
 architecture, interface design, implementation logs, and test-plan traceability.
-Same-context review is only the recorded fallback when reviewer sub-agents are
-explicitly unsupported by the host/runtime, explicitly forbidden by the user, or
-the selected reviewer/model is explicitly unavailable or at capacity. Writes
-`code-review.md`.
+Writes `code-review.md` with the selected review intensity.
 
 ### `/visual-test [--baseline compare|create-requested|update-requested] [focus]`
 Runs artifact-first frontend visual QA from `interface-design.md` Visual QA
@@ -200,13 +198,13 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   matrix status, bounded artifact RCA, and `visual-test-report.md`.
   `/review-code` consumes those artifacts when present and flags missing visual
   evidence when UI is touched without them.
-- **Multi-agent review**: `/review-design` and `/review-code` require multiple
-  independent reviewer agents, multiple angles, and multiple rounds by default.
-  Same-context adversarial passes are supported only when reviewer sub-agents
-  are explicitly unsupported by the host/runtime, explicitly forbidden by the
-  user, or the selected reviewer/model is explicitly unavailable or at
-  capacity; the artifact must record `degraded-same-context-review` and must
-  not present the result as independent multi-agent review.
+- **Risk-scaled review**: `/review-design` and `/review-code` auto-select
+  `quick`, `standard`, or `deep`; users may force a tier with
+  `--review-depth quick|standard|deep`. `deep` requires multiple independent
+  reviewer agents, multiple angles, and multiple rounds. Same-context review is
+  either selected `quick` or a recorded `degraded-same-context-review`
+  fallback; artifacts must not present degraded output as independent
+  multi-agent review.
 - **Cross-skill routing**: `/architect` and `/implement` may route to other
   repo skills when their risk signal is present. Read-only or artifact-only
   routes can run automatically; code/git/GitHub/deployment/credential mutations

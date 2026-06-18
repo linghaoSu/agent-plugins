@@ -1,17 +1,19 @@
 ---
 name: review-code
-description: Multi-agent, multi-angle, multi-round code review of the current diff, looping fix->review until all angles are clean. Same-context fallback only for explicit unsupported/forbidden/capacity cases.
-argument-hint: '[--slug <name>] [extra focus]'
+description: Risk-scaled code review of the current diff with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep keeps the multi-agent, multi-angle, multi-round fix->review loop.
+argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] [extra focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a blunt, adversarial review of the current code changes (staged +
-unstaged) with multiple independent reviewer agents and multiple angles.
-Iterate fix→review until every required angle returns LGTM or the iteration
-budget is spent. Anchored to the requirements, architecture, interface design,
-implementation log, and test plan so drift and missing verification are caught.
+Run a risk-scaled review of the current code changes (staged + unstaged).
+Select `review_intensity` automatically, unless the user forces
+`--review-depth quick|standard|deep`. `deep` is the blunt adversarial mode with
+multiple independent reviewer agents, multiple angles, and fix→review loops
+until every required angle returns LGTM or the iteration budget is spent.
+Anchored to the requirements, architecture, interface design, implementation
+log, and test plan so drift and missing verification are caught.
 Same-context review is a fallback only when reviewer sub-agents are explicitly
 unsupported by the host/runtime, explicitly forbidden by the user, or the
 selected reviewer/model is explicitly unavailable or at capacity; record the
@@ -22,14 +24,18 @@ degradation reason.
 Raw: `$ARGUMENTS`
 
 Parse:
-- Optional leading `--slug <name>`. Default slug: `current`.
+- Optional `--slug <name>`. Default slug: `current`.
+- Optional `--review-depth quick|standard|deep`. If present, force that
+  intensity and record it in `code-review.md`.
 - Remaining text → extra focus areas (e.g. "concurrency", "error handling", "SQL injection").
 
 ## Multi-Agent Review Routing
 
 Read `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Multi-Agent Review Routing** contract. Launch independent reviewer agents by
-default:
+**Review Intensity Selection** and **Multi-Agent Review Routing** contracts.
+Launch independent reviewer agents for selected `standard` and `deep`; for
+selected `quick`, run the same-context checklist from the shared contract and
+do not label it degraded.
 
 - **Correctness/security angle:** bugs, edge cases, data loss, concurrency,
   auth, injection, serialization, shell, and other risky boundaries.
@@ -153,13 +159,36 @@ flagged. Reviewers must also flag missing matrix evidence, unresolved visual
 failures, missing baseline approval, weak artifact anchors, and unjustified
 console/network failures.
 
-### Step 3: Review Loop
+### Step 3: Select Review Intensity
 
-Track iteration count starting at 1. Max 5 iterations.
+Apply `../../WORKFLOW-CONTRACTS.md` Review Intensity Selection using the current
+diff, artifacts, and user arguments:
 
-#### 3a — Multi-Agent Review
+- Auto-select `quick`, `standard`, or `deep` by risk.
+- Honor `--review-depth quick|standard|deep` as a forced override.
+- Record `Review intensity: <tier> (<auto|forced>: <reason>)` in
+  `code-review.md`.
+- Escalate if a lower tier discovers security, data-loss, external-IO,
+  persistence, public-contract, UI visual-evidence, or broad-scope risk.
 
-Launch the required reviewer agents in parallel when possible. Each reviewer
+### Step 4: Review Loop
+
+Track iteration count starting at 1. `deep` maxes at 5 iterations; `quick` and
+`standard` use the caps in `../../WORKFLOW-CONTRACTS.md`.
+
+#### 4a — Multi-Agent Review
+
+For `quick`, run one same-context checklist over correctness/security,
+traceability/testability, and maintainability/repo-fit. If fixes are made, run
+one targeted same-context confirmation over changed hunks.
+
+For `standard`, launch the required reviewer agents in parallel when possible
+for one multi-angle round. If fixes are made, re-review only affected angles
+unless the fix changes architecture, public contracts, security, data flow, UI
+evidence, or broad scope; cap at two rounds before asking whether to escalate
+to `deep`.
+
+For `deep`, launch the required reviewer agents in parallel when possible. Each reviewer
 gets the shared prompt plus its assigned angle. If fewer than the required
 reviewer agents can run because reviewer sub-agents are explicitly unsupported
 by the host/runtime, explicitly forbidden by the user, or the selected
@@ -244,9 +273,9 @@ For each issue, report:
 If no material issues exist for your assigned angle, reply with exactly: LGTM
 ```
 
-#### 3b — Evaluate & Fix
+#### 4b — Evaluate & Fix
 
-- **LGTM from every required reviewer angle** → break, proceed to Step 4.
+- **LGTM from every required reviewer angle** → break, proceed to Step 5.
 - Otherwise:
   1. One-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits (W skipped out-of-scope).`
   2. Filter before fixing:
@@ -255,47 +284,34 @@ If no material issues exist for your assigned angle, reply with exactly: LGTM
      - Keep criticals, warnings, and any design-drift issues.
   3. Fix each kept issue with Edit. Do not touch unrelated code.
   4. If a fix requires a user decision (tradeoff, spec ambiguity), pause and ask. Do not guess.
-  5. Loop back to 3a and re-run every required reviewer angle, not just the
-     angle that found the issue.
+  5. Loop back according to the selected intensity. For `deep`, re-run every required reviewer angle,
+     not just the angle that found the issue. For
+     `standard`, re-run affected angles unless the fix escalates risk. For
+     `quick`, run one targeted confirmation.
 
-#### 3c — Safety Limit
+#### 4c — Safety Limit
 
-At iteration 5 without LGTM, stop. Show remaining issues to the user and ask: continue, accept, or abort.
+At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
+ask whether to escalate to `deep`, accept residual risk, or abort. For `deep`,
+ask whether to continue, accept, or abort.
 
-### Step 4: Final Holistic Pass
+### Step 5: Final Holistic Pass
 
-After LGTM (or user-accepted exit), one comprehensive review of the **full** diff as a whole:
+After LGTM (or user-accepted exit), run the holistic pass required by the
+selected intensity. `deep` always gets one comprehensive review of the **full**
+diff as a whole. `standard` gets it when fixes changed public behavior or
+cross-file structure. `quick` records residual risk instead of adding a
+separate holistic pass.
 
 1. Collect `git diff HEAD` + `git diff --cached` again (post-fix state).
-2. Self-review with these questions:
-   - Does the change match the requirement(s) it was supposed to satisfy?
-   - Does every behavior-changing diff hunk trace to a requirement, user story,
-     acceptance criterion, scenario, and test? If not, is the gap explicitly
-     documented?
-   - Is there dead code, half-finished paths, or leftover scaffolding?
-   - Are the public interfaces clean and consistent with the rest of the repo?
-   - Could a reader diff this and understand *why* from the code alone?
-   - Any security-sensitive boundary (auth, input, serialization, shell) handled correctly?
-3. Run the four-principle check (from `../../PRINCIPLES.md`):
-   - **Think before coding** — any silent assumption visible in the diff
-     that should have been surfaced as a question? Flag it.
-   - **Simplicity first** — any speculative abstraction, unused config knob,
-     error handling for impossible states, or "if 200 lines could be 50"
-     smell? Flag and trim.
-   - **Surgical changes** — does every changed line trace to a requirement,
-     `architecture.md`, or `interface-design.md`? Any drive-by refactors,
-     adjacent-code improvements, or formatting fixes in untouched territory?
-     Revert anything that can't cite its reason.
-   - **Goal-driven execution** — is each functional requirement observably
-     satisfied by something runnable (test, command, behavior), not just
-     "the code looks right"? If not, flag for `/test`.
-   - **Story/test traceability** — for each core user story, is there a
-     happy-path scenario and at least one edge/invalid/failure scenario? If
-     not, flag the missing scenario or test.
-4. Fix anything found. If the fix is big, loop back to 3a for one more
+2. Check the full diff against requirements, architecture, public interfaces,
+   security-sensitive boundaries, dead code, and test traceability.
+3. Apply `../../PRINCIPLES.md`: Think before coding, Simplicity first,
+   Surgical changes, Goal-driven execution, and Story/test traceability.
+4. Fix anything found. If the fix is big, loop back to 4a for one more
    adversarial pass.
 
-### Step 5: Write `code-review.md`
+### Step 6: Write `code-review.md`
 
 ```markdown
 # Code Review — <slug>
@@ -304,7 +320,8 @@ After LGTM (or user-accepted exit), one comprehensive review of the **full** dif
 **Reviewer:** multi-agent: <angle -> reviewer route>
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
-**Mode:** <multi-agent | degraded-same-context-review>
+**Review intensity:** <quick|standard|deep> (<auto|forced>: <reason>)
+**Mode:** <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Diff size:** <files changed>, <+added/-removed>
 
@@ -337,7 +354,7 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 | UI/UX | LGTM / not applicable / ... |
 ```
 
-### Step 6: Hand-off
+### Step 7: Hand-off
 
 1. Tell the user where `code-review.md` landed and how many iterations it took.
 2. Suggest next step:

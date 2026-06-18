@@ -1,35 +1,55 @@
 ---
 name: review-fix
-description: Multi-agent, multi-angle, multi-round review/fix loop for current code changes. Repeats fix->review until every reviewer angle is clean, then runs final holistic review.
-argument-hint: '[focus ...]'
+description: Risk-scaled review/fix loop for current code changes with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep repeats fix->review until every reviewer angle is clean.
+argument-hint: '[--review-depth quick|standard|deep] [focus ...]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review & Fix Loop
 
-Iteratively review the current changes with runtime-aware reviewer agents across multiple angles, fix any issues found, and repeat until every angle is clean — then run a final holistic review.
+Review the current changes with auto-selected `review_intensity`, or a forced
+`--review-depth quick|standard|deep`. `quick` uses a same-context checklist,
+`standard` uses a bounded multi-angle loop, and `deep` uses runtime-aware
+reviewer agents across multiple angles, fixes issues found, and repeats until
+every angle is clean before final holistic review.
 
 ## Arguments
 
 Raw arguments: `$ARGUMENTS`
 
-These are optional additional focus areas for the review (e.g. "concurrency", "error handling").
+Parse optional `--review-depth quick|standard|deep` first. If present, force
+that intensity and record it in the final report. Remaining arguments are
+optional additional focus areas for the review (e.g. "concurrency", "error
+handling").
 
 ## Multi-Agent Review Routing
 
 Before launching review agents, read `../../PRINCIPLES.md` and
-`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
-and **Multi-Round Adversarial Review Loop** contracts. This workflow is
-pre-authorized to launch reviewer sub-agents. Fall back to same-context review
-only when reviewer sub-agents are explicitly unsupported by the host/runtime,
-the user explicitly forbids them, or the selected reviewer/model is explicitly
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Review Intensity Selection**,
+**Multi-Agent Review Routing**, and **Multi-Round Adversarial Review Loop**
+contracts. This workflow is pre-authorized to launch reviewer sub-agents for
+selected `standard` and `deep`. Fall back to same-context review only when
+reviewer sub-agents are explicitly unsupported by the host/runtime, the user
+explicitly forbids them, or the selected reviewer/model is explicitly
 unavailable or at capacity. Record `degraded-same-context-review`; degraded
-mode still runs the same angles and rounds sequentially in the main context.
+mode still runs the selected intensity's angles and rounds sequentially in the
+main context. Selected `quick` same-context review is not degraded.
 Also apply the local 12-rule execution contract from `PRINCIPLES.md`: review
 findings must trace to changed lines, conflicts must be named instead of
 averaged, fixes must stay surgical, and skipped checks must be reported.
 
 ## Workflow
+
+```mermaid
+flowchart TD
+  A[Verify Prerequisites] --> B[Read Code Style]
+  B --> C[Select Review Intensity]
+  C --> D[Review Current Diff]
+  D --> E{Clean?}
+  E -- No --> F[Fix In Scope]
+  F --> D
+  E -- Yes --> G[Report]
+```
 
 ### Step 1: Verify Prerequisites
 
@@ -50,14 +70,27 @@ Read `<data-dir>/<owner>/<repo>/code-style.md` and extract the key conventions. 
 
 ### Step 3: Review-Fix Loop
 
-Repeat the following cycle. Track the iteration count starting at 1.
+Select `review_intensity` before launching reviewers. Auto-select by risk or
+honor `--review-depth quick|standard|deep` as a forced override. Record
+`Review intensity: <tier> (<auto|forced>: <reason>)` in the final report.
+
+Repeat the following cycle according to the selected intensity. Track the
+iteration count starting at 1.
 
 #### 3a: Multi-Angle Adversarial Review
 
-Use runtime-aware reviewer agents to inspect the diff from separate angles. In
-Claude Code, use independent reviewer agents such as Codex rescue and native
-review agents when available; in non-Claude runtimes use the host's native
-sub-agent mechanism. Required angles every iteration:
+For `quick`, run one same-context checklist over the angles below. If fixes are
+made, run one targeted same-context confirmation over changed hunks.
+
+For `standard`, run one multi-angle reviewer round. If fixes are made,
+re-review only affected angles unless the fix changes public contract,
+security, data flow, or broad scope; cap at two rounds before asking whether to
+escalate to `deep`.
+
+For `deep`, use runtime-aware reviewer agents to inspect the diff from separate
+angles. In Claude Code, use independent reviewer agents such as Codex rescue
+and native review agents when available; in non-Claude runtimes use the host's
+native sub-agent mechanism. Required angles for deep iterations:
 
 - `CORRECTNESS_SECURITY`: bugs, security, regressions, data loss, API breaks
 - `STYLE_SCOPE`: repo style, maintainability, surgical scope, drive-by churn
@@ -115,18 +148,26 @@ Construct the prompt for each angle:
      - Apply the change using Edit tool
      - Ensure the fix aligns with the code style checklist
      - Do NOT touch unrelated code, even if it has obvious style issues nearby
-  4. After all fixes are applied, go back to **Step 3a** for the next iteration.
-  5. Re-run **all required angles**, not only the angle that found a problem.
+  4. After all fixes are applied, loop according to the selected intensity.
+  5. For `deep`, re-run **all required angles**, not only the angle that found
+     a problem. For `standard`, re-run affected angles unless the fix escalates
+     risk. For `quick`, run one targeted confirmation.
 
 #### 3c: Safety Limit
 
-If the loop reaches **5 iterations** without a clean review, stop and present the remaining issues to the user. Ask whether to continue fixing or stop here.
+At the selected intensity's cap without a clean review, stop and present the
+remaining issues to the user. For `quick` or `standard`, ask whether to
+escalate to `deep`, accept residual risk, or stop here. For `deep`, ask whether
+to continue fixing or stop here.
 
 ### Step 4: Final Holistic Review
 
-After the loop exits clean, run one final comprehensive review round. This
-round looks at the **entire change as a whole** rather than incremental diffs
-and still preserves the required angles:
+After the loop exits clean, run the final review required by the selected
+intensity. `deep` runs one final comprehensive review round over the **entire
+change as a whole** rather than incremental diffs and still preserves the
+required angles. `standard` runs the final review only when fixes changed public
+behavior or cross-file structure. `quick` records residual risk instead of
+adding a separate final round.
 
 1. Get the full diff of all changes:
    ```bash
@@ -185,6 +226,7 @@ Present a summary to the user:
 ## Review & Fix Complete
 
 - **Iterations**: <N> incremental reviews
+- **Review intensity**: <quick|standard|deep> (<auto|forced>: <reason>)
 - **Review mode**: <multi-agent | degraded-same-context-review>
 - **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 - **Angles per round**: correctness/security, style/scope, traceability/tests
@@ -203,3 +245,9 @@ Present a summary to the user:
 - **Scope discipline**: Only fix issues in code that is part of the current change. Lint/style/formatting issues in unrelated code are out of scope — do not touch them. This keeps diffs clean and avoids unintended regressions.
 - If an adversarial-review issue is a false positive or out of scope, skip it and note it in the summary.
 - If the user hasn't run `/evaluate-issue` yet but has a code style doc, the review still works.
+
+## Related Skills
+
+- `$issue-evaluator:evaluate-issue` creates or refreshes the code style guide.
+- `$issue-evaluator:fix-issue` applies the issue fix before this review.
+- `$issue-evaluator:review-pr` reviews a GitHub PR without editing.

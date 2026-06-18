@@ -1,7 +1,7 @@
 ---
 name: fix-pr-comments
-description: Triage GitHub PR review comments, apply accepted fixes as local unstaged edits, then run multi-agent adversarial review. Read-only on GitHub.
-argument-hint: <pr-url-or-number> [--include-resolved]
+description: Triage GitHub PR review comments, apply accepted fixes as local unstaged edits, then run risk-scaled adversarial review. Supports --review-depth quick|standard|deep. Read-only on GitHub.
+argument-hint: '<pr-url-or-number> [--include-resolved] [--review-depth quick|standard|deep]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
@@ -35,12 +35,6 @@ write reports to the repository, stage files, commit, push, or mutate GitHub.
 
 These two rules apply throughout the entire workflow, including any sub-agents launched by this skill.
 
-## When to use
-
-- A PR you authored has accumulated review comments and you want them triaged and pre-implemented in one read-only pass before deciding what to commit.
-- You want a second opinion on whether a reviewer's pushback is actually correct before changing the code.
-- Multiple reviewers left overlapping or conflicting feedback and you need it consolidated and answered.
-
 ## Arguments
 
 The user provided: `$ARGUMENTS`
@@ -51,29 +45,37 @@ This should be one of:
 
 Optional flag:
 - `--include-resolved` — also evaluate comments on already-resolved threads (default: skip them)
+- `--review-depth quick|standard|deep` — force the post-fix review intensity
+  and record it in the final report. Without it, auto-select by risk.
 
 ## Multi-Agent Review Routing
 
 Before launching analysis, executor, or adversarial review agents, read
-`../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Multi-Agent Review Routing** contract and the shared **Output, Token, And
-Error Contract** for all review phases. The roles for this workflow are
-`ANALYST`, `RECONCILER`, `EXECUTOR`, and multiple
-`ADVERSARIAL_REVIEWER:<ANGLE>` roles. Keep the human confirmation gate before
-edits and keep adversarial review read-only. The local 12-rule execution
-contract in `PRINCIPLES.md` is binding for every role: surface assumptions and
-conflicts, keep accepted fixes surgical, read affected callers before editing,
-and fail loud on skipped comments or checks.
+`../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply Review Intensity Selection,
+Multi-Agent Review Routing, and the Output/Token/Error contract.
+Roles are `ANALYST`, `RECONCILER`, `EXECUTOR`, and
+`ADVERSARIAL_REVIEWER:<ANGLE>` for selected `standard` and `deep`. Keep the
+human gate before edits, keep review read-only, and fail loud on skipped
+comments or checks.
 
-The adversarial review phase is pre-authorized for reviewer sub-agents. Fall
-back to same-context review only when reviewer sub-agents are explicitly
-unsupported by the host/runtime, the user explicitly forbids them, or the
-selected reviewer/model is explicitly unavailable or at capacity. In degraded
-mode, record `degraded-same-context-review`, run the same angle prompts
-sequentially in the main context, and do not present the result as independent
-multi-agent review.
+The adversarial review phase is pre-authorized for reviewer sub-agents when
+selected intensity is `standard` or `deep`; selected `quick` is not degraded.
+Fall back to `degraded-same-context-review` only for explicit unsupported,
+forbidden, or unavailable/capacity cases, and never present it as independent.
 
 ## Workflow
+
+```mermaid
+flowchart TD
+  A[Fetch PR Comments] --> B[Prepare Worktree]
+  B --> C[Triage Comments]
+  C --> D{User Confirms?}
+  D -- No --> E[Report Only]
+  D -- Yes --> F[Apply Accepted Fixes]
+  F --> G[Select Review Intensity]
+  G --> H[Adversarial Review]
+  H --> I[Final Report]
+```
 
 ### Step 1: Parse Arguments & Fetch PR Context
 
@@ -85,18 +87,21 @@ multi-agent review.
 2. Fetch PR metadata, diff, and all comment streams in parallel using `gh` (read-only):
 
    **A — PR metadata:**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh pr view <number> [--repo <owner/repo>] --json number,title,body,author,state,baseRefName,headRefName,headRepositoryOwner,headRepository,files,additions,deletions,reviewDecision,reviews,comments,createdAt,updatedAt,url,isCrossRepository
    ```
    Capture: `title`, `body`, `author.login`, `state`, `baseRefName`, `headRefName`, `url`, `isCrossRepository`, `reviewDecision`.
 
    **B — PR diff:**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh pr diff <number> [--repo <owner/repo>]
    ```
    Used for evaluating whether each inline comment is anchored to code that actually exists / behaves as the reviewer claims.
 
    **C — Inline review comments (anchored to code lines):**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh api "repos/<owner>/<repo>/pulls/<number>/comments?per_page=100" --paginate \
      --jq '[.[] | {id, in_reply_to_id, pull_request_review_id, path, line, original_line, side, start_line, body, user: .user.login, created_at, updated_at, html_url, position, original_position, commit_id, original_commit_id}]'
@@ -104,6 +109,7 @@ multi-agent review.
    These are the per-line review comments (the most actionable kind).
 
    **D — Review summaries (top-level review bodies):**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh api "repos/<owner>/<repo>/pulls/<number>/reviews?per_page=100" --paginate \
      --jq '[.[] | {id, user: .user.login, state, body, submitted_at, html_url}]'
@@ -111,6 +117,7 @@ multi-agent review.
    Capture the body of each review (general review notes that aren't anchored to a line).
 
    **E — Issue-level conversation comments (the PR conversation tab):**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh api "repos/<owner>/<repo>/issues/<number>/comments?per_page=100" --paginate \
      --jq '[.[] | {id, user: .user.login, body, created_at, updated_at, html_url}]'
@@ -118,6 +125,7 @@ multi-agent review.
    These are the general PR comments (not tied to code lines).
 
    **F — Review threads with `isResolved` (GraphQL — needed because the REST API does not expose thread resolution):**
+   Replace `<owner>`, `<repo>`, and `<number>` placeholders before running.
    ```bash
    gh api graphql -F owner=<owner> -F repo=<repo> -F number=<number> -f query='
      query($owner: String!, $repo: String!, $number: Int!) {
@@ -164,12 +172,14 @@ The fix needs somewhere to live. We use an **isolated, detached worktree** on th
 - There is no local branch to accidentally push.
 
 1. Confirm we're in the right repo (skip worktree setup if cross-repo and just diff-review):
+   Set `CURRENT_REPO` from read-only `gh` output before comparing it.
    ```bash
    CURRENT_REPO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"' 2>/dev/null)
    ```
    Compare with the PR's `owner/repo`. If they don't match (cross-repo PR from a fork), skip the worktree and operate in **diagnosis-only mode** — explain the rebuttals and produce a fix plan as text, but do not edit any files.
 
 2. Determine the head ref. For same-repo PRs:
+   Set `HEAD_BRANCH` from PR metadata before running these commands.
    ```bash
    HEAD_BRANCH="<headRefName from PR metadata>"
    git fetch origin "$HEAD_BRANCH"
@@ -178,15 +188,15 @@ The fix needs somewhere to live. We use an **isolated, detached worktree** on th
    For PRs from a fork in the same workflow (rare path — usually skipped above), use `gh pr checkout --detach` into the worktree instead.
 
 3. Check for an existing worktree on this branch (so we don't fight with a previous run or the user's own checkout):
+   Review before running: this command only discovers existing worktrees; do not remove or edit a discovered worktree without user confirmation.
+   Set `EXISTING_WORKTREE` only from local `git worktree` output.
    ```bash
    EXISTING_WORKTREE=$(git worktree list --porcelain | grep -B2 "branch refs/heads/$HEAD_BRANCH" | grep "^worktree " | sed 's/^worktree //')
    [ -z "$EXISTING_WORKTREE" ] && EXISTING_WORKTREE=$(git worktree list | grep "$HEAD_BRANCH" | awk '{print $1}')
    ```
 
-4. **If found**: STOP and ask the user. A pre-existing worktree on the PR branch is almost certainly the user's in-progress work — silently editing it would clobber their changes. Tell the user:
-   > "A worktree for `<HEAD_BRANCH>` already exists at `<path>`. Should I (a) operate inside it (will leave uncommitted edits in your in-progress work), or (b) create a separate scratch worktree at a different path?"
-   
-   Default to (b) unless the user explicitly chooses (a). Set `WORKTREE_REUSED=true` only if the user picks (a).
+4. **If found**: STOP and ask whether to operate inside it or create a separate scratch worktree. Default to a separate scratch worktree unless the user explicitly chooses reuse.
+   Set `WORKTREE_REUSED=true` only if the user picks reuse.
 
 5. **If not found**: create a fresh **detached** worktree (so there's no branch to accidentally push):
    ```bash
@@ -319,11 +329,21 @@ Wait for the executor to finish. Collect the result as `EXECUTOR_REPORT`. Move a
 
 ### Step 8: Multi-Angle Adversarial Review of the Applied Fixes
 
-After the executor has applied the edits, run an **adversarial review** over the resulting diff. This is the safety net: the reviewer is an independent pass after analysis and execution, and its job is to catch cases where the executor mis-applied a plan, the plan itself was subtly wrong, or a fix introduced a new bug.
+After the executor has applied the edits, select `review_intensity` using
+`../../WORKFLOW-CONTRACTS.md` unless the user forced `--review-depth`. Record
+`Review intensity: <tier> (<auto|forced>: <reason>)` in the final report. Then
+run the selected adversarial review over the resulting diff. This is the safety
+net: the reviewer is a pass after analysis and execution, and its job is to
+catch cases where the executor mis-applied a plan, the plan itself was subtly
+wrong, or a fix introduced a new bug.
 
-Launch multiple adversarial reviewers. In Claude Code, use Codex rescue and/or
-native review agents when available. In non-Claude runtimes, use fresh
-sub-agents with roles `ADVERSARIAL_REVIEWER:<ANGLE>`.
+For `quick`, run one same-context checklist over plan trace/scope,
+correctness/regression/security, and completeness/tests. If it finds material
+issues, surface them in the final report and ask whether to escalate.
+
+For `standard` and `deep`, launch multiple adversarial reviewers. In Claude
+Code, use Codex rescue and/or native review agents when available. In non-Claude
+runtimes, use fresh sub-agents with roles `ADVERSARIAL_REVIEWER:<ANGLE>`.
 
 Required angles:
 
@@ -341,11 +361,12 @@ angle, scratch worktree path, PR context, consolidated fix plan, and executor
 report. Reviewers must not stage, commit, stash, push, write to GitHub, or
 auto-apply suggested corrections.
 
-Wait for every adversarial review angle. Collect as `ADVERSARIAL_REVIEW`,
-grouped by angle, and synthesize the strictest verdict. **Do not auto-apply any
-suggested corrections** — surface them in the final report and let the user
-decide. The whole skill is human-in-the-loop; the adversarial review is one
-more safety round, not a closer.
+Wait for every required adversarial review angle for the selected intensity.
+Collect as `ADVERSARIAL_REVIEW`, grouped by angle when multiple angles ran, and
+synthesize the strictest verdict. **Do not auto-apply any suggested
+corrections** — surface them in the final report and let the user decide. The
+whole skill is human-in-the-loop; the adversarial review is one more safety
+round, not a closer.
 
 ### Step 9: Verify Locally (Optional, Read-Only)
 
@@ -364,12 +385,16 @@ steps. Omit empty subsections.
 
 ## Notes
 
-- **Three-phase pipeline**: analysis produces verdicts and fix plans, execution applies approved fixes, and multi-angle adversarial review checks the result. In Claude Code these roles map to Opus, Sonnet, and reviewer agents respectively; in non-Claude runtimes they map to native sub-agents with the same responsibilities. The split is deliberate — analysis is load-bearing, execution is mechanical, and adversarial review needs independent voices across multiple angles.
-- **Read-only on GitHub, no commits locally.** Both rules are central to this skill — they're what make it safe to run on a PR you're not yet ready to update. Every sub-agent must obey both.
-- **The user is the arbiter** — Step 6 is mandatory. Never silently auto-implement without showing the triage table. Adversarial review findings in Step 8 are surfaced for the user, never auto-applied.
-- **Be honest in evaluation** — don't ACCEPT a bad comment to be polite, don't REJECT a good one to avoid work. Rigorous, justifiable triage is the entire point.
-- **One comment, one citation** — every change in the fix plan must trace back to a specific thread id. If you can't cite a thread, you've expanded scope.
-- **Verify reviewer claims against the actual code** — if a reviewer says "this leaks memory" and the code clearly doesn't, that's REJECT material. Don't take the reviewer's word for it; read the code in the worktree.
-- **Detached HEAD is intentional** — there's no branch to push. The user explicitly creates a branch later if they want to publish the fix.
-- **Worktree is left in place** at the end — the user reviews and cleans up themselves.
-- All file reads and edits happen **inside the worktree**, never in the user's original working directory.
+- **Pipeline and authority:** analysis plans, executor applies approved fixes,
+  and intensity-scaled review checks the result; high-risk review needs
+  independent voices.
+- **Hard boundaries:** read-only on GitHub, no commits, no staging, no pushes,
+  and no edits in the user's original working directory.
+- **Human gate:** Step 6 is mandatory; adversarial findings are surfaced for
+  the user, never auto-applied.
+- **Traceability:** every change cites a thread id, and reviewer claims must be
+  verified against code in the detached worktree, which is left for user review.
+
+## Related Skills
+
+- `$issue-evaluator:review-pr`, `$issue-evaluator:review-fix`, and `$issue-evaluator:update-code-style`.

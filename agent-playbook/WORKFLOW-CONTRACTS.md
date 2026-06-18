@@ -128,3 +128,23 @@ hook/state/recovery criteria stay in their owning skills:
 - **Local report ownership:** read-only audit/review skills may write only
   their documented local artifact path. Conversation-only skills must set
   `outputs_written: []`.
+
+## Review Intensity Selection
+
+For agent-playbook review skills such as `tool-review`, select a review
+intensity before launching reviewers. Parse optional
+`--review-depth quick|standard|deep`; when present, it is a user-forced
+override. Record the selected intensity, whether it was auto or forced, and the
+reason in the local artifact.
+
+Auto-select the smallest tier that covers the risk:
+
+| Intensity | Use when | Review shape |
+|---|---|---|
+| `quick` | Small, read-only review of docs, one schema, one command surface, or one low-risk tool with no external mutation, auth, destructive behavior, or large output risk. | One same-context checklist and a ranked punch-list. This is selected intensity, not `degraded-same-context-review`. |
+| `standard` | Normal tool/CLI/MCP review with bounded surface area and clear source/schema. | One multi-angle reviewer round plus synthesis. Re-check only material findings after edits to the review artifact. |
+| `deep` | Tool suites, overlapping tools, auth/secrets, destructive or external-system tools, high token/output risk, unclear boundaries, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle, multi-round review with final sanity pass. |
+
+Escalate during review if a lower tier discovers higher-risk behavior. A forced
+lower depth is allowed, but never claim deep assurance for it and never skip the
+skill's documented safety boundary.

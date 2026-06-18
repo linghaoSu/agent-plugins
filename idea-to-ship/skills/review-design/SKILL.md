@@ -1,36 +1,43 @@
 ---
 name: review-design
-description: Multi-agent, multi-angle, multi-round adversarial review of architecture.md. Loops fix->review until all angles are clean; same-context fallback only for explicit unsupported/forbidden/capacity cases.
-argument-hint: '[--slug <name>] [extra focus e.g. "concurrency" "cost"]'
+description: Risk-scaled architecture review of architecture.md with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep keeps the multi-agent, multi-angle, multi-round adversarial loop.
+argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] [extra focus e.g. "concurrency" "cost"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Design — Adversarial Architecture Review
 
-Run a blunt, adversarial review of `architecture.md` with multiple independent
-review agents and multiple angles. Every round covers every required angle.
-After fixes, re-run all angles, not just the angle that found a problem.
-Fix→review loops until every required reviewer angle returns LGTM or the
-iteration budget is exhausted. Same-context review is a fallback only when
+Run a risk-scaled review of `architecture.md`. Select `review_intensity`
+automatically, unless the user forces `--review-depth quick|standard|deep`.
+`deep` is the blunt adversarial mode with multiple independent review agents
+and multiple angles. Every deep round covers every required angle. After deep
+fixes, re-run all angles, not just the angle that found a problem. Fix→review
+loops until every required reviewer angle returns LGTM or the iteration budget
+is exhausted. Same-context review is a fallback only when
 reviewer sub-agents are explicitly unsupported by the host/runtime, explicitly
 forbidden by the user, or the selected reviewer/model is explicitly unavailable
 or at capacity; record the degradation reason.
 
-This is the designed-in correction step. An architecture that has not been torn apart by a skeptical reviewer is not ready to implement.
+This is the designed-in correction step. A load-bearing architecture that has
+not been torn apart by a skeptical deep reviewer is not ready to implement.
 
 ## Arguments
 
 Raw: `$ARGUMENTS`
 
 Parse:
-- Optional leading `--slug <name>`. Default slug: `current`.
+- Optional `--slug <name>`. Default slug: `current`.
+- Optional `--review-depth quick|standard|deep`. If present, force that
+  intensity and record it in `design-review.md`.
 - Remaining text → additional focus areas to emphasize (e.g. "concurrency", "cost", "failure modes").
 
 ## Multi-Agent Review Routing
 
 Read `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Multi-Agent Review Routing** contract. Launch independent reviewer agents by
-default in every round:
+**Review Intensity Selection** and **Multi-Agent Review Routing** contracts.
+Launch independent reviewer agents for selected `standard` and `deep`; for
+selected `quick`, run the same-context checklist from the shared contract and
+do not label it degraded.
 
 - **Architecture correctness angle:** assumptions, failure modes, interfaces,
   rollout, reversibility, and option tradeoffs.
@@ -49,6 +56,16 @@ agents.
 
 ## Workflow
 
+```mermaid
+flowchart TD
+  A[Verify Inputs] --> B[Select Review Intensity]
+  B --> C[Run Review]
+  C --> D{Clean?}
+  D -- No --> E[Fix Architecture]
+  E --> C
+  D -- Yes --> F[Write design-review.md]
+```
+
 ### Step 1: Verify Inputs
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
@@ -59,13 +76,37 @@ agents.
    or a UI-facing architecture contradicts `interface-design.md`, flag it as
    design drift before even calling the adversarial reviewer.
 
-### Step 2: Review Loop
+### Step 2: Select Review Intensity
 
-Track iteration count starting at 1. Max 5 iterations.
+Apply `../../WORKFLOW-CONTRACTS.md` Review Intensity Selection using
+`architecture.md`, `requirements.md`, optional `interface-design.md`, and user
+arguments:
 
-#### 2a — Multi-Agent Review Round
+- Auto-select `quick`, `standard`, or `deep` by risk.
+- Honor `--review-depth quick|standard|deep` as a forced override.
+- Record `Review intensity: <tier> (<auto|forced>: <reason>)` in
+  `design-review.md`.
+- Escalate if a lower tier discovers security, data-loss, external-IO,
+  persistence, public-contract, UI visual-evidence, or broad-scope risk.
 
-Launch the required reviewer agents in parallel when possible. Each reviewer
+### Step 3: Review Loop
+
+Track iteration count starting at 1. `deep` maxes at 5 iterations; `quick` and
+`standard` use the caps in `../../WORKFLOW-CONTRACTS.md`.
+
+#### 3a — Multi-Agent Review Round
+
+For `quick`, run one same-context checklist over architecture correctness and
+implementation/testability. If fixes are made, run one targeted same-context
+confirmation over changed sections.
+
+For `standard`, launch the required reviewer agents in parallel when possible
+for one multi-angle round. If fixes are made, re-review only affected angles
+unless the fix changes option choice, public contract, security, data flow, UI
+evidence, or broad scope; cap at two rounds before asking whether to escalate
+to `deep`.
+
+For `deep`, launch the required reviewer agents in parallel when possible. Each reviewer
 gets the shared prompt plus its assigned angle. If fewer than the required
 reviewer agents can run because reviewer sub-agents are explicitly unsupported
 by the host/runtime, explicitly forbidden by the user, or the selected
@@ -122,25 +163,32 @@ For each issue, report:
 If you find no material issues for your assigned angle, respond with exactly: LGTM
 ```
 
-#### 2b — Evaluate & Fix
+#### 3b — Evaluate & Fix
 
-- If all required reviewer angles return **LGTM** → break, proceed to Step 3.
+- If all required reviewer angles return **LGTM** → break, proceed to Step 4.
 - Otherwise:
   1. Print a 1-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits.`
   2. For each **critical** and **warning** issue: update `architecture.md` directly with Edit. Be concrete — change the recommendation, rewrite a section, add a failure mode, revise an interface. Do not just append a footnote.
   3. Skip **nits** unless trivially fixable while you're in the file.
   4. If a critical issue requires the user to decide (e.g. a tradeoff they haven't weighed in on), pause the loop and ask. Do not guess on user-owned decisions.
-  5. Go back to 2a and start a new round. Re-run every required reviewer angle,
-     not just the angle that found the issue. A round is clean only when every
-     required angle returns LGTM in that round.
+  5. Loop according to the selected intensity. For `deep`, go back to 3a and
+     re-run every required reviewer angle, not just the angle that found the
+     issue. For `standard`, re-run affected angles unless the fix escalates
+     risk. For `quick`, run one targeted confirmation.
 
-#### 2c — Safety Limit
+#### 3c — Safety Limit
 
-If iteration count hits 5 without LGTM, stop. Summarize remaining open issues to the user and ask whether to continue or accept.
+At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
+ask whether to escalate to `deep`, accept residual risk, or abort. For `deep`,
+ask whether to continue or accept.
 
-### Step 3: Final Holistic Pass
+### Step 4: Final Holistic Pass
 
-After LGTM (or user-accepted exit), one last pass — this time looking at the document as a whole rather than issue-by-issue:
+After LGTM (or user-accepted exit), run the holistic pass required by the
+selected intensity. `deep` always gets one last pass looking at the document as
+a whole rather than issue-by-issue. `standard` gets it when fixes changed the
+recommended option, public contract, or stage structure. `quick` records
+residual risk instead of adding a separate holistic pass:
 
 1. Re-read the updated `architecture.md`.
 2. Ask yourself:
@@ -151,7 +199,7 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
    - Is there anything a new engineer reading this could not act on?
 3. If problems remain, do one more targeted edit. Otherwise proceed.
 
-### Step 4: Write `design-review.md`
+### Step 5: Write `design-review.md`
 
 ```markdown
 # Design Review — <short title>
@@ -161,7 +209,8 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 **Reviewer:** multi-agent: <angle -> reviewer route>
 **Iterations:** <N>
 **Result:** <clean | accepted-with-open-issues>
-**Mode:** <multi-agent | degraded-same-context-review>
+**Review intensity:** <quick|standard|deep> (<auto|forced>: <reason>)
+**Mode:** <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 
 ## Issues Raised & Resolution
@@ -194,7 +243,7 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
 <What you noticed in the holistic pass. Empty is fine.>
 ```
 
-### Step 5: Hand-off
+### Step 6: Hand-off
 
 1. Tell the user: the architecture file has been updated in place, review log is in `design-review.md`.
 2. Print a 3-bullet summary of the biggest changes made during the loop.
@@ -217,3 +266,8 @@ After LGTM (or user-accepted exit), one last pass — this time looking at the d
   multi-agent review.
 - **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.
+
+## Related Skills
+
+- `$idea-to-ship:architect` writes the architecture reviewed here.
+- `$idea-to-ship:review-code` reviews the implementation after `/implement`.

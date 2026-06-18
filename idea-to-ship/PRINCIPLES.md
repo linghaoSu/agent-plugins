@@ -62,9 +62,12 @@ Do not assume the host runtime is Claude Code.
   and preserve the same roles: primary analysis, independent second opinion,
   adversarial review, executor, and final synthesis. Label outputs by role
   rather than model name.
-- Review workflows are multi-agent, multi-angle, and multi-round by default.
-  Preserve distinct reviewer angles and rerun required angles after fixes or
-  touchups.
+- Review workflows first select `review_intensity` from
+  `WORKFLOW-CONTRACTS.md`: auto by risk, or forced with
+  `--review-depth quick|standard|deep`. `deep` preserves multi-agent,
+  multi-angle, multi-round review; `standard` preserves distinct angles with a
+  smaller loop; selected `quick` uses a same-context checklist and is not a
+  degraded fallback.
 - Fall back to same-context review only when review sub-agents are explicitly
   unsupported by the host/runtime, the user explicitly forbids reviewer
   sub-agents, or the selected reviewer/model is explicitly unavailable or at

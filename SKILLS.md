@@ -26,8 +26,9 @@ $<plugin>:<skill> [flags] [free-form task notes]
 - Prefer plugin-qualified names such as `$agent-playbook:tool-review`.
 - Use `--slug <name>` when the skill writes artifacts and the work should be
   resumable.
-- Use review skills before shipping risky changes; review workflows in this
-  repo are adversarial by design.
+- Use review skills before shipping risky changes. Supported review workflows
+  auto-select `quick`, `standard`, or `deep`; pass
+  `--review-depth quick|standard|deep` to force a tier.
 - Use the owning commit workflow for commits and pushes:
   `$agent-playbook:commit-changes`.
 
@@ -41,7 +42,7 @@ Operational hygiene for repos, tools, fast AI-assisted work, and commits.
 | `$agent-playbook:commit-changes` | Finished local changes need a verified commit, and optionally a draft PR when explicitly requested. | `$agent-playbook:commit-changes feat(scope): subject` | Inspects diff, reads repo commit rules, verifies human git identity, runs required gates, commits intended paths only. |
 | `$agent-playbook:context-audit` | You need a ranked audit of agent-context hygiene: memories, rules, hooks, tools, MCP sprawl, and verification signals. | `$agent-playbook:context-audit --slug repo-context --scope all` | Read-only against repo behavior; writes `.agent-playbook/<slug>/context-audit.md`. |
 | `$agent-playbook:implementation-tournament` | The user explicitly wants competing implementations or a best-of-N patch selection. | `$agent-playbook:implementation-tournament --slug feature-x --candidates 3 goal` | High-cost workflow; creates isolated candidates, verifies each, independently reviews, and records adopt/merge/reject decisions. |
-| `$agent-playbook:tool-review` | An agent tool, CLI, MCP server, or schema needs a safety and usability review. | `$agent-playbook:tool-review --slug tool-audit path/to/tool` | Multi-agent read-only review; writes a ranked punch-list focused on boundaries, naming, token cost, errors, and eval hooks. |
+| `$agent-playbook:tool-review` | An agent tool, CLI, MCP server, or schema needs a safety and usability review. | `$agent-playbook:tool-review --slug tool-audit --review-depth standard path/to/tool` | Risk-scaled read-only review; writes a ranked punch-list focused on boundaries, naming, token cost, errors, and eval hooks. |
 | `$agent-playbook:vibe-coding-fix` | A prior vibe-coding health-check produced bounded local fixes to apply. | `$agent-playbook:vibe-coding-fix --slug current --apply` | Mutates only accepted local fixes from the report, verifies each, and routes unsafe/domain-specific work to owning skills. |
 | `$agent-playbook:vibe-coding-health-check` | Fast AI-assisted coding needs a quick drift, fragility, and verification control check. | `$agent-playbook:vibe-coding-health-check --slug current --scope diff` | Writes `.agent-playbook/<slug>/vibe-health-check.md`; routes to deeper audits when risk is high. |
 | `$agent-playbook:workflow-router` | You are unsure whether work belongs to idea-to-ship, issue-evaluator, agent-playbook, antifragile, harness-engineering, secret-scanner, or worktree-cleaner. | `$agent-playbook:workflow-router which workflow should handle this PR feedback?` | Conversation-only route card; does not run downstream skills or mutate code, git, GitHub, hooks, or installed tools. |
@@ -79,13 +80,13 @@ architecture or implementation.
 | `$idea-to-ship:brainstorm` | A new idea is vague and needs concrete requirements, constraints, users, risks, and success criteria. | `$idea-to-ship:brainstorm --slug ITS-123 idea text` | Mandatory first stage; writes `.idea-to-ship/<slug>/requirements.md` after Socratic Q&A. |
 | `$idea-to-ship:commercialize` | Product, pricing, ICP, GTM, monetization, or roadmap impact needs analysis. | `$idea-to-ship:commercialize --slug ITS-123 pricing notes` | Writes commercialization artifacts and hands evidence to roadmap; does not replace requirements. |
 | `$idea-to-ship:architect` | Requirements exist and need architecture alternatives, tradeoffs, and a recommended design. | `$idea-to-ship:architect --slug ITS-123 extra constraints` | Writes `.idea-to-ship/<slug>/architecture.md`; does not write production code. |
-| `$idea-to-ship:review-design` | `architecture.md` needs adversarial multi-agent review before implementation. | `$idea-to-ship:review-design --slug ITS-123 concurrency focus` | Writes design review evidence and loops fix/review until clean or budget exhausted. |
+| `$idea-to-ship:review-design` | `architecture.md` needs risk-scaled review before implementation. | `$idea-to-ship:review-design --slug ITS-123 --review-depth deep concurrency focus` | Writes design review evidence with the selected intensity and loops fix/review as required by the tier. |
 | `$idea-to-ship:ui-design` | A product UI needs a buildable interface contract before frontend implementation. | `$idea-to-ship:ui-design --slug ITS-123 --write-design-md` | Writes `.idea-to-ship/<slug>/interface-design.md`; no production code. |
 | `$idea-to-ship:tdd` | A stage needs red-first tests before production or behavior-changing implementation. | `$idea-to-ship:tdd --slug ITS-123 --stage 1` | Writes/updates `test-plan.md` and `tdd-log.md`; edits tests and fixtures only, not production code. |
 | `$idea-to-ship:implement` | Reviewed architecture is ready to build stage by stage. | `$idea-to-ship:implement --slug ITS-123 stage 1` | Edits local code according to `architecture.md`; logs to `implementation-log.md`; never commits or pushes. |
 | `$idea-to-ship:test` | The feature needs a full story-driven test plan and implemented test coverage. | `$idea-to-ship:test --slug ITS-123 edge cases` | Writes/updates test strategy artifacts, implements tests, and runs verification; broader than stage-local TDD. |
 | `$idea-to-ship:visual-test` | A frontend change needs visual QA evidence from interface/test contracts. | `$idea-to-ship:visual-test --slug ITS-123 http://localhost:3000` | Writes selector recipes, matrix evidence, RCA, and visual-test reports; does not add production code. |
-| `$idea-to-ship:review-code` | Current implementation diff needs adversarial multi-agent code review before shipping. | `$idea-to-ship:review-code --slug ITS-123 security focus` | Loops fix/review across required angles until clean; writes `.idea-to-ship/<slug>/code-review.md`. |
+| `$idea-to-ship:review-code` | Current implementation diff needs risk-scaled code review before shipping. | `$idea-to-ship:review-code --slug ITS-123 --review-depth standard security focus` | Loops fix/review according to the selected intensity; writes `.idea-to-ship/<slug>/code-review.md`. |
 | `$idea-to-ship:roadmap` | A project or slug needs an evidence-backed Now/Next/Later roadmap. | `$idea-to-ship:roadmap --portfolio --include-git --final` | Writes `.idea-to-ship/roadmap.md` or `.idea-to-ship/<slug>/roadmap.md`; roadmap review decisions should remain adversarial. |
 
 ## issue-evaluator
@@ -98,9 +99,9 @@ safe inspection or implementation.
 |---|---|---|---|
 | `$issue-evaluator:evaluate-issue` | A GitHub issue URL/number or bug description needs diagnosis and a fix plan. | `$issue-evaluator:evaluate-issue #123` | Reads repo and issue context; produces diagnosis, reproduction notes, and implementation plan. |
 | `$issue-evaluator:fix-issue` | A GitHub issue or concrete bug description should be fixed locally. | `$issue-evaluator:fix-issue #123` | Implements in an isolated worktree with scoped staging expectations; no automatic push. |
-| `$issue-evaluator:fix-pr-comments` | PR review comments need triage and accepted local fixes. | `$issue-evaluator:fix-pr-comments 45 --include-resolved` | Read-only on GitHub; applies accepted fixes as local unstaged edits and reports rebuttals for rejected comments. |
-| `$issue-evaluator:review-fix` | Current local changes need runtime-aware adversarial review/fix looping. | `$issue-evaluator:review-fix concurrency and tests` | Multi-agent review/fix loop for current diff, ending with holistic review. |
-| `$issue-evaluator:review-pr` | A GitHub PR needs local multi-agent review for bugs, security, issue coverage, and style. | `$issue-evaluator:review-pr 45` | Read-only on GitHub; output stays in conversation and temporary local worktrees only. |
+| `$issue-evaluator:fix-pr-comments` | PR review comments need triage, accepted local fixes, and post-fix review. | `$issue-evaluator:fix-pr-comments 45 --include-resolved --review-depth standard` | Read-only on GitHub; applies accepted fixes as local unstaged edits and reports rebuttals plus selected review intensity. |
+| `$issue-evaluator:review-fix` | Current local changes need runtime-aware risk-scaled review/fix looping. | `$issue-evaluator:review-fix --review-depth deep concurrency and tests` | Review/fix loop for current diff, ending with the selected tier's final review. |
+| `$issue-evaluator:review-pr` | A GitHub PR needs local risk-scaled review for bugs, security, issue coverage, and style. | `$issue-evaluator:review-pr 45 --review-depth quick` | Read-only on GitHub; output records selected intensity and stays in conversation and temporary local worktrees only. |
 | `$issue-evaluator:scan-issues` | You want high-value unattended issues to consider. | `$issue-evaluator:scan-issues 2w` | Conversation-only, read-only GitHub scan; never edits issues. |
 | `$issue-evaluator:update-code-style` | The repo-specific code style guide should be regenerated from source and PR review comments. | `$issue-evaluator:update-code-style --force` | Writes/updates the local style guide; uses runtime-aware analysis agents. |
 

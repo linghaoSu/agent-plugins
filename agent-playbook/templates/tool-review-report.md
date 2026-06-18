@@ -3,7 +3,8 @@
 **Date:** <YYYY-MM-DD>
 **Type:** <MCP | CLI | REST>
 **Source:** <path or repo>
-**Review mode:** <multi-agent | degraded-same-context-review>
+**Review intensity:** <quick|standard|deep> (<auto|forced>: <reason>)
+**Review mode:** <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Contract:** status=<success|needs_user|terminal|degraded>; mode=review; outputs_written=<this file>; truncated=<true|false>
 

@@ -6,13 +6,18 @@ generating any review text.
 
 ## Pipeline Contract
 
-Review output is multi-agent, multi-angle, and multi-round by default.
+Review output selects intensity first: auto by risk, or forced with
+`--review-depth quick|standard|deep`.
 
-- Use multiple independent reviewer agents for materially different angles:
+- `quick` uses a same-context checklist over correctness/scope/verification and
+  is not `degraded-same-context-review`.
+- `standard` uses distinct reviewer angles with a bounded loop.
+- `deep` uses multiple independent reviewer agents for materially different angles:
   correctness/security/regressions, repo style/maintainability/scope, and
   issue/test/plan traceability.
-- Re-run every required angle after fixes or touchups. A review is clean only
-  when every required angle is clean in the current round.
+- Re-run the required angles for the selected intensity after fixes or
+  touchups. A review is clean only when every required angle for that intensity
+  is clean in the current round.
 - Fall back to same-context review only when reviewer sub-agents are explicitly
   unsupported by the host/runtime, the user explicitly forbids reviewer
   sub-agents, or the selected reviewer/model is explicitly unavailable or at

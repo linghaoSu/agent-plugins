@@ -59,10 +59,12 @@ Do not assume the host runtime is Claude Code.
   standing authorization to launch multiple reviewer and synthesis sub-agents.
   Do not ask for fresh multi-agent authorization and do not use its absence as
   a reason to review in the main context.
-- **Review means multi-agent, multi-angle, multi-round by default:** every
-  review workflow must preserve distinct reviewer angles such as
-  correctness/security, repo style/scope, and issue/test/plan traceability,
-  and must rerun the required angles after fixes or touchups.
+- **Review intensity is selected first:** every review workflow must select
+  `review_intensity` from `WORKFLOW-CONTRACTS.md`: auto by risk, or forced
+  with `--review-depth quick|standard|deep`. `deep` preserves multi-agent,
+  multi-angle, multi-round review; `standard` preserves distinct angles with a
+  smaller loop; selected `quick` uses a same-context checklist and is not a
+  degraded fallback.
 - Fall back to same-context review only when reviewer sub-agents are
   explicitly unsupported by the host/runtime, the user explicitly forbids
   reviewer sub-agents, or the selected reviewer/model is explicitly unavailable

@@ -39,6 +39,10 @@ budgets and report `truncated: true` when caps are hit.
 Use skills through their plugin-qualified names, for example
 `$idea-to-ship:brainstorm` or `$issue-evaluator:review-pr`.
 
+Review workflows default to automatic risk selection. Use
+`--review-depth quick|standard|deep` on supported review skills to force a
+specific tier when you need faster feedback or full adversarial coverage.
+
 ### Start Here
 
 If the right owner is not obvious, start with
@@ -59,7 +63,7 @@ quick index.
 | [`commit-changes`](agent-playbook/skills/commit-changes/SKILL.md) | Verify the intended diff, run repo commit checks, create a local commit, and optionally open a draft PR. |
 | [`context-audit`](agent-playbook/skills/context-audit/SKILL.md) | Audit agent-context hygiene: repo memories, rules, hooks, MCP/tool sprawl, and verification signals. |
 | [`implementation-tournament`](agent-playbook/skills/implementation-tournament/SKILL.md) | Run an explicit best-of-N implementation tournament with isolated candidates, shared verification, independent review, and adopt/merge/reject decisions. |
-| [`tool-review`](agent-playbook/skills/tool-review/SKILL.md) | Multi-agent review of an agent tool, CLI, or MCP server for boundaries, naming, token cost, errors, safety, and eval hooks. |
+| [`tool-review`](agent-playbook/skills/tool-review/SKILL.md) | Risk-scaled review of an agent tool, CLI, or MCP server for boundaries, naming, token cost, errors, safety, and eval hooks, with optional `--review-depth quick|standard|deep`. |
 | [`vibe-coding-fix`](agent-playbook/skills/vibe-coding-fix/SKILL.md) | Apply bounded local fixes from a vibe-coding health-check report, then verify. |
 | [`vibe-coding-health-check`](agent-playbook/skills/vibe-coding-health-check/SKILL.md) | Audit a repo or current diff after fast AI-assisted coding for drift, fragility, missing verification, and context/tool hygiene. |
 | [`workflow-router`](agent-playbook/skills/workflow-router/SKILL.md) | Conversation-only Start Here router that selects the owning workflow and next prompt without executing downstream skills. |
@@ -89,8 +93,8 @@ quick index.
 | [`brainstorm`](idea-to-ship/skills/brainstorm/SKILL.md) | Mandatory first stage that turns a vague idea into a concrete `requirements.md`. |
 | [`commercialize`](idea-to-ship/skills/commercialize/SKILL.md) | Expand fuzzy product ideas into commercial scenarios, run skeptical multi-angle commercialization review, and produce roadmap inputs. |
 | [`implement`](idea-to-ship/skills/implement/SKILL.md) | Implement `architecture.md` stage by stage, requiring TDD evidence, stopping before missing UI design contracts, and optionally routing `--compete` to implementation tournament. |
-| [`review-code`](idea-to-ship/skills/review-code/SKILL.md) | Multi-agent, multi-angle, multi-round review/fix loop for the current implementation diff. |
-| [`review-design`](idea-to-ship/skills/review-design/SKILL.md) | Multi-agent, multi-angle, multi-round adversarial review of `architecture.md`. |
+| [`review-code`](idea-to-ship/skills/review-code/SKILL.md) | Risk-scaled review/fix loop for the current implementation diff, with optional `--review-depth quick|standard|deep`. |
+| [`review-design`](idea-to-ship/skills/review-design/SKILL.md) | Risk-scaled adversarial review of `architecture.md`, with optional `--review-depth quick|standard|deep`. |
 | [`roadmap`](idea-to-ship/skills/roadmap/SKILL.md) | Build or refresh an evidence-backed Now/Next/Later roadmap for a slug or portfolio. |
 | [`tdd`](idea-to-ship/skills/tdd/SKILL.md) | Create a stage-local red-first gate before `/implement`, or explicitly backfill missing tests. Writes test evidence only; not the full story test plan. |
 | [`test`](idea-to-ship/skills/test/SKILL.md) | Produce the full story-driven test plan from stories, acceptance criteria, and scenario matrices, then implement and run tests. Not a stage-local red-first gate. |
@@ -103,9 +107,9 @@ quick index.
 |---|---|
 | [`evaluate-issue`](issue-evaluator/skills/evaluate-issue/SKILL.md) | Evaluate a GitHub issue or free-form bug description against the current repo and produce diagnosis plus fix plan. |
 | [`fix-issue`](issue-evaluator/skills/fix-issue/SKILL.md) | Implement a GitHub issue fix in an isolated worktree with scoped staging; stops if worktree setup fails. |
-| [`fix-pr-comments`](issue-evaluator/skills/fix-pr-comments/SKILL.md) | Triage PR review comments, apply accepted fixes as local unstaged edits, and run multi-agent review. |
-| [`review-fix`](issue-evaluator/skills/review-fix/SKILL.md) | Multi-agent review/fix loop for current code changes, ending with a holistic review. |
-| [`review-pr`](issue-evaluator/skills/review-pr/SKILL.md) | Local multi-agent PR review for bugs, security, issue coverage, and repo-specific style. |
+| [`fix-pr-comments`](issue-evaluator/skills/fix-pr-comments/SKILL.md) | Triage PR review comments, apply accepted fixes as local unstaged edits, and run risk-scaled review with optional `--review-depth quick|standard|deep`. |
+| [`review-fix`](issue-evaluator/skills/review-fix/SKILL.md) | Risk-scaled review/fix loop for current code changes, ending with the selected tier's final review; supports optional `--review-depth quick|standard|deep`. |
+| [`review-pr`](issue-evaluator/skills/review-pr/SKILL.md) | Local risk-scaled PR review for bugs, security, issue coverage, and repo-specific style, with optional `--review-depth quick|standard|deep`. |
 | [`scan-issues`](issue-evaluator/skills/scan-issues/SKILL.md) | Conversation-only read-only scan for high-value unattended GitHub issues. |
 | [`update-code-style`](issue-evaluator/skills/update-code-style/SKILL.md) | Regenerate the repo-specific code style guide from source and PR review comments. |
 

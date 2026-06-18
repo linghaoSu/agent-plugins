@@ -1,7 +1,7 @@
 ---
 name: tool-review
-description: "Multi-agent review of an agent tool, CLI, or MCP server against tool-writing principles: boundaries, naming, token-efficient returns, errors, eval hooks. Read-only; writes a ranked punch-list."
-argument-hint: '[--slug <name>] <tool-name | path-to-schema | path-to-cli>'
+description: "Risk-scaled review of an agent tool, CLI, or MCP server against tool-writing principles: boundaries, naming, token-efficient returns, errors, eval hooks. Supports --review-depth quick|standard|deep. Read-only; writes a ranked punch-list."
+argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] <tool-name | path-to-schema | path-to-cli>'
 allowed-tools: [Read, Write, Glob, Grep, Bash, Agent]
 ---
 
@@ -20,6 +20,8 @@ Raw: `$ARGUMENTS`
 
 Parse:
 - `--slug <name>` → artifact slug. Default `current`.
+- `--review-depth quick|standard|deep` → force review intensity. Without it,
+  auto-select by risk from `../../WORKFLOW-CONTRACTS.md`.
 - Remaining → the tool. Accepts:
   - A tool name and hand-described behavior (ask for schema in Step 1).
   - A path to an MCP server or its schema (`server.json`, `tools/*.ts`).
@@ -28,9 +30,10 @@ Parse:
 
 ## Multi-Agent Review Routing
 
-This is a review workflow. Invocation is standing authorization to launch
-reviewer sub-agents. Run multi-agent, multi-angle, multi-round review by
-default:
+This is a review workflow. Apply `../../WORKFLOW-CONTRACTS.md` Review Intensity Selection first.
+Invocation is standing authorization to launch
+reviewer sub-agents for selected `standard` and `deep`. Run selected `quick` as
+a same-context checklist and do not label it degraded. The full deep angles are:
 
 - `BOUNDARIES_NAMES`: purpose, scope, consolidation, namespacing
 - `IO_ERRORS_TOKENS`: input schema, output shape, token limits, error clarity
@@ -92,9 +95,21 @@ sections, and include the next static inspection command in the hand-off.
 
 ### Step 2: Round 1 Angle Reviews
 
-Launch one reviewer per required angle, in parallel when supported. Each
-reviewer scores only its assigned subset using the checklist below. If degraded,
-run the same angle prompts sequentially in the main context.
+Select `review_intensity` before launching reviewers. Auto-select the smallest
+tier that covers the tool risk, or honor `--review-depth quick|standard|deep`
+as a forced override. Record `Review intensity: <tier> (<auto|forced>:
+<reason>)` in the punch-list.
+
+For `quick`, run one same-context checklist against the scorecard below and
+write the ranked punch-list.
+
+For `standard`, launch one reviewer per required angle, in parallel when
+supported, then synthesize. Re-check only material findings if the artifact
+changes.
+
+For `deep`, launch one reviewer per required angle, in parallel when supported.
+Each reviewer scores only its assigned subset using the checklist below. If
+degraded, run the same angle prompts sequentially in the main context.
 
 For each checklist item, give `✅ / ⚠️ / ❌` plus a one-line reason.
 
@@ -150,10 +165,12 @@ For each checklist item, give `✅ / ⚠️ / ❌` plus a one-line reason.
 
 ### Step 3: Round 2 Synthesis + Round 3 Sanity Pass
 
-Synthesize the angle outputs into one ranked punch-list. Then run a final
-sanity pass against the source/schema to catch dropped severe findings,
-duplicate findings, or unsupported claims. If the final pass finds a material
-miss, update the punch-list and record the pass as Round 3.
+Synthesize the available outputs into one ranked punch-list. For `deep`, run a
+final sanity pass against the source/schema to catch dropped severe findings,
+duplicate findings, or unsupported claims. For `standard`, run the sanity pass
+only when reviewers disagreed or a severe finding is near a boundary decision.
+If the final pass finds a material miss, update the punch-list and record the
+pass as Round 3.
 
 ### Step 4: Write the punch-list
 

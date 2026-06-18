@@ -6,7 +6,8 @@
 **Mode**: description-based evaluation (no GitHub issue)
 
 **Issue**: #<number>
-**Review mode**: <multi-agent | degraded-same-context-review>
+**Review intensity**: <quick|standard|deep> (<auto|forced>: <reason>)
+**Review mode**: <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Diagnosis pipeline**: Round 1 (primary analysis + independent check + IDE Diagnostics) → Round 2 (adversarial review + evaluation) → Round 3 (final synthesis)
 

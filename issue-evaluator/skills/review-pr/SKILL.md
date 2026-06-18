@@ -1,13 +1,16 @@
 ---
 name: review-pr
-description: Multi-agent, multi-angle, multi-round local review of a GitHub PR for bugs, security, issue coverage, and repo-specific style. Read-only on GitHub.
-argument-hint: <pr-url-or-number>
+description: Risk-scaled local review of a GitHub PR for bugs, security, issue coverage, and repo-specific style. Supports --review-depth quick|standard|deep; deep keeps the three-round multi-agent pipeline. Read-only on GitHub.
+argument-hint: '<pr-url-or-number> [--review-depth quick|standard|deep]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Pull Request
 
-Review a GitHub pull request against the current repository's codebase and code style guide. Produce a structured review report **locally in the conversation only**.
+Review a GitHub pull request against the current repository's codebase and code
+style guide. Auto-select `review_intensity`, or honor
+`--review-depth quick|standard|deep`. Produce a structured review report
+**locally in the conversation only**.
 
 ## CRITICAL SAFETY RULE
 
@@ -40,18 +43,21 @@ Every agent prompt below implicitly inherits these principles. Agents that produ
 The user provided: `$ARGUMENTS`
 
 This should be a GitHub PR URL (e.g. `https://github.com/owner/repo/pull/123`) or a PR number (e.g. `123` or `#123`).
+Optional `--review-depth quick|standard|deep` forces the review intensity and
+must be recorded in the final report.
 
 ## Multi-Agent Review Routing
 
 Before launching any review agent, read `../../PRINCIPLES.md` and
-`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
-contract and the shared **Output, Token, And Error Contract**. This workflow is
-pre-authorized to launch reviewer and synthesis sub-agents. The roles for this
-workflow are bug/security review, style review, existing-review context,
-independent check, linked-issue compliance, adversarial review, and final
-synthesis.
+`../../WORKFLOW-CONTRACTS.md`. Apply the shared **Review Intensity Selection**,
+**Multi-Agent Review Routing**, and **Output, Token, And Error Contract**.
+This workflow is pre-authorized to launch reviewer and synthesis sub-agents for
+selected `standard` and `deep`. The full deep roles are bug/security review,
+style review, existing-review context, independent check, linked-issue
+compliance, adversarial review, and final synthesis.
 
-Run these roles as independent sub-agents when supported. Fall back to
+Run the roles required by the selected intensity as independent sub-agents when
+supported. Fall back to
 same-context review only when reviewer sub-agents are explicitly unsupported by
 the host/runtime, the user explicitly forbids them, or the selected
 reviewer/model is explicitly unavailable or at capacity. In that degraded mode,
@@ -60,6 +66,16 @@ sequentially in the main context, and do not present the result as independent
 multi-agent review.
 
 ## Workflow
+
+```mermaid
+flowchart TD
+  A[Fetch PR Context] --> B[Prepare Worktree]
+  B --> C[Load Code Style]
+  C --> D[Select Review Intensity]
+  D --> E[Review PR]
+  E --> F[Present Report]
+  F --> G[Cleanup Created Worktree]
+```
 
 ### Step 1: Fetch PR Details
 
@@ -71,20 +87,24 @@ Use `gh` CLI (read-only) to fetch the full PR context:
 
 2. Fetch PR metadata and diff in parallel:
 
+   Replace `<number>` and `<owner/repo>` placeholders in every command below before running.
+
    **A — PR metadata:**
    ```bash
    gh pr view <number> [--repo <owner/repo>] --json title,body,author,labels,state,baseRefName,headRefName,files,additions,deletions,commits,reviewDecision,reviews,comments,createdAt,updatedAt
    ```
 
    **B — PR diff:**
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh pr diff <number> [--repo <owner/repo>]
    ```
 
    **C — PR review comments (inline comments on code):**
-   ```bash
-   gh api "repos/<owner>/<repo>/pulls/<number>/comments" --jq '.[] | {path, line: .original_line, body, user: .user.login, created_at}'
-   ```
+  Replace `<number>` and `<owner/repo>` placeholders before running.
+  ```bash
+  gh api "repos/<owner>/<repo>/pulls/<number>/comments" --jq '.[] | {path, line: .original_line, body, user: .user.login, created_at}'
+  ```
 
    Token budget: by default, pass reviewers at most 25 changed files, 400 diff
    lines per file, 100 inline comments, and 50 linked-issue comments. If the PR
@@ -100,6 +120,7 @@ Use `gh` CLI (read-only) to fetch the full PR context:
    - Also note plain `#<number>` references without closing keywords (mentioned but not necessarily fixed)
    
    For each referenced issue, fetch its details:
+   Replace `<number>` and `<owner/repo>` placeholders before running.
    ```bash
    gh issue view <number> [--repo <owner/repo>] --json title,body,labels,state,comments
    ```
@@ -115,17 +136,20 @@ Use `gh` CLI (read-only) to fetch the full PR context:
 Check if the current working directory belongs to the PR's target repository. If so, set up an isolated worktree on the PR's head branch so that all review agents have **full code context** (not just the diff).
 
 1. Determine if the current repo matches the PR's repo:
+   Set `CURRENT_REPO` from read-only `gh` output before comparing it.
    ```bash
    CURRENT_REPO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"' 2>/dev/null)
    ```
    Compare `CURRENT_REPO` with the PR's owner/repo. If they match (or the PR was specified by number only, implying the current repo), proceed with worktree setup. If they don't match (cross-repo review), skip this step — the review will rely on the diff only.
 
 2. Check if a worktree for this branch already exists:
+   Set `HEAD_BRANCH` from PR metadata before running these commands.
    ```bash
    HEAD_BRANCH="<headRefName from PR metadata>"
    EXISTING_WORKTREE=$(git worktree list --porcelain | grep -B2 "branch refs/heads/$HEAD_BRANCH" | grep "^worktree " | sed 's/^worktree //')
    ```
    - Also check for detached worktrees on the same commit:
+     Set `EXISTING_WORKTREE` only from local `git worktree` output.
      ```bash
      [ -z "$EXISTING_WORKTREE" ] && EXISTING_WORKTREE=$(git worktree list | grep "$HEAD_BRANCH" | awk '{print $1}')
      ```
@@ -136,6 +160,7 @@ Check if the current working directory belongs to the PR's target repository. If
    - Log: "Reusing existing worktree at `$EXISTING_WORKTREE` for branch `$HEAD_BRANCH`"
 
 4. **If no existing worktree is found**, create one:
+   Review before running: this read-only fetch plus worktree creation must not remove existing worktrees.
    ```bash
    git fetch origin "$HEAD_BRANCH"
    REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -148,7 +173,9 @@ Check if the current working directory belongs to the PR's target repository. If
 
 5. Store `REVIEW_WORKTREE` and `WORKTREE_REUSED`. All subsequent review agents that need to **read source files** (not just analyze the diff) must be instructed to read from this path.
 
-6. **Cleanup rule**: After the review is complete (after Step 6), clean up **only if we created the worktree** (`WORKTREE_REUSED=false`):
+6. **Cleanup rule**: After the review is complete (after Step 6), clean up **only if we created the worktree** (`WORKTREE_REUSED=false`).
+   Review before running; cleanup is allowed only after confirming the worktree was created by this review:
+   Set `WORKTREE_REUSED` from Step 2 before running cleanup.
    ```bash
    if [ "$WORKTREE_REUSED" = "false" ]; then
      git worktree remove "$REVIEW_WORKTREE" 2>/dev/null
@@ -172,11 +199,33 @@ Apply `../../WORKFLOW-CONTRACTS.md` § Code Style Guide Lifecycle:
 3. Run the Freshness Check if present; stale guides may regenerate in the
    background while review proceeds with the existing guide.
 4. Extract a compact checklist of at most 15 rules before launching style
-   reviewers.
+reviewers.
 
-### Step 4: Three-Round Multi-Agent Review
+### Step 4: Select Review Intensity
 
-This review follows a **three-round multi-agent, multi-angle pipeline**. Each
+Apply `../../WORKFLOW-CONTRACTS.md` Review Intensity Selection using PR size,
+changed files, linked issues, existing human comments, failed diagnostics, and
+user arguments:
+
+- Auto-select `quick`, `standard`, or `deep` by risk.
+- Honor `--review-depth quick|standard|deep` as a forced override.
+- Record `Review intensity: <tier> (<auto|forced>: <reason>)` in the final
+  report.
+- Escalate if a lower tier discovers security, data-loss, external-IO,
+  persistence, public-contract, concurrency, issue-coverage, or broad-scope
+  risk.
+
+### Step 5: Intensity-Scaled Review
+
+`quick` uses one same-context checklist over the PR diff, existing comments,
+linked issues, and diagnostics. It is selected intensity, not
+`degraded-same-context-review`.
+
+`standard` runs Round 1 plus Round 3 synthesis. Run Round 2 only if Round 1
+finds material issues, diagnostics fail, linked issue coverage is unclear, or a
+reviewer asks for adversarial validation.
+
+`deep` follows the full **three-round multi-agent, multi-angle pipeline**. Each
 round builds on the previous round's output, producing increasingly validated
 findings. If degraded, run the same role prompts sequentially in the main
 context and label the report `degraded-same-context-review`.
@@ -242,12 +291,15 @@ comments, and linked issue compliance data.
 
 **Wait for Round 3 to complete.**
 
-### Step 5: Present Final Report
+### Step 6: Present Final Report
 
-Take the Round 3 agent's output and present it with the PR header using
-`../../templates/review-pr-final-report.md`. Omit empty sections.
+Present the selected-intensity output with the PR header using
+`../../templates/review-pr-final-report.md`. For `quick`, use the same-context
+checklist result. For `standard`, use Round 3 synthesis when it ran, otherwise
+synthesize Round 1 directly. For `deep`, use the Round 3 agent's output. Omit
+empty sections.
 
-### Step 6: Suggest Next Steps
+### Step 7: Suggest Next Steps
 
 After presenting the report:
 - If critical issues were found: "This PR has critical issues that should be addressed before merging."
@@ -256,9 +308,11 @@ After presenting the report:
 
 Remind the user: "This review is local only — no comments have been posted to the PR."
 
-### Step 7: Cleanup Worktree
+### Step 8: Cleanup Worktree
 
 If a worktree was **created** (not reused) in Step 2, clean it up:
+Review before running; cleanup is allowed only after confirming this review created the worktree.
+Set `WORKTREE_REUSED` from Step 2 before running cleanup.
 ```bash
 if [ "$WORKTREE_REUSED" = "false" ]; then
   git worktree remove "$REVIEW_WORKTREE" 2>/dev/null
@@ -282,3 +336,9 @@ If cleanup fails, leave the worktree in place and report it under `errors:
 - When the PR description explains a deliberate design choice, respect it rather than flagging it as an issue.
 - If the diff is very large (1000+ lines), focus on the most important files and note that a full review may require multiple passes.
 - Deduplicate against existing reviewer feedback — don't repeat what humans have already said.
+
+## Related Skills
+
+- `$issue-evaluator:fix-pr-comments` triages and locally applies reviewer-comment fixes.
+- `$issue-evaluator:review-fix` reviews current local changes after a fix.
+- `$issue-evaluator:update-code-style` refreshes the repo-specific style guide.

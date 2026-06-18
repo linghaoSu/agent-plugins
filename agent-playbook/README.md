@@ -52,11 +52,14 @@ specificity, `.claude/rules/` layout, hook usage, tool sprawl, redundant
 MCPs, and common failure patterns (over-specified memory, kitchen-sink
 history). Writes a report with ranked fixes.
 
-### `/tool-review <tool-name or path>`
+### `/tool-review [--slug <name>] [--review-depth quick|standard|deep] <tool-name or path>`
 Review a tool, CLI, or MCP definition against Anthropic's tool-writing
 principles: boundary clarity, consolidation, namespacing, token-efficient
-returns, error messages that guide, evaluation hooks. Produces a ranked
-punch-list.
+returns, error messages that guide, evaluation hooks. By default it auto-selects
+`quick`, `standard`, or `deep` from tool risk; pass `--review-depth` to force a
+tier. `deep` keeps the full multi-agent, multi-angle, multi-round review.
+Produces a ranked punch-list that records the selected intensity and whether it
+was automatic or forced.
 
 ### `/vibe-coding-health-check [--scope diff|repo|agent|all] [--deep]`
 Run a lightweight control check after fast AI-assisted coding. Scores the

@@ -3,37 +3,60 @@
 Shared contracts for idea-to-ship skills. Skills should cite this file for
 cross-cutting runtime behavior while preserving their stage-specific gates.
 
+## Review Intensity Selection
+
+Before launching reviewers, select a review intensity. Parse optional
+`--review-depth quick|standard|deep`; when present, it is a user-forced
+override. Record the selected intensity, whether it was auto or forced, and the
+reason in the review artifact. A forced lower depth is allowed, but never claim
+deep assurance for it and never skip required deterministic verification gates.
+
+Auto-select the smallest tier that covers the risk:
+
+| Intensity | Use when | Review shape |
+|---|---|---|
+| `quick` | Docs-only, tests-only, fixture-only, generated artifact updates, or a small non-behavior diff with no public API/schema, UI, auth, external IO, persistence, destructive action, agent loop, or release-critical change. | One same-context checklist over correctness/scope/verification. If it finds issues and fixes are made, run one targeted same-context confirmation over changed hunks. This is selected intensity, not `degraded-same-context-review`. |
+| `standard` | Normal behavior changes with bounded blast radius, clear requirements, and runnable verification. | One multi-angle review round. After fixes, re-review only angles touched by the fix unless a fix changes architecture, public contract, security, data flow, or broad scope. Cap at two rounds before asking whether to escalate to `deep`. |
+| `deep` | Security/auth/secrets, data loss, persistence/migrations, external IO, destructive operations, concurrency, agent/harness loops, public APIs/schemas, large or mixed diffs, UI requiring visual evidence, failed release gates, unclear requirements, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle, multi-round loop. Re-run every required angle after fixes, cap at five rounds unless the user explicitly continues, then run a holistic pass. |
+
+Escalate during review if a lower tier discovers higher-risk behavior. Do not
+de-escalate a forced `deep` request.
+
 ## Multi-Agent Review Routing
 
 For design and code review loops:
 
 1. Read `PRINCIPLES.md` before launching a reviewer.
-2. Launch multiple independent runtime-native reviewer agents by default. Use
-   at least two angles per round:
+2. Select review intensity using the contract above. Use runtime-native
+   reviewer agents for `standard` and `deep`; use same-context review only for
+   selected `quick` or for recorded degraded fallback.
+3. Cover at least two angles whenever reviewer agents run:
    - correctness / failure modes / security
    - traceability / testability / implementation fit
    Add a UI/UX/accessibility angle when `interface-design.md` is present or the
    diff touches UI.
-3. Treat invocation of a design or code review workflow as standing
+4. Treat invocation of a design or code review workflow as standing
    authorization to launch reviewer sub-agents. Use sub-agents when the host
    supports them unless the user explicitly forbids delegation. In Claude Code,
    keep the Codex adversarial reviewer (`subagent_type: "codex:codex-rescue"`)
    when available. Outside Claude Code, do not request Claude-only subagent
    types; use the host runtime's native reviewer agents for the same roles.
-4. Fall back to same-context review only when reviewer sub-agents are
+5. Fall back to same-context review only when reviewer sub-agents are
    explicitly unsupported by the host/runtime, the user explicitly forbids
    reviewer sub-agents, or a selected reviewer/model is explicitly unavailable
    or at capacity. Record `degraded-same-context-review` and the exact reason
    in the review artifact. Do not present the result as independent multi-agent
    review. Degraded mode still preserves the same angles and rounds; it only
    loses independent agents.
-5. A review can return clean only after every required reviewer angle has
+6. A review can return clean only after every required reviewer angle for the
+   selected intensity has
    either returned `LGTM` or all material findings from that angle have been
    fixed and re-reviewed.
 
-The invariant is independent skeptical review from multiple agents, multiple
-angles, and multiple rounds. Same-context review is only the recorded
-degradation path for the explicit unsupported cases above.
+The deep-review invariant is independent skeptical review from multiple agents,
+multiple angles, and multiple rounds. Same-context review is either selected
+`quick` intensity or the recorded degradation path for the explicit unsupported
+cases above.
 
 ## Output, Token, And Error Contract
 
@@ -86,14 +109,19 @@ files, candidates, or logs, and put the continuation command or next skill in
 
 1. Verify required artifacts first. Missing `requirements.md` sends the user
    back to `/brainstorm --slug <slug>`.
-2. Collect the current target (`architecture.md` or diff) fresh each iteration.
-3. Treat `LGTM` as the clean sentinel only per reviewer angle; the round is
+2. Select and record `review_intensity` before reviewer launch. Honor
+   `--review-depth quick|standard|deep` when provided.
+3. Collect the current target (`architecture.md` or diff) fresh each iteration.
+4. Treat `LGTM` as the clean sentinel only per reviewer angle; the round is
    clean only when all required angles are clean.
-4. Fix critical and warning findings in scope; skip or record nits unless they
+5. Fix critical and warning findings in scope; skip or record nits unless they
    are trivially co-located.
-5. Run multiple rounds until clean, with a default cap of five rounds unless
-   the user explicitly asks to continue.
-6. Run one holistic pass after the incremental loop.
+6. Use the selected intensity's loop cap and re-review scope. `quick` and
+   `standard` may ask to escalate when their caps are reached; `deep` uses the
+   five-round cap unless the user explicitly asks to continue.
+7. Run a holistic pass after the incremental loop for `deep`; for `standard`,
+   run it only when fixes changed public behavior or cross-file structure; for
+   `quick`, summarize residual risk instead of adding a separate holistic pass.
 
 ## Cross-Skill Routing
 

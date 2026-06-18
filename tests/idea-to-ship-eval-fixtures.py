@@ -602,6 +602,18 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "workflow-review-intensity-contract",
+        "idea-to-ship/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("review intensity selection", (r"Review Intensity Selection",)),
+            InvariantGroup("force argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("auto tiers", (r"Auto-select", r"`quick`", r"`standard`", r"`deep`")),
+            InvariantGroup("forced recorded", (r"user-forced", r"Record the selected intensity")),
+            InvariantGroup("quick not degraded", (r"selected `quick` intensity", r"not `degraded-same-context-review`")),
+            InvariantGroup("deep invariant retained", (r"deep-review invariant", r"multiple agents")),
+        ),
+    ),
+    ContractCheck(
         "review-design-multi-agent-contract",
         "idea-to-ship/skills/review-design/SKILL.md",
         (
@@ -613,6 +625,17 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "review-design-intensity-contract",
+        "idea-to-ship/skills/review-design/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto and forced", (r"Auto-select", r"forced override")),
+            InvariantGroup("artifact records intensity", (r"Review intensity:", r"design-review\.md")),
+            InvariantGroup("quick standard deep", (r"For `quick`", r"For `standard`", r"For `deep`")),
+        ),
+    ),
+    ContractCheck(
         "review-code-multi-agent-contract",
         "idea-to-ship/skills/review-code/SKILL.md",
         (
@@ -621,6 +644,17 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("explicit fallback only", (r"explicitly unsupported by the host/runtime", r"selected reviewer/model is\s+explicitly unavailable")),
             InvariantGroup("degraded mode recorded", (r"degraded-same-context-review",)),
             InvariantGroup("rerun all angles", (r"re-run every required reviewer angle",)),
+        ),
+    ),
+    ContractCheck(
+        "review-code-intensity-contract",
+        "idea-to-ship/skills/review-code/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto and forced", (r"Auto-select", r"forced override")),
+            InvariantGroup("artifact records intensity", (r"Review intensity:", r"code-review\.md")),
+            InvariantGroup("quick standard deep", (r"For `quick`", r"For `standard`", r"For `deep`")),
         ),
     ),
     ContractCheck(

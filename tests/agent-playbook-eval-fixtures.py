@@ -134,6 +134,27 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "agent-playbook-review-intensity-contract",
+        "agent-playbook/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("review intensity heading", (r"Review Intensity Selection",)),
+            InvariantGroup("force argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("auto tiers", (r"Auto-select", r"`quick`", r"`standard`", r"`deep`")),
+            InvariantGroup("quick not degraded", (r"selected intensity", r"not `degraded-same-context-review`")),
+        ),
+    ),
+    ContractCheck(
+        "tool-review-intensity-contract",
+        "agent-playbook/skills/tool-review/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto and forced", (r"auto-select", r"forced override")),
+            InvariantGroup("artifact records intensity", (r"Review intensity:", r"punch-list")),
+            InvariantGroup("quick standard deep", (r"For `quick`", r"For `standard`", r"For `deep`")),
+        ),
+    ),
+    ContractCheck(
         "tool-review-template-reference-contract",
         "agent-playbook/skills/tool-review/SKILL.md",
         (
@@ -406,6 +427,50 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("round 1 prompt reference", (r"review-pr-round1\.md",)),
             InvariantGroup("round 2 prompt reference", (r"review-pr-round2-adversarial\.md",)),
             InvariantGroup("round 3 prompt reference", (r"review-pr-round3-synthesis\.md",)),
+        ),
+    ),
+    ContractCheck(
+        "issue-evaluator-review-intensity-contract",
+        "issue-evaluator/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("review intensity heading", (r"Review Intensity Selection",)),
+            InvariantGroup("force argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("auto tiers", (r"Auto-select", r"`quick`", r"`standard`", r"`deep`")),
+            InvariantGroup("forced recorded", (r"user-forced", r"Record the selected intensity")),
+            InvariantGroup("quick not degraded", (r"selected intensity", r"not `degraded-same-context-review`")),
+        ),
+    ),
+    ContractCheck(
+        "review-pr-intensity-contract",
+        "issue-evaluator/skills/review-pr/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto and forced", (r"Auto-select", r"forced override")),
+            InvariantGroup("final report intensity", (r"Review intensity:", r"final\s+report")),
+            InvariantGroup("quick standard deep", (r"`quick`", r"`standard`", r"`deep`")),
+        ),
+    ),
+    ContractCheck(
+        "review-fix-intensity-contract",
+        "issue-evaluator/skills/review-fix/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto or forced", (r"auto-selected", r"forced")),
+            InvariantGroup("final report intensity", (r"Review intensity", r"final report")),
+            InvariantGroup("quick standard deep", (r"`quick`", r"`standard`", r"`deep`")),
+        ),
+    ),
+    ContractCheck(
+        "fix-pr-comments-intensity-contract",
+        "issue-evaluator/skills/fix-pr-comments/SKILL.md",
+        (
+            InvariantGroup("depth argument", (r"--review-depth quick\|standard\|deep",)),
+            InvariantGroup("shared contract", (r"Review Intensity Selection",)),
+            InvariantGroup("auto or forced", (r"auto-select", r"forced")),
+            InvariantGroup("final report intensity", (r"Review intensity", r"final report")),
+            InvariantGroup("quick standard deep", (r"`quick`", r"`standard`", r"`deep`")),
         ),
     ),
     ContractCheck(
