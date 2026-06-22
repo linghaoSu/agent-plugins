@@ -18,10 +18,12 @@ guessing. This skill has two modes:
 This skill writes tests and verification artifacts only. It does not edit
 production code.
 
-Before writing tests, read `../../PRINCIPLES.md`. Apply the local 12-rule
-execution contract: state assumptions, derive the smallest verifiable goal, use
-deterministic repo discovery for test commands and fixtures, and fail loud if a
-red-first gate cannot be made meaningful.
+Before writing tests, read `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`. Apply the local 12-rule execution contract:
+state assumptions, derive the smallest verifiable goal, use deterministic repo
+discovery for test commands and fixtures, and fail loud if a red-first gate
+cannot be made meaningful. Use **Human Approval Routing** before replacing
+human-edited test artifacts.
 
 ## Arguments
 
@@ -38,6 +40,21 @@ there is a clear next stage in `implementation-log.md`; otherwise stop and ask
 for `--stage <N>` or `--backfill`.
 
 ## Workflow
+
+Track progress with a visible checklist and update it after context load,
+artifact ownership, mode/slice selection, test-plan evidence, test writing,
+gate run, log update, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Load Context] --> B[Test Artifact Ownership]
+  B --> C[Select Mode And Slice]
+  C --> D[Write Test Plan Evidence]
+  D --> E[Write Tests]
+  E --> F[Run Gate]
+  F --> G[Write TDD Log]
+  G --> H[Hand-off]
+```
 
 ### Step 1: Load Context
 
@@ -70,7 +87,8 @@ On rerun:
 2. Update rows by stable ID instead of rewriting the whole file.
 3. Preserve human notes, manual exclusions, prior results, and `/test` matrices.
 4. If the existing file cannot be merged safely, write `test-plan.draft.md` or
-   ask before replacing `test-plan.md`.
+   use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing before replacing
+   `test-plan.md`.
 
 ### Step 2: Select Mode And Slice
 
@@ -174,7 +192,7 @@ Append:
 
 - **⛔ GATE after Step 1.5 (Artifact Ownership):** Existing `test-plan.md`
   content must be preserved, updated by stable ID, drafted around, or approved
-  for replacement before writing.
+  through Human Approval Routing before writing.
 - **⛔ GATE after Step 2 (Slice):** Stage-tdd requires a concrete stage story,
   acceptance criterion, scenario, expected failure, and command before writing
   tests. Backfill requires a concrete user focus, current diff, explicit target,
@@ -194,3 +212,9 @@ Append:
   observable behavior is unchanged.
 - **Silent E2E omission.** If UI behavior needs E2E but the repo has no E2E
   setup, record the missing tooling instead of pretending unit tests cover it.
+
+## Related Skills
+
+- `$idea-to-ship:implement` invokes this skill before behavior-changing production edits.
+- `$idea-to-ship:test` owns the full story-driven verification matrix.
+- `$idea-to-ship:review-code` checks test traceability after implementation.

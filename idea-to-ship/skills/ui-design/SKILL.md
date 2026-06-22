@@ -16,9 +16,10 @@ This skill is for product UI/UX design, not technical architecture. It writes
 `DESIGN.md` only when explicitly requested with `--write-design-md` or when the
 user plainly asks for a persistent design-system contract.
 
-Before designing, read `../../PRINCIPLES.md` and `../../LANGUAGE.md` at the
-plugin root. Use the shared terms precisely, especially "design drift",
-"falsifiable hypothesis", and "blast radius".
+Before designing, read `../../PRINCIPLES.md`, `../../LANGUAGE.md`, and
+`../../WORKFLOW-CONTRACTS.md` at the plugin root. Use the shared terms
+precisely, especially "design drift", "falsifiable hypothesis", and
+"blast radius". Use `WORKFLOW-CONTRACTS.md` for human approval routing.
 
 ## Arguments
 
@@ -32,6 +33,23 @@ Parse:
 
 ## Workflow
 
+Track progress with a visible checklist and update it after context load,
+ownership handling, UX brief, visual reference intake, design-system mapping,
+interface design, verification plan, artifact write, approval, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Load Context] --> B[Interface Design Ownership]
+  B --> C[UX Brief]
+  C --> D[Visual Reference Intake]
+  D --> E[Design System Map]
+  E --> F[Interface Design]
+  F --> G[Verification Plan]
+  G --> H[Write Artifact]
+  H --> I[Approval]
+  I --> J[Hand-off]
+```
+
 ### Step 1: Load Context
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
@@ -44,7 +62,8 @@ Parse:
    run is a revision unless the user explicitly approves starting over.
 6. Read project-level `DESIGN.md` if present. Treat it as the visual system
    source of truth unless it conflicts with actual shipped UI.
-7. Explore the repo for UI evidence:
+7. Read `../../WORKFLOW-CONTRACTS.md`, especially **Human Approval Routing**.
+8. Explore the repo for UI evidence:
    - Component libraries: `components`, `ui`, `design-system`, Storybook.
    - Tokens and styling: CSS variables, Tailwind config, theme files, icon
      libraries, spacing/typography helpers.
@@ -67,9 +86,11 @@ On rerun:
    and prior review findings.
 4. If the existing file cannot be safely merged because it lacks the expected
    headings or contains unstructured human content, write
-   `interface-design.draft.md` or ask before replacing `interface-design.md`.
-5. If the user asks to start over, summarize what will be discarded and get
-   explicit approval before replacing the canonical file.
+   `interface-design.draft.md` or use `../../WORKFLOW-CONTRACTS.md` § Human
+   Approval Routing before replacing `interface-design.md`.
+5. If the user asks to start over, summarize what will be discarded and use
+   `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to obtain explicit
+   approval before replacing the canonical file.
 
 ### Step 2: UX Brief And Task Model
 
@@ -196,11 +217,31 @@ project-level design contract:
 1. Read existing `DESIGN.md`, if any.
 2. Preserve human-owned sections and brand decisions.
 3. Write `DESIGN.md` only if it can be merged safely; otherwise write
-   `DESIGN.draft.md` or ask before replacement.
+   `DESIGN.draft.md` or use Human Approval Routing before replacement.
 4. Keep it project-level: visual mood, tokens, typography, components, states,
    layout, Do / Don't, responsive rules, accessibility defaults, known gaps.
    Do not put feature-specific flow details there; those belong in
    `interface-design.md`.
+
+### Step 7.5: Interface Design Approval
+
+Apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to
+`interface-design.md` before hand-off.
+
+- If a Plannotator gate is available, use it to approve
+  `interface-design.md`. Prefer `plannotator annotate
+  .idea-to-ship/<slug>/interface-design.md --render-html --gate` when rendered
+  design review is supported; otherwise use `plannotator annotate
+  .idea-to-ship/<slug>/interface-design.md --gate`.
+- If current-conversation bypass is active, skip the Plannotator gate and
+  record `**Approval:** bypassed-current-conversation`.
+- If denied, revise from Plannotator feedback and re-gate. Stop with
+  `needs_user` if the denial changes product scope, contradicts
+  `requirements.md`, or requires an architecture change.
+- Record approval source, date, decision, and any denial/revision summary in
+  the `**Approval:**` field or a short `## Approval History` section.
+- If Plannotator is unavailable, leave `**Approval:** pending` and ask the
+  user directly only when an approval decision is needed before continuing.
 
 ### Step 8: Hand-off
 
@@ -216,8 +257,8 @@ project-level design contract:
 
 - **⛔ GATE after Step 1.5 (Interface Design Ownership):** Existing
   `interface-design.md` content must be preserved, merged by heading, drafted
-  around with `interface-design.draft.md`, or explicitly approved for
-  replacement before writing.
+  around with `interface-design.draft.md`, or have explicit approval through
+  Human Approval Routing before writing.
 - **⛔ GATE after Step 2 (UX Brief):** Users, primary tasks, context of use,
   success criteria, and falsifiable UX hypotheses must be concrete enough to
   design against. If not, stop and send the user back to `/brainstorm`.
@@ -236,6 +277,17 @@ project-level design contract:
 - **⛔ GATE before Step 7 (`DESIGN.md`):** Project-level `DESIGN.md` may only be
   written when explicitly requested and must not absorb feature-specific flow
   details from `interface-design.md`.
+- **⛔ GATE after Step 7.5 (Interface Design Approval):** If a Plannotator gate
+  is available and denies `interface-design.md`, do not hand off to
+  `/implement` until the denial is resolved, recorded as a scope-changing
+  blocker, or explicitly handled through Human Approval Routing.
+
+## Related Skills
+
+- `$idea-to-ship:brainstorm` writes the product requirements this design must serve.
+- `$idea-to-ship:architect` supplies technical context and consumes UI constraints.
+- `$idea-to-ship:implement` consumes `interface-design.md` for UI stages.
+- `$idea-to-ship:visual-test` verifies visual QA expectations from this artifact.
 
 ## Anti-Patterns
 

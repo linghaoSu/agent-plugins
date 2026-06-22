@@ -9,6 +9,10 @@ Turn a product idea or existing requirements into a commercial strategy brief
 that `/roadmap` can use without inventing business rationale. This skill is an
 artifact stage, not a code stage.
 
+Before replacing existing human-edited artifacts or accepting weak commercial
+evidence into priority work, read `../../WORKFLOW-CONTRACTS.md` and apply
+**Human Approval Routing**.
+
 It can run before or after `/brainstorm`:
 - If `requirements.md` exists, treat it as the product contract.
 - If `requirements.md` is missing, continue from the user statement, mark the
@@ -42,10 +46,26 @@ when the evidence is enough to choose.
 
 ## Workflow
 
+Track progress with a visible checklist and update it after intake, artifact
+safety, source planning, scenario expansion, review rounds, roadmap translation,
+artifact write, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Intake Gate] --> B[Artifact Safety]
+  B --> C[Source Plan]
+  C --> D[Scenario Expansion]
+  D --> E[Commercial Review]
+  E --> F[Roadmap Inputs]
+  F --> G[Write Artifact]
+  G --> H[Hand-off]
+```
+
 ### Step 1: Intake Gate
 
-1. Read `../../LANGUAGE.md`. Read `../../PRINCIPLES.md` if this run will affect
-   downstream code-producing stages.
+1. Read `../../LANGUAGE.md` and `../../WORKFLOW-CONTRACTS.md`. Read
+   `../../PRINCIPLES.md` if this run will affect downstream code-producing
+   stages.
 2. Resolve output:
    - Slug mode -> `.idea-to-ship/<slug>/commercialization.md`
    - Portfolio mode -> `.idea-to-ship/commercialization.md`
@@ -71,7 +91,7 @@ batch of 3-5 questions. Do not write a final-looking brief with hidden guesses.
 Preserve human edits:
 - If generated markers exist, update only the generated block.
 - If the file has no generated markers and contains human content, write
-  `commercialization.draft.md` or ask before replacing.
+  `commercialization.draft.md` or use Human Approval Routing before replacing.
 - Preserve manually accepted ICPs, pricing notes, rejected markets, and open
   decisions unless the user explicitly changes them.
 
@@ -265,7 +285,8 @@ Classify every roadmap candidate:
 
 Rules:
 - `Weak`, `Unknown`, and `Speculative` items cannot be recommended as `Now`
-  unless the user explicitly approves them.
+  unless the user explicitly approves them through Human Approval Routing when
+  available.
 - A paid feature candidate needs a buyer, value metric, validation check, and
   stop condition.
 - Pricing numbers are hypotheses unless backed by cited evidence.
@@ -325,3 +346,9 @@ Tell the user:
   low-return ideas must be visible with reasons. Do not quietly drop them.
 - **Gate before downstream build:** if `requirements.md` is missing, the next
   build-oriented action is `/brainstorm`, not `/architect` or `/implement`.
+
+## Related Skills
+
+- `$idea-to-ship:brainstorm` writes the product contract required before build stages.
+- `$idea-to-ship:roadmap` consumes commercial hypotheses for sequencing.
+- `$idea-to-ship:architect` consumes accepted requirements after commercial context is settled.

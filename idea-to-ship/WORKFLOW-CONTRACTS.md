@@ -87,7 +87,7 @@ Error categories:
 |---|---|
 | `retryable` | A transient command, render, test, network, or evidence-fetch failure. |
 | `terminal` | A required upstream artifact is missing or the stage cannot continue safely. |
-| `needs_user` | Product intent, priority approval, destructive overwrite, or scope needs a human decision. |
+| `needs_user` | Product intent, priority approval, destructive overwrite, or scope needs a human decision. Route through Human Approval Routing when available. |
 | `degraded` | The workflow continued with partial evidence, missing optional tools, or same-context review fallback. |
 
 Default token budget unless a skill declares a stricter one:
@@ -122,6 +122,65 @@ files, candidates, or logs, and put the continuation command or next skill in
 7. Run a holistic pass after the incremental loop for `deep`; for `standard`,
    run it only when fixes changed public behavior or cross-file structure; for
    `quick`, summarize residual risk instead of adding a separate holistic pass.
+
+## Human Approval Routing
+
+When a phase gate needs human confirmation, approval, or a user-owned decision,
+route the decision through Plannotator first when a Plannotator gate is
+available in the current runtime, unless the user has enabled the
+current-conversation bypass. This includes architecture/design approval,
+roadmap priority approval, overwrite approval, residual-risk acceptance, visual
+baseline approval, scope/deviation decisions, and continue/stop decisions
+between implementation stages.
+
+### Current-Conversation Bypass
+
+Support a fast approval bypass for the current conversation only. If the user
+explicitly says to skip approvals for this conversation/thread/session (for
+example, "skip all approvals in this conversation" or "本对话跳过所有审批"),
+do not run Plannotator gates or stop for Human Approval Routing decisions for
+the rest of this conversation unless the user revokes the bypass.
+
+Bypass rules:
+
+- Treat the bypass as user approval for Human Approval Routing gates only.
+- Record every skipped gate as `bypassed-current-conversation`, with the
+  decision source `user requested approval bypass in current conversation`.
+- Do not persist the bypass to repo files, config, goals, or future
+  conversations.
+- Do not infer bypass from vague urgency such as "go fast" or "don't ask too
+  much"; require an explicit skip-approval instruction.
+- Do not use the bypass to override required upstream artifacts, deterministic
+  verification, review loops, policy constraints, or the Cross-Skill Routing
+  safety boundary for code/git/GitHub/GitLab/deployment/credential/external
+  system mutations.
+
+Use this order:
+
+1. Check whether current-conversation bypass is active. If active, record the
+   bypass and continue without Plannotator or a direct user question.
+2. Check availability: a Plannotator skill/workflow that supports gated
+   annotation is present, or the `plannotator` CLI is available on `PATH`.
+3. Prepare a concrete approval artifact instead of an open-ended prompt. Use
+   the stage artifact itself when it contains the decision context; otherwise
+   write a short sibling `*.approval.md` artifact. Include: decision needed,
+   options, recommended option, tradeoffs/risks, affected artifact paths, and
+   the exact next action if approved.
+4. Run Plannotator as the approval gate:
+   - Plain markdown: `plannotator annotate <artifact> --gate`
+   - Rendered design/proposal review when supported:
+     `plannotator annotate <artifact> --render-html --gate`
+5. If denied, revise from the feedback and re-gate. Stop with `needs_user` if
+   the denial changes product scope or requires a decision the artifact cannot
+   settle.
+6. Record the approval source, date, decision, and artifact path in the
+   relevant stage artifact or log before continuing.
+7. If Plannotator is unavailable, ask the user directly and record the
+   response. Do not block only because Plannotator is absent.
+
+Never self-approve. Reviewer `LGTM`, passing tests, or a generated
+Plannotator preview is evidence, not human approval. A current-conversation
+bypass is user-provided approval, not agent self-approval.
 
 ## Cross-Skill Routing
 

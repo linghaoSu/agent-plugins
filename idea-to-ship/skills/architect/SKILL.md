@@ -19,6 +19,21 @@ Parse:
 
 ## Workflow
 
+Track progress with a visible checklist and update it after context load,
+codebase exploration, routing, alternatives, recommendation, approval, and
+handoff.
+
+```mermaid
+flowchart TD
+  A[Load Context] --> B[Explore Codebase]
+  B --> C[Cross-Skill Routing]
+  C --> D[Design Alternatives]
+  D --> E[Recommend]
+  E --> F[Write Architecture]
+  F --> G[Approval]
+  G --> H[Hand-off]
+```
+
 ### Step 1: Load Context
 
 1. Resolve artifact dir `.idea-to-ship/<slug>/`.
@@ -26,7 +41,8 @@ Parse:
 3. Read `requirements.md` fully.
 4. Read `interface-design.md` if present. Treat it as UI/UX and visual-system
    context that the technical design must preserve for user-facing surfaces.
-5. Read `../../WORKFLOW-CONTRACTS.md`, especially **Cross-Skill Routing**.
+5. Read `../../WORKFLOW-CONTRACTS.md`, especially **Cross-Skill Routing** and
+   **Human Approval Routing**.
 6. If `architecture.md` already exists, read it fully. This run is a revision
    unless the user explicitly approves starting over.
 
@@ -45,9 +61,11 @@ On rerun:
    prior review findings.
 4. If the existing file cannot be safely merged because it lacks the expected
    headings or contains unstructured human content, write
-   `architecture.draft.md` or ask before replacing `architecture.md`.
-5. If the user asks to start over, summarize what will be discarded and get
-   explicit approval before replacing the canonical file.
+   `architecture.draft.md` or use `../../WORKFLOW-CONTRACTS.md` § Human
+   Approval Routing before replacing `architecture.md`.
+5. If the user asks to start over, summarize what will be discarded and obtain
+   explicit approval through `../../WORKFLOW-CONTRACTS.md` § Human Approval
+   Routing before replacing the canonical file.
 
 ### Step 2: Explore the Codebase
 
@@ -133,6 +151,7 @@ Template:
 **Slug:** <slug>
 **Date:** <YYYY-MM-DD>
 **Status:** draft
+**Approval:** pending
 **References:** requirements.md, interface-design.md (if present)
 
 ## Summary
@@ -205,6 +224,25 @@ Ordered, independently-shippable stages. Each stage should leave the system work
 <Things the design cannot settle without more info. Answers go here before /implement runs.>
 ```
 
+### Step 5.5: Architecture Approval
+
+Apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to
+`architecture.md` before hand-off.
+
+- If a Plannotator gate is available, use it to approve `architecture.md`.
+  Prefer `plannotator annotate .idea-to-ship/<slug>/architecture.md
+  --render-html --gate` when rendered proposal review is supported; otherwise
+  use `plannotator annotate .idea-to-ship/<slug>/architecture.md --gate`.
+- If current-conversation bypass is active, skip the Plannotator gate and
+  record `**Approval:** bypassed-current-conversation`.
+- If denied, revise from Plannotator feedback and re-gate. Stop with
+  `needs_user` if the denial changes product scope or conflicts with
+  `requirements.md`.
+- Record approval source, date, decision, and any denial/revision summary in
+  the `**Approval:**` field or a short `## Approval History` section.
+- If Plannotator is unavailable, leave `**Approval:** pending` and ask the
+  user directly only when an approval decision is needed before continuing.
+
 ### Step 6: Hand-off
 
 1. Print a 5-bullet summary: chosen option, top tradeoff accepted, top risk,
@@ -226,8 +264,8 @@ These are hard stops. Do not proceed past a gate until its condition is met.
 
 - **⛔ GATE after Step 1.5 (Architecture Ownership):** Existing human edits,
   option/stage identity, and decision history must be preserved, merged by
-  heading, drafted around with `architecture.draft.md`, or explicitly approved
-  for replacement before writing `architecture.md`.
+  heading, drafted around with `architecture.draft.md`, or have explicit
+  approval through Human Approval Routing before writing `architecture.md`.
 - **⛔ GATE after Step 2 (Explore):** You must have concrete file paths and module names from the actual codebase before designing anything. If Explore returned nothing useful, widen the search or ask the user — do not design against an imagined codebase.
 - **⛔ GATE after Step 2.5 (Cross-Skill Routing):** Architecture-stage routing
   signals must be evaluated and recorded. If a required routed skill is
@@ -235,6 +273,10 @@ These are hard stops. Do not proceed past a gate until its condition is met.
   omitting the risk.
 - **⛔ GATE after Step 3 (Design):** Each alternative must have Pros, Cons, and Risk filled in. If you can't articulate a Con for an option, you don't understand it well enough.
 - **⛔ GATE after Step 4 (Recommend):** The recommendation must name the tradeoff it accepts. "Option A is better in every way" is a sign you invented a straw-man — go back to Step 3.
+- **⛔ GATE after Step 5.5 (Architecture Approval):** If a Plannotator gate is
+  available and denies `architecture.md`, do not hand off to `/review-design`
+  or `/implement` until the denial is resolved, recorded as a scope-changing
+  blocker, or explicitly handled through Human Approval Routing.
 
 ## Notes
 
@@ -244,3 +286,10 @@ These are hard stops. Do not proceed past a gate until its condition is met.
   Minor design assumptions can still go in `architecture.md` Open Questions.
 - If the design is forced into awkward shapes because requirements are wrong, say so — recommend the user revise requirements before architecting further.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use terms like "vertical slice", "deep module", "seam", "blast radius" precisely as defined there.
+
+## Related Skills
+
+- `$idea-to-ship:brainstorm` writes the required `requirements.md`.
+- `$idea-to-ship:ui-design` writes the UI/UX contract consumed here when present.
+- `$idea-to-ship:review-design` reviews and revises `architecture.md`.
+- `$idea-to-ship:implement` builds the approved staged plan.

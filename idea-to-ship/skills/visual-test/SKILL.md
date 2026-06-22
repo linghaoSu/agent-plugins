@@ -17,6 +17,10 @@ Use this skill after UI implementation, before `$idea-to-ship:review-code`, or
 when review finds missing visual evidence. It does not add Playwright, Storybook,
 browser tooling, baselines, or production code.
 
+Before requesting visual baseline approval, de-scoping required cells, or
+replacing human-edited visual artifacts, read `../../WORKFLOW-CONTRACTS.md` and
+apply **Human Approval Routing**.
+
 ## Arguments
 
 Raw: `$ARGUMENTS`
@@ -40,7 +44,7 @@ Write or update these files under `.idea-to-ship/<slug>/`:
 
 Track progress with a visible checklist and update status after every gate.
 If a gate blocks, record the blocked status in the relevant artifact before
-asking the user for approval or missing inputs.
+using Human Approval Routing for approval or missing inputs.
 
 ## Artifact Ownership
 
@@ -50,8 +54,8 @@ unless the source requirement, interface contract, route/state, or test scenario
 changed. Update artifacts by section or `cell_id` rather than rewriting the
 whole file. If an existing artifact cannot be merged safely because it lacks the
 expected headings or contains unstructured human content, write a draft artifact
-such as `visual-test-report.draft.md` or ask before replacing the canonical
-file.
+such as `visual-test-report.draft.md` or use Human Approval Routing before
+replacing the canonical file.
 
 ## Workflow
 
@@ -72,7 +76,8 @@ flowchart TD
 Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`. If missing, stop
 and tell the user to run `/brainstorm --slug <slug>` first. Read
 `requirements.md`, then read `interface-design.md` when present and
-`test-plan.md` when present. If `interface-design.md` is missing, the run may
+`test-plan.md` when present. Read `../../WORKFLOW-CONTRACTS.md` when approval
+or de-scoping may be needed. If `interface-design.md` is missing, the run may
 continue only for an explicit visual-check request; the report must say
 design-contract compliance is not claimable.
 
@@ -145,14 +150,16 @@ Baseline modes:
 
 - `compare`: default. Missing approved baseline makes required cells `MISS` or
   the run `NEEDS_USER`.
-- `create-requested`: writes an approval request; it does not bless the current
-  UI.
-- `update-requested`: writes before/after artifacts and rationale; it never
-  updates baselines silently.
+- `create-requested`: writes an approval request and routes it through Human
+  Approval Routing when available; it does not bless the current UI.
+- `update-requested`: writes before/after artifacts and rationale, then routes
+  approval through Human Approval Routing when available; it never updates
+  baselines silently.
 
 The visual-test agent cannot self-approve baseline approval. Approval requires
 approver/source, date, baseline path, diff summary, before artifact, after
-artifact, linked matrix cells, and rationale.
+artifact, linked matrix cells, rationale, and the Plannotator artifact path
+when Plannotator was used.
 
 ### Gate 7 - Artifact RCA
 

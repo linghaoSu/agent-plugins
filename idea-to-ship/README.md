@@ -10,6 +10,13 @@ All skills that write or review code apply the four principles in
 [`PRINCIPLES.md`](./PRINCIPLES.md): Think Before Coding · Simplicity First ·
 Surgical Changes · Goal-Driven Execution.
 
+When a stage needs human approval or a user-owned decision, the skills use the
+shared Human Approval Routing contract in `WORKFLOW-CONTRACTS.md`: if a
+Plannotator gate is available, approval goes through `plannotator annotate
+... --gate` before falling back to a direct user question. To skip these gates
+for the current conversation only, explicitly say to skip all approvals in this
+conversation; skipped gates are recorded as `bypassed-current-conversation`.
+
 All artifacts land under `.idea-to-ship/<slug>/` at the repo root:
 
 ```
@@ -60,7 +67,8 @@ Reads `requirements.md`, explores the codebase, and produces `architecture.md`:
 goals, module breakdown, data flow, interfaces, tradeoffs of 2–3 alternatives,
 and a recommendation. Routes to harness / antifragile / secret-handling skills
 when the requirements signal agent, resilience, or credential risk. Does not
-write code.
+write code. If a Plannotator gate is available, architecture approval is routed
+through Plannotator before hand-off.
 
 ### `/ui-design [notes]`
 Reads `requirements.md`, `architecture.md` if present, existing UI code, and
@@ -68,7 +76,9 @@ project `DESIGN.md` if present. Produces `interface-design.md`: UX brief,
 design-system map, visual contract, interaction spec, component states,
 responsive behavior, accessibility contract, and visual QA plan. With
 `--write-design-md`, creates or updates project-level `DESIGN.md` as a reusable
-visual-system contract. Does not write production code.
+visual-system contract. Does not write production code. If a Plannotator gate
+is available, interface design approval is routed through Plannotator before
+hand-off.
 
 ### `/roadmap [options]`
 Builds or refreshes an evidence-backed roadmap. Defaults to the portfolio
@@ -205,6 +215,12 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   either selected `quick` or a recorded `degraded-same-context-review`
   fallback; artifacts must not present degraded output as independent
   multi-agent review.
+- **Human approval routing**: phase gates that need human confirmation use
+  Plannotator when available, record the approval source/date/decision, and
+  fall back to direct user confirmation only when Plannotator is unavailable.
+  A current-conversation approval bypass can skip all Human Approval Routing
+  gates for this conversation, but it does not override cross-skill safety
+  authorization for code/git/GitHub/deployment/credential/external mutations.
 - **Cross-skill routing**: `/architect` and `/implement` may route to other
   repo skills when their risk signal is present. Read-only or artifact-only
   routes can run automatically; code/git/GitHub/deployment/credential mutations

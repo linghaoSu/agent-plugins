@@ -283,7 +283,9 @@ If no material issues exist for your assigned angle, reply with exactly: LGTM
      - Drop nits unless trivially co-located with a larger fix.
      - Keep criticals, warnings, and any design-drift issues.
   3. Fix each kept issue with Edit. Do not touch unrelated code.
-  4. If a fix requires a user decision (tradeoff, spec ambiguity), pause and ask. Do not guess.
+  4. If a fix requires a user decision (tradeoff, spec ambiguity), pause and
+     apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing. Do not
+     guess.
   5. Loop back according to the selected intensity. For `deep`, re-run every required reviewer angle,
      not just the angle that found the issue. For
      `standard`, re-run affected angles unless the fix escalates risk. For
@@ -292,8 +294,9 @@ If no material issues exist for your assigned angle, reply with exactly: LGTM
 #### 4c — Safety Limit
 
 At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
-ask whether to escalate to `deep`, accept residual risk, or abort. For `deep`,
-ask whether to continue, accept, or abort.
+use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to decide whether to
+escalate to `deep`, accept residual risk, or abort. For `deep`, use the same
+approval route to decide whether to continue, accept, or abort.
 
 ### Step 5: Final Holistic Pass
 
@@ -389,3 +392,6 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
   selected reviewer/model is explicitly unavailable or at capacity. Record
   `degraded-same-context-review` and do not present that result as independent
   multi-agent review.
+- Use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing for user-owned
+  tradeoffs, residual-risk acceptance, escalation/abort choices, and approval
+  for documented design deviations.

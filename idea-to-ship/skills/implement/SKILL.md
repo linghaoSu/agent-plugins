@@ -20,7 +20,7 @@ This skill writes code. It does **not** commit, push, or run adversarial review 
 local 12-rule execution contract and governs every line written here. LANGUAGE
 defines shared terms (vertical slice, staged implementation, design drift,
 seam, blast radius) — use them precisely.
-WORKFLOW-CONTRACTS defines cross-skill routing.
+WORKFLOW-CONTRACTS defines cross-skill routing and human approval routing.
 
 ## Arguments
 
@@ -35,7 +35,8 @@ Parse:
   selected candidate patch.
 - Remaining: stage selector:
   - `<N>` → implement stage N only (e.g. `2`)
-  - `all` → run every remaining stage sequentially, pausing between for user confirmation
+  - `all` → run every remaining stage sequentially, pausing between stages
+    through `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing
   - empty → implement the next incomplete stage (default)
 
 ## Workflow
@@ -95,8 +96,9 @@ Before writing any code:
 4. Check the current codebase with Grep/Glob/Read to confirm the assumed pre-stage state (are the files mentioned where the doc claims, with roughly the shape it assumed?).
 5. If the codebase has drifted from what the architecture or
    `interface-design.md` assumed, **stop and surface the mismatch** rather than
-   guessing. Ask the user whether to update the design artifact first or
-   proceed with a documented deviation.
+   guessing. Use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to
+   decide whether to update the design artifact first or proceed with a
+   documented deviation.
 
 ### Step 3.5: Surface Assumptions, Then Push Back If Needed
 
@@ -114,7 +116,8 @@ Before writing a single line (per *Think Before Coding* in `PRINCIPLES.md`):
    redundant with something already present — **stop and push back**. Do not
    implement a design you can see is broken.
 4. If a simpler approach than the architecture's would work and you're
-   confident, raise it and wait for confirmation. Do not silently substitute.
+   confident, raise it through `../../WORKFLOW-CONTRACTS.md` § Human Approval
+   Routing and wait for confirmation. Do not silently substitute.
 5. Define the stage's success criteria in the log as a command, test, or
    observable behavior. If no objective check exists, stop or record the
    missing verification path before coding.
@@ -224,7 +227,8 @@ Tick the stage's checkbox in the `## Stage Status` list at the top.
 
 1. Print a concise summary: stage name, files touched count, deviations (if any), verification status.
 2. Next-step suggestion:
-   - If more stages remain and mode is `all` → ask "Continue to stage N+1?" and loop on confirmation.
+   - If more stages remain and mode is `all` → use Human Approval Routing for
+     "Continue to stage N+1?" and loop only after approval.
    - Otherwise suggest: "Run `/test` for traceability if needed, then `/review-code` for adversarial review."
 3. Do **not** commit.
 

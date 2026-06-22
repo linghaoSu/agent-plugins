@@ -16,6 +16,9 @@ Downstream skills (`/architect`, `/review-design`, `/implement`, `/test`, and
 `/review-code`) must stop if this file is missing. `/roadmap` may sequence
 work, but it does not replace brainstormed requirements for a slug.
 
+Before replacing existing human-edited artifacts, read
+`../../WORKFLOW-CONTRACTS.md` and apply **Human Approval Routing**.
+
 ## Arguments
 
 Raw: `$ARGUMENTS`
@@ -26,9 +29,23 @@ Parse:
 
 ## Workflow
 
+Track progress with a visible checklist and update it after bootstrap,
+ownership handling, each Q&A batch, requirements write, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Bootstrap] --> B[Requirements Ownership]
+  B --> C[Socratic Questioning]
+  C --> D{Concrete Enough?}
+  D -- No --> C
+  D -- Yes --> E[Write Requirements]
+  E --> F[Hand-off]
+```
+
 ### Step 1: Bootstrap
 
 1. Resolve `<slug>` and artifact directory:
+   Replace `<slug>` with the parsed slug before running the command.
    ```bash
    ARTIFACT_DIR=".idea-to-ship/<slug>"
    mkdir -p "$ARTIFACT_DIR"
@@ -54,9 +71,11 @@ On rerun:
    outside the expected headings.
 4. If the existing file cannot be safely merged because it lacks the expected
    headings or contains unstructured human content, write
-   `requirements.draft.md` or ask before replacing `requirements.md`.
-5. If the user asks to start over, summarize what will be discarded and get
-   explicit approval before replacing the canonical file.
+   `requirements.draft.md` or use `../../WORKFLOW-CONTRACTS.md` § Human
+   Approval Routing before replacing `requirements.md`.
+5. If the user asks to start over, summarize what will be discarded and use
+   `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to obtain explicit
+   approval before replacing the canonical file.
 
 ### Step 2: Socratic Questioning
 
@@ -173,8 +192,8 @@ Examples of weak criteria (rewrite these):
 - **⛔ GATE before Step 3 (Write requirements.md):** Every section in the template must be fillable without guessing. If Problem, Users, or Success Criteria still have gaps, ask another batch. Do not write a requirements doc with "TBD" in critical sections.
 - **⛔ GATE before replacing existing requirements:** Existing human edits and
   stable requirement IDs must be preserved, merged by heading, drafted around
-  with `requirements.draft.md`, or explicitly approved for replacement before
-  writing `requirements.md`.
+  with `requirements.draft.md`, or have explicit approval through Human
+  Approval Routing before writing `requirements.md`.
 
 ## Techniques worth stealing
 
@@ -190,3 +209,10 @@ Examples of weak criteria (rewrite these):
   [Gemini workflow](https://steipete.me/posts/2025/understanding-codebases-with-ai-gemini-workflow).
   If delegation is unavailable or unauthorized, do a fresh main-context pass
   with the same prompt and record that fallback in the hand-off.
+
+## Related Skills
+
+- `$idea-to-ship:commercialize` can add commercial context before or after requirements.
+- `$idea-to-ship:ui-design` turns requirements into UI/UX contracts.
+- `$idea-to-ship:architect` turns requirements into technical architecture.
+- `$idea-to-ship:roadmap` can sequence accepted requirement-backed work.

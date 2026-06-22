@@ -73,7 +73,10 @@ Design and audit the harness around long-running or autonomous agents.
 
 End-to-end artifact workflow from fuzzy idea to shipped implementation. For a
 new slug, start with `$idea-to-ship:brainstorm`; do not skip directly to
-architecture or implementation.
+architecture or implementation. Human approval gates use Plannotator when a
+Plannotator gate is available, then fall back to direct user confirmation. The
+user can explicitly skip all Human Approval Routing gates for the current
+conversation only.
 
 | Skill | Use When | Typical Prompt | Output / Boundary |
 |---|---|---|---|

@@ -6,6 +6,7 @@
 **Slug:** <slug>
 **Date:** <YYYY-MM-DD>
 **Status:** draft
+**Approval:** pending
 **References:** requirements.md, architecture.md (if present), DESIGN.md (if present)
 
 ## Summary

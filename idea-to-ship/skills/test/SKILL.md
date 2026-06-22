@@ -11,6 +11,9 @@ Turn the requirements and implementation into user stories, acceptance
 criteria, scenario sequences, and a concrete test matrix. Then implement the
 tests and get them passing. This is the last stop before shipping.
 
+Before replacing existing human-edited test artifacts, read
+`../../WORKFLOW-CONTRACTS.md` and apply **Human Approval Routing**.
+
 ## Arguments
 
 Raw: `$ARGUMENTS`
@@ -21,6 +24,22 @@ Parse:
 
 ## Workflow
 
+Track progress with a visible checklist and update it after context load,
+ownership handling, story derivation, scenario matrix, test case split, plan
+write, implementation, run/fix, coverage check, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Load Context] --> B[Test Plan Ownership]
+  B --> C[Derive Stories]
+  C --> D[Build Scenario Matrix]
+  D --> E[Derive Test Cases]
+  E --> F[Write Test Plan]
+  F --> G[Implement Tests]
+  G --> H[Run And Fix]
+  H --> I[Hand-off]
+```
+
 ### Step 1: Load Context
 
 1. Resolve `.idea-to-ship/<slug>/`.
@@ -28,6 +47,8 @@ Parse:
    `/brainstorm --slug <slug>` first. Read `requirements.md`, plus whichever
    of these exist: `architecture.md`, `interface-design.md`,
    `implementation-log.md`, `code-review.md`, `test-plan.md`.
+   Read `../../WORKFLOW-CONTRACTS.md` if artifact replacement or another
+   user-owned decision may be needed.
 3. Identify the changed files:
    ```bash
    git diff --name-only HEAD
@@ -54,7 +75,8 @@ On rerun:
 3. Preserve human notes, manual exclusions, and prior `## Results` blocks.
 4. If the existing file cannot be safely merged because it lacks the expected
    headings or contains unstructured human content, write `test-plan.draft.md`
-   or ask before replacing `test-plan.md`.
+   or use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing before
+   replacing `test-plan.md`.
 5. If `/implement --tdd` added a `## Stage TDD Slices` section, fold those
    slices into the full story/scenario/test matrix or explicitly keep them as
    stage-local coverage with a traceability note.
@@ -157,6 +179,8 @@ Write the tests, case by case. Rules:
 ### Step 8: Run & Fix
 
 Run the test suite — the full suite, not just the new tests (regressions matter):
+Replace `<run command from repo>` with the concrete command discovered from the
+repo's test setup in Step 1.
 
 ```bash
 <run command from repo>
@@ -207,7 +231,7 @@ Do not chase a coverage percentage — chase meaningful behavior coverage. A 100
 
 ## Phase Gates
 
-- **⛔ GATE after Step 1.5 (Plan Ownership):** Existing `test-plan.md` content must be preserved, merged by stable ID, drafted around, or approved for replacement before writing.
+- **⛔ GATE after Step 1.5 (Plan Ownership):** Existing `test-plan.md` content must be preserved, merged by stable ID, drafted around, or approved through Human Approval Routing before writing.
 - **⛔ GATE after Step 2 (Stories):** Every functional requirement must map to at least one user/system story or be explicitly marked untestable/out of scope.
 - **⛔ GATE after Step 3 (Scenarios):** Every acceptance criterion must map to at least one scenario. Every core story must have a happy path plus at least one edge, invalid-input, alternate, or failure-mode scenario, unless a documented reason says no such path exists.
 - **⛔ GATE after Step 4 (Test Cases):** You must have at least one test case per acceptance criterion. If a criterion has no corresponding test case, either the criterion is untestable (flag it) or you missed something (go back).
@@ -226,3 +250,10 @@ Do not chase a coverage percentage — chase meaningful behavior coverage. A 100
 - Flaky tests are bugs. If a test is intermittent, fix the root cause or don't write it.
 - If adding tests reveals a production bug, that's a win, not a problem — fix the bug, note it clearly in the results block.
 - **Read `../../LANGUAGE.md`** — use "seam" when discussing test boundaries, "vertical slice" when scoping test coverage.
+
+## Related Skills
+
+- `$idea-to-ship:tdd` writes stage-local red-first gates before implementation.
+- `$idea-to-ship:implement` produces the diff and implementation log tested here.
+- `$idea-to-ship:visual-test` owns frontend visual QA evidence.
+- `$idea-to-ship:review-code` consumes test traceability after implementation.

@@ -170,7 +170,7 @@ If you find no material issues for your assigned angle, respond with exactly: LG
   1. Print a 1-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits.`
   2. For each **critical** and **warning** issue: update `architecture.md` directly with Edit. Be concrete — change the recommendation, rewrite a section, add a failure mode, revise an interface. Do not just append a footnote.
   3. Skip **nits** unless trivially fixable while you're in the file.
-  4. If a critical issue requires the user to decide (e.g. a tradeoff they haven't weighed in on), pause the loop and ask. Do not guess on user-owned decisions.
+  4. If a critical issue requires the user to decide (e.g. a tradeoff they haven't weighed in on), pause the loop and apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing. Do not guess on user-owned decisions.
   5. Loop according to the selected intensity. For `deep`, go back to 3a and
      re-run every required reviewer angle, not just the angle that found the
      issue. For `standard`, re-run affected angles unless the fix escalates
@@ -179,8 +179,9 @@ If you find no material issues for your assigned angle, respond with exactly: LG
 #### 3c — Safety Limit
 
 At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
-ask whether to escalate to `deep`, accept residual risk, or abort. For `deep`,
-ask whether to continue or accept.
+use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to decide whether to
+escalate to `deep`, accept residual risk, or abort. For `deep`, use the same
+approval route to decide whether to continue or accept.
 
 ### Step 4: Final Holistic Pass
 
@@ -265,6 +266,9 @@ residual risk instead of adding a separate holistic pass:
   `degraded-same-context-review` and do not present that result as independent
   multi-agent review.
 - **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
+- Use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing for user-owned
+  tradeoffs, residual-risk acceptance, escalation/abort choices, and any
+  approval needed after review changes `architecture.md`.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.
 
 ## Related Skills

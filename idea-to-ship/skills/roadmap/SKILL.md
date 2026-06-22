@@ -15,7 +15,8 @@ signals into fake certainty. The output is either:
 
 This skill is a guarded workflow, not a repo-mining report generator.
 
-**Before writing, read `../../PRINCIPLES.md` and `../../LANGUAGE.md`.**
+**Before writing, read `../../PRINCIPLES.md`, `../../LANGUAGE.md`, and
+`../../WORKFLOW-CONTRACTS.md`.**
 Architecture owns design and staged implementation. Implementation logs own
 completion/deviations. Roadmap owns cross-work sequencing, tradeoffs, release
 gates, and human decisions.
@@ -98,7 +99,7 @@ go to `Unverified Signals`, not `Now` or `Next`.
 - **Unknown:** needs a user answer.
 
 `Low`, `Unknown`, and purely inferred items cannot enter `Now` unless the user
-explicitly approves them.
+explicitly approves them through Human Approval Routing when available.
 
 ## Item Schema
 
@@ -113,6 +114,23 @@ the source of truth. Do not substitute looser fields such as `Gate` or
 `Dependencies`, and `Risk`.
 
 ## Workflow
+
+Track progress with a visible checklist and update it after intake, write-target
+safety, source planning, evidence collection, candidate brief, validation
+gates, roadmap write, acceptance checks, and hand-off.
+
+```mermaid
+flowchart TD
+  A[Intake Gate] --> B[Write Target Safety]
+  B --> C[Source Plan]
+  C --> D[Collect Evidence]
+  D --> E[Candidate Brief]
+  E --> F{Final Gates Pass?}
+  F -- No --> I[Hand-off Blocked]
+  F -- Yes --> G[Write Roadmap]
+  G --> H[Acceptance Checks]
+  H --> I[Hand-off]
+```
 
 ### Step 1: Intake Gate
 
@@ -147,7 +165,8 @@ Resolve write target before writing any brief or roadmap:
    `<!-- idea-to-ship:roadmap generated:start -->` and
    `<!-- idea-to-ship:roadmap generated:end -->`.
 3. If the file has no generated markers and contains human content, do not
-   overwrite it. Write `roadmap.draft.md` or ask before replacing.
+   overwrite it. Write `roadmap.draft.md` or use Human Approval Routing before
+   replacing.
 4. Record the full resolved `WRITE_TARGET` path (for example,
    `.idea-to-ship/roadmap.md`, `.idea-to-ship/roadmap.draft.md`,
    `.idea-to-ship/<slug>/roadmap.md`, or
@@ -220,8 +239,9 @@ Not Roadmap-Relevant sections.
 
 After writing the brief, stop unless the user has explicitly approved candidate
 priorities or the current request provides unambiguous priority instructions.
-Passing `--final` alone is not approval. Ask the user to approve/edit
-priorities if approval is missing.
+Passing `--final` alone is not approval. If approval is missing, apply
+`../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to the Candidate Brief
+so the user can approve/edit priorities through Plannotator when available.
 
 ### Step 5: Validation Gates
 
@@ -229,13 +249,14 @@ Before writing final roadmap lanes, enforce:
 
 - Goal and horizon are explicit.
 - Existing roadmap overwrite behavior is resolved.
-- Candidate priorities were explicitly approved by the user or specified in
-  the current request.
+- Candidate priorities were explicitly approved by the user, approved through
+  Human Approval Routing, or specified in the current request.
 - Each lane item has a prioritization rationale using strategic fit, impact,
   urgency, effort, risk reduction, dependency readiness, and verification
   availability where relevant.
 - Every lane item has concrete source anchors.
-- No `Low` or `Unknown` item enters `Now` without explicit user approval.
+- No `Low` or `Unknown` item enters `Now` without explicit user approval,
+  routed through Human Approval Routing when available.
 - No purely inferred dependency enters `Critical Path`; put it under
   `Dependency Hypotheses`.
 - No `Now` item depends on a `Later` item unless explicitly waived or split
@@ -257,7 +278,7 @@ Preserve human edits:
 - Read existing roadmap first.
 - If human content exists outside generated blocks, preserve it.
 - If the file has no generated markers and contains human edits, write
-  `roadmap.draft.md` or ask before replacing.
+  `roadmap.draft.md` or use Human Approval Routing before replacing.
 - Use generated markers for agent-owned content:
   `<!-- idea-to-ship:roadmap generated:start -->` and
   `<!-- idea-to-ship:roadmap generated:end -->`.
@@ -328,9 +349,17 @@ Tell the user:
 - **⛔ GATE after Step 1:** Goal and horizon must be explicit before final
   roadmap lanes are written.
 - **⛔ GATE after Step 4:** Candidate Brief must exist with citations before
-  final roadmap writing.
+  final roadmap writing. Missing priority approval must be routed through
+  Human Approval Routing.
 - **⛔ GATE after Step 5:** Validation failures stop final roadmap generation.
 - **⛔ GATE after Step 7.5:** Acceptance-check failures stop hand-off until the
   artifact is fixed or the failed check is surfaced.
 - **⛔ GATE before overwrite:** Existing human edits must be preserved, drafted
-  around, or approved for replacement.
+  around, or approved through Human Approval Routing.
+
+## Related Skills
+
+- `$idea-to-ship:brainstorm` writes accepted requirements for roadmap items headed to build stages.
+- `$idea-to-ship:commercialize` provides commercial prioritization evidence.
+- `$idea-to-ship:architect` and `$idea-to-ship:implement` consume roadmap sequencing after requirements exist.
+- `$idea-to-ship:test` and `$idea-to-ship:review-code` provide verification and review evidence for roadmap status.
