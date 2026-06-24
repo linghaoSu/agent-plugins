@@ -170,12 +170,18 @@ Use this order:
    - Plain markdown: `plannotator annotate <artifact> --gate`
    - Rendered design/proposal review when supported:
      `plannotator annotate <artifact> --render-html --gate`
-5. If denied, revise from the feedback and re-gate. Stop with `needs_user` if
+5. Wait up to 30 minutes (1800 seconds) for a usable Plannotator decision. Do
+   not treat a one-minute delay as a timeout. If no usable decision is returned
+   within 30 minutes, interrupt the specific Plannotator gate process when
+   possible, record `Plannotator attempted, no decision returned`, and fall
+   back to direct user confirmation only when the approval decision is still
+   required before continuing.
+6. If denied, revise from the feedback and re-gate. Stop with `needs_user` if
    the denial changes product scope or requires a decision the artifact cannot
    settle.
-6. Record the approval source, date, decision, and artifact path in the
+7. Record the approval source, date, decision, and artifact path in the
    relevant stage artifact or log before continuing.
-7. If Plannotator is unavailable, ask the user directly and record the
+8. If Plannotator is unavailable, ask the user directly and record the
    response. Do not block only because Plannotator is absent.
 
 Never self-approve. Reviewer `LGTM`, passing tests, or a generated

@@ -614,6 +614,20 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "workflow-plannotator-timeout-contract",
+        "idea-to-ship/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("human approval routing", (r"Human Approval Routing",)),
+            InvariantGroup("plannotator gate", (r"Plannotator.{0,80}approval gate",)),
+            InvariantGroup("thirty minute wait", (r"30 minutes", r"1800 seconds")),
+            InvariantGroup("one minute not timeout", (r"one-minute delay", r"not treat")),
+            InvariantGroup(
+                "no decision fallback",
+                (r"Plannotator attempted, no decision returned", r"direct user confirmation"),
+            ),
+        ),
+    ),
+    ContractCheck(
         "review-design-multi-agent-contract",
         "idea-to-ship/skills/review-design/SKILL.md",
         (

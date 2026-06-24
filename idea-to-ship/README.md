@@ -217,10 +217,11 @@ If `requirements.md` is missing, downstream skills stop and send you back to
   multi-agent review.
 - **Human approval routing**: phase gates that need human confirmation use
   Plannotator when available, record the approval source/date/decision, and
-  fall back to direct user confirmation only when Plannotator is unavailable.
-  A current-conversation approval bypass can skip all Human Approval Routing
-  gates for this conversation, but it does not override cross-skill safety
-  authorization for code/git/GitHub/deployment/credential/external mutations.
+  fall back to direct user confirmation only when Plannotator is unavailable
+  or has returned no usable decision after 30 minutes. A current-conversation
+  approval bypass can skip all Human Approval Routing gates for this
+  conversation, but it does not override cross-skill safety authorization for
+  code/git/GitHub/deployment/credential/external mutations.
 - **Cross-skill routing**: `/architect` and `/implement` may route to other
   repo skills when their risk signal is present. Read-only or artifact-only
   routes can run automatically; code/git/GitHub/deployment/credential mutations
