@@ -1,6 +1,6 @@
 ---
 name: review-code
-description: Risk-scaled code review of the current diff with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep keeps the multi-agent, multi-angle, multi-round fix->review loop.
+description: Risk-scaled code review of the current diff with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan instead of editing directly.
 argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] [extra focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -10,8 +10,10 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 Run a risk-scaled review of the current code changes (staged + unstaged).
 Select `review_intensity` automatically, unless the user forces
 `--review-depth quick|standard|deep`. `deep` is the blunt adversarial mode with
-multiple independent reviewer agents, multiple angles, and fix→review loops
-until every required angle returns LGTM or the iteration budget is spent.
+multiple independent reviewer agents and multiple angles. Findings that
+require code, test, architecture, or design artifact edits become a
+Plannotator modification plan; this skill does not directly edit files after
+review.
 Anchored to the requirements, architecture, interface design, implementation
 log, and test plan so drift and missing verification are caught.
 Same-context review is a fallback only when reviewer sub-agents are explicitly
@@ -53,21 +55,27 @@ explicitly unavailable or at capacity, write `code-review.md` with `Result:
 degraded-same-context-review`, record the exact reason, and run the same
 adversarial review prompts in the main context.
 
+## Plannotator Modification Plan Gate
+
+Apply `../../WORKFLOW-CONTRACTS.md` Review Loop Shape and Human Approval
+Routing. When kept findings require code, test, architecture, or design
+artifact edits, write `.idea-to-ship/<slug>/code-review-modification-plan.md`
+before any edits. Include finding id/severity/path/source angle, planned edits
+by file, verification/re-review, user-owned decisions, and skipped findings.
+If current-conversation approval bypass is active, record
+`bypassed-current-conversation` as the approval source; bypass skips approval,
+not planning. If Plannotator is unavailable and no bypass is active, record
+that in `code-review.md` and stop without editing.
+
 ## Workflow
 
 Track the review loop with a checklist. Update the status after input
-verification, each reviewer iteration, each fix pass, final holistic review,
-and `code-review.md` handoff.
+verification, each reviewer iteration, modification-plan generation, final
+holistic review, and `code-review.md` handoff.
 
 ```mermaid
 flowchart TD
-  A[Verify Inputs] --> B[Collect Diff]
-  B --> C[Multi-Agent Review]
-  C --> D{All Angles LGTM?}
-  D -- No --> E[Fix Kept Issues]
-  E --> C
-  D -- Yes --> F[Final Holistic Pass]
-  F --> G[Write code-review.md]
+  A[Review Diff] --> B[Plan Or Report]
 ```
 
 ### Step 1: Verify Inputs
@@ -179,14 +187,14 @@ Track iteration count starting at 1. `deep` maxes at 5 iterations; `quick` and
 #### 4a — Multi-Agent Review
 
 For `quick`, run one same-context checklist over correctness/security,
-traceability/testability, and maintainability/repo-fit. If fixes are made, run
-one targeted same-context confirmation over changed hunks.
+traceability/testability, and maintainability/repo-fit. If it finds issues that
+require edits, generate a Plannotator modification plan instead of editing.
 
 For `standard`, launch the required reviewer agents in parallel when possible
-for one multi-angle round. If fixes are made, re-review only affected angles
-unless the fix changes architecture, public contracts, security, data flow, UI
-evidence, or broad scope; cap at two rounds before asking whether to escalate
-to `deep`.
+for one multi-angle round. If findings require edits, generate a Plannotator
+modification plan. After a user-approved plan is applied in a separate pass,
+re-review only affected angles unless the change affects architecture, public
+contracts, security, data flow, UI evidence, or broad scope.
 
 For `deep`, launch the required reviewer agents in parallel when possible. Each reviewer
 gets the shared prompt plus its assigned angle. If fewer than the required
@@ -264,55 +272,45 @@ context_truncated: <true|false; include omitted paths/sections when true>
 <full text diff when within budget, otherwise complete changed-path manifest plus focused hunks>
 <bounded relevant untracked file contents with SHA-256/classification/truncation, or binary path + SHA-256>
 
-For each issue, report:
-- Severity: critical / warning / nit
-- File:line
-- What is wrong and why it matters (be concrete)
-- Concrete fix
+For each issue, report severity, file:line, concrete problem/impact, and
+concrete fix.
 
 If no material issues exist for your assigned angle, reply with exactly: LGTM
 ```
 
-#### 4b — Evaluate & Fix
+#### 4b — Evaluate & Plan
 
 - **LGTM from every required reviewer angle** → break, proceed to Step 5.
 - Otherwise:
   1. One-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits (W skipped out-of-scope).`
-  2. Filter before fixing:
+  2. Filter before planning:
      - Drop issues that are pure style/format in code the diff did not actually change.
-     - Drop nits unless trivially co-located with a larger fix.
+     - Drop nits unless they are part of the same necessary change.
      - Keep criticals, warnings, and any design-drift issues.
-  3. Fix each kept issue with Edit. Do not touch unrelated code.
-  4. If a fix requires a user decision (tradeoff, spec ambiguity), pause and
-     apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing. Do not
-     guess.
-  5. Loop back according to the selected intensity. For `deep`, re-run every required reviewer angle,
-     not just the angle that found the issue. For
-     `standard`, re-run affected angles unless the fix escalates risk. For
-     `quick`, run one targeted confirmation.
+  3. Generate `.idea-to-ship/<slug>/code-review-modification-plan.md` using
+     the Plannotator Modification Plan Gate. Do not touch unrelated code and
+     do not edit the reviewed files here.
+  4. If a fix requires a user decision (tradeoff, spec ambiguity), put the
+     decision and options in the plan. Do not guess.
+  5. Stop after the Plannotator plan is generated and its approval status is
+     recorded. A later approved modification pass applies the plan.
 
-#### 4c — Safety Limit
+#### 4c — Approval Boundary
 
-At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
-use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to decide whether to
-escalate to `deep`, accept residual risk, or abort. For `deep`, use the same
-approval route to decide whether to continue, accept, or abort.
+If the plan is approved in the same conversation, including by
+`bypassed-current-conversation`, treat implementation of that plan as a
+separate modification pass, not a continuation of review. Apply only the
+approved plan, then run the appropriate review again. For `deep`, re-run every required reviewer angle after the approved changes land.
 
 ### Step 5: Final Holistic Pass
 
-After LGTM (or user-accepted exit), run the holistic pass required by the
-selected intensity. `deep` always gets one comprehensive review of the **full**
-diff as a whole. `standard` gets it when fixes changed public behavior or
-cross-file structure. `quick` records residual risk instead of adding a
-separate holistic pass.
+After LGTM or after the Plannotator modification plan is generated, run the
+holistic pass required by the selected intensity:
 
-1. Collect `git diff HEAD` + `git diff --cached` again (post-fix state).
-2. Check the full diff against requirements, architecture, public interfaces,
-   security-sensitive boundaries, dead code, and test traceability.
-3. Apply `../../PRINCIPLES.md`: Think before coding, Simplicity first,
-   Surgical changes, Goal-driven execution, and Story/test traceability.
-4. Fix anything found. If the fix is big, loop back to 4a for one more
-   adversarial pass.
+1. Re-read `git diff HEAD`, `git diff --cached`, and the plan when present.
+2. Check requirements, architecture, public interfaces, security boundaries,
+   dead code, test traceability, and `../../PRINCIPLES.md`.
+3. If new problems appear, add them to the Plannotator modification plan.
 
 ### Step 6: Write `code-review.md`
 
@@ -327,19 +325,21 @@ separate holistic pass.
 **Mode:** <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 **Diff size:** <files changed>, <+added/-removed>
+**Plannotator modification plan:** <path | not needed | unavailable>
+**Plan approval:** <approved | denied | pending | bypassed-current-conversation | not needed | unavailable>
 
 ## Issues Raised & Resolution
-| # | Severity | File:line | Issue | Resolution |
+| # | Severity | File:line | Issue | Planned action / status |
 |---|---|---|---|---|
-| 1 | critical | src/x.go:42 | ... | fixed |
+| 1 | critical | src/x.go:42 | ... | planned in code-review-modification-plan.md §... |
 
 ## Out-of-Scope Issues Skipped
-<Pre-existing style nits etc., for visibility — not fixed.>
+<Pre-existing style nits etc., for visibility — not planned.>
 
 ## Design Drift
 <Any place the implementation departed from architecture.md or
-interface-design.md, and whether it was reconciled (fix implementation / update
-design artifact / accept as documented deviation).>
+interface-design.md, and whether it is planned for implementation fix,
+artifact update, accepted documented deviation, or clean.>
 
 ## Test Traceability
 <Requirement/story/acceptance/scenario/test gaps. Include missing happy path,
@@ -359,10 +359,11 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 
 ### Step 7: Hand-off
 
-1. Tell the user where `code-review.md` landed and how many iterations it took.
-2. Suggest next step:
-   - If tests don't yet exist or are incomplete → `/test`.
-   - Otherwise → user-owned: commit / open PR.
+1. Tell the user where `code-review.md` landed and where the plan landed, if
+   any.
+2. Suggest next step: approve/apply a pending plan; if approval was
+   `bypassed-current-conversation`, apply only the recorded plan and re-run
+   review; if tests are incomplete, run `/test`; otherwise commit/open PR.
 3. Do not commit or push.
 
 ## Related Skills
@@ -386,12 +387,13 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 ## Notes
 
 - Scope rules matter. Reviewing surrounding unchanged code always produces noise and no value.
-- **Design drift is a first-class finding** (see `../../LANGUAGE.md`). If the implementation took a shortcut the architecture didn't sanction, either (a) fix the code, (b) update `architecture.md` with a documented reason, or (c) note it in `code-review.md`. Silent drift is forbidden.
+- **Design drift is a first-class finding** (see `../../LANGUAGE.md`). If the implementation took a shortcut the architecture didn't sanction, plan one of: (a) fix the code, (b) update `architecture.md` with a documented reason, or (c) record an accepted deviation in `code-review.md`. Silent drift is forbidden.
 - Fall back to same-context review only when reviewer sub-agents are explicitly
   unsupported by the host/runtime, explicitly forbidden by the user, or the
   selected reviewer/model is explicitly unavailable or at capacity. Record
   `degraded-same-context-review` and do not present that result as independent
   multi-agent review.
-- Use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing for user-owned
-  tradeoffs, residual-risk acceptance, escalation/abort choices, and approval
-  for documented design deviations.
+- Use the Plannotator Modification Plan Gate for user-owned tradeoffs,
+  residual-risk acceptance, escalation/abort choices, and approval for
+  documented design deviations. Current-conversation bypass skips approval only;
+  it never skips writing the plan.

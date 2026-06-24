@@ -1,6 +1,6 @@
 ---
 name: review-design
-description: Risk-scaled architecture review of architecture.md with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep keeps the multi-agent, multi-angle, multi-round adversarial loop.
+description: Risk-scaled architecture review of architecture.md with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require architecture edits, generates a Plannotator modification plan instead of editing directly.
 argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] [extra focus e.g. "concurrency" "cost"]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -10,10 +10,10 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 Run a risk-scaled review of `architecture.md`. Select `review_intensity`
 automatically, unless the user forces `--review-depth quick|standard|deep`.
 `deep` is the blunt adversarial mode with multiple independent review agents
-and multiple angles. Every deep round covers every required angle. After deep
-fixes, re-run all angles, not just the angle that found a problem. Fix→review
-loops until every required reviewer angle returns LGTM or the iteration budget
-is exhausted. Same-context review is a fallback only when
+and multiple angles. Every deep round covers every required angle. Findings
+that require architecture changes become a Plannotator modification plan; this
+skill does not directly edit `architecture.md` after review. Same-context
+review is a fallback only when
 reviewer sub-agents are explicitly unsupported by the host/runtime, explicitly
 forbidden by the user, or the selected reviewer/model is explicitly unavailable
 or at capacity; record the degradation reason.
@@ -54,6 +54,37 @@ per-angle adversarial review prompts in the main context. Degraded mode still
 preserves multi-angle and multi-round structure; it only loses independent
 agents.
 
+## Plannotator Modification Plan Gate
+
+When review finds kept issues that require architecture edits, do not edit
+`architecture.md` in this workflow. Write
+`.idea-to-ship/<slug>/design-review-modification-plan.md`, then route that
+artifact through Plannotator.
+
+The plan must include:
+- Review finding ids, severity, and source angle.
+- Proposed `architecture.md` section edits.
+- User-owned decisions or tradeoffs that block a safe edit.
+- Verification/re-review required after the plan is applied.
+- Out-of-scope or dropped nits, with rationale.
+
+Use the available approval path in this order:
+1. If current-conversation approval bypass is active, do not run Plannotator.
+   Record `bypassed-current-conversation` as the approval source, keep the
+   plan artifact, and continue only through the planned edit path.
+2. If the `plannotator` CLI is on `PATH`, run
+   `plannotator annotate .idea-to-ship/<slug>/design-review-modification-plan.md --render-html --gate`.
+3. Otherwise, use the runtime's Plannotator planning/visual-explainer workflow
+   if available.
+4. If Plannotator is unavailable, record `Plannotator unavailable` in
+   `design-review.md`, leave the markdown plan in place, and stop without
+   editing `architecture.md`.
+
+Bypass skips approval, not planning. Do not edit before the plan exists and is
+recorded. Do not fall back to direct architecture edits inside this review. A
+later explicitly approved modification pass may apply the plan, then re-run the
+appropriate review; for `deep`, re-run every required reviewer angle.
+
 ## Workflow
 
 ```mermaid
@@ -61,9 +92,9 @@ flowchart TD
   A[Verify Inputs] --> B[Select Review Intensity]
   B --> C[Run Review]
   C --> D{Clean?}
-  D -- No --> E[Fix Architecture]
-  E --> C
+  D -- No --> E[Generate Plannotator Modification Plan]
   D -- Yes --> F[Write design-review.md]
+  E --> F
 ```
 
 ### Step 1: Verify Inputs
@@ -97,14 +128,14 @@ Track iteration count starting at 1. `deep` maxes at 5 iterations; `quick` and
 #### 3a — Multi-Agent Review Round
 
 For `quick`, run one same-context checklist over architecture correctness and
-implementation/testability. If fixes are made, run one targeted same-context
-confirmation over changed sections.
+implementation/testability. If it finds issues that require edits, generate a
+Plannotator modification plan instead of editing.
 
 For `standard`, launch the required reviewer agents in parallel when possible
-for one multi-angle round. If fixes are made, re-review only affected angles
-unless the fix changes option choice, public contract, security, data flow, UI
-evidence, or broad scope; cap at two rounds before asking whether to escalate
-to `deep`.
+for one multi-angle round. If findings require edits, generate a Plannotator
+modification plan. After a user-approved plan is applied in a separate pass,
+re-review only affected angles unless the change affects option choice, public
+contract, security, data flow, UI evidence, or broad scope.
 
 For `deep`, launch the required reviewer agents in parallel when possible. Each reviewer
 gets the shared prompt plus its assigned angle. If fewer than the required
@@ -163,42 +194,49 @@ For each issue, report:
 If you find no material issues for your assigned angle, respond with exactly: LGTM
 ```
 
-#### 3b — Evaluate & Fix
+#### 3b — Evaluate & Plan
 
 - If all required reviewer angles return **LGTM** → break, proceed to Step 4.
 - Otherwise:
   1. Print a 1-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits.`
-  2. For each **critical** and **warning** issue: update `architecture.md` directly with Edit. Be concrete — change the recommendation, rewrite a section, add a failure mode, revise an interface. Do not just append a footnote.
-  3. Skip **nits** unless trivially fixable while you're in the file.
-  4. If a critical issue requires the user to decide (e.g. a tradeoff they haven't weighed in on), pause the loop and apply `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing. Do not guess on user-owned decisions.
-  5. Loop according to the selected intensity. For `deep`, go back to 3a and
-     re-run every required reviewer angle, not just the angle that found the
-     issue. For `standard`, re-run affected angles unless the fix escalates
-     risk. For `quick`, run one targeted confirmation.
+  2. Keep **critical** and **warning** issues that require architecture
+     changes. Skip **nits** unless they are part of the same necessary change.
+  3. Generate
+     `.idea-to-ship/<slug>/design-review-modification-plan.md` using the
+     Plannotator Modification Plan Gate. Be concrete: name the recommendation,
+     section, failure mode, or interface change to make.
+  4. If a critical issue requires the user to decide (e.g. a tradeoff they
+     have not weighed in on), put the decision and options in the Plannotator
+     plan. Do not guess on user-owned decisions.
+  5. Stop after the Plannotator plan is generated and its approval status is
+     recorded. Do not modify `architecture.md` in this review workflow.
 
-#### 3c — Safety Limit
+#### 3c — Approval Boundary
 
-At the selected intensity's cap without LGTM, stop. For `quick` or `standard`,
-use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to decide whether to
-escalate to `deep`, accept residual risk, or abort. For `deep`, use the same
-approval route to decide whether to continue or accept.
+If the plan is approved in the same conversation, including by
+`bypassed-current-conversation`, treat the implementation of that plan as a
+separate modification pass, not a continuation of review. Apply only the
+approved plan, then run the appropriate review again. For `deep`, re-run every
+required reviewer angle after the approved changes land.
 
-### Step 4: Final Holistic Pass
+### Step 4: Final Holistic Review
 
-After LGTM (or user-accepted exit), run the holistic pass required by the
-selected intensity. `deep` always gets one last pass looking at the document as
-a whole rather than issue-by-issue. `standard` gets it when fixes changed the
-recommended option, public contract, or stage structure. `quick` records
-residual risk instead of adding a separate holistic pass:
+After LGTM or after the Plannotator modification plan is generated, run the
+holistic pass required by the selected intensity. `deep` always gets one last
+pass looking at the document as a whole rather than issue-by-issue. `standard`
+gets it when reviewer findings affect the recommended option, public contract,
+or stage structure. `quick` records residual risk instead of adding a separate
+holistic pass:
 
-1. Re-read the updated `architecture.md`.
+1. Re-read `architecture.md` and the modification plan when one exists.
 2. Ask yourself:
    - Does the chosen option still make sense after all the revisions? (Sometimes fixes shift the balance — a rejected alternative may now be better.)
    - If `interface-design.md` exists, does the architecture still preserve the
      UI/UX contract or explicitly explain any accepted design drift?
    - Are the staged implementation steps actually independently shippable?
    - Is there anything a new engineer reading this could not act on?
-3. If problems remain, do one more targeted edit. Otherwise proceed.
+3. If new problems appear, add them to the Plannotator modification plan.
+   Otherwise proceed.
 
 ### Step 5: Write `design-review.md`
 
@@ -213,12 +251,14 @@ residual risk instead of adding a separate holistic pass:
 **Review intensity:** <quick|standard|deep> (<auto|forced>: <reason>)
 **Mode:** <selected-quick-same-context | multi-agent | degraded-same-context-review>
 **Degradation reason:** <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
+**Plannotator modification plan:** <path | not needed | unavailable>
+**Plan approval:** <approved | denied | pending | bypassed-current-conversation | not needed | unavailable>
 
 ## Issues Raised & Resolution
-| # | Severity | Issue | Resolution |
+| # | Severity | Issue | Planned action / status |
 |---|---|---|---|
-| 1 | critical | ... | fixed in architecture.md §... |
-| 2 | warning  | ... | user decision: <answer> |
+| 1 | critical | ... | planned in design-review-modification-plan.md §... |
+| 2 | warning  | ... | user decision required: <options> |
 
 ## Review Rounds
 | Round | Angle | Route | Verdict |
@@ -231,7 +271,7 @@ residual risk instead of adding a separate holistic pass:
 <Anything accepted as open. Empty is fine.>
 
 ## Design Drift
-<Any mismatch between architecture.md and interface-design.md, and whether it was fixed or accepted. Empty if clean.>
+<Any mismatch between architecture.md and interface-design.md, and whether it is planned, accepted, or clean.>
 
 ## Reviewer Final Verdicts
 | Angle | Verdict |
@@ -246,29 +286,35 @@ residual risk instead of adding a separate holistic pass:
 
 ### Step 6: Hand-off
 
-1. Tell the user: the architecture file has been updated in place, review log is in `design-review.md`.
-2. Print a 3-bullet summary of the biggest changes made during the loop.
-3. Suggest: "Run `/implement` to start building."
+1. Tell the user where `design-review.md` landed and, if findings require
+   changes, where the Plannotator modification plan landed.
+2. Print a 3-bullet summary of the highest-priority planned changes or say
+   that no modification plan was needed.
+3. Do not claim `architecture.md` was updated unless the current request was a
+   separate, explicit approval to apply a previously generated plan.
 
 ## Anti-Patterns
 
 - **Piling on.** Finding 30 issues and reporting all of them. Prioritize ruthlessly — criticals first, then warnings. If there are more than 3 criticals, the architecture needs a rewrite, not 30 patches.
 - **Inventing work.** Flagging concerns that are explicitly out of scope per `requirements.md`. If requirements say "no real-time sync needed," don't flag "no real-time sync strategy" as a missing failure mode.
-- **Cosmetic rewrites.** Rewriting sections for style or prose quality. This is a technical review, not copyediting. Only change text to fix a technical error or add a missing failure mode.
+- **Cosmetic rewrites.** Planning section rewrites for style or prose quality. This is a technical review, not copyediting. Only plan text changes that fix a technical error or add a missing failure mode.
 - **Death by a thousand nits.** If the architecture is fundamentally sound, 20 nits don't make it better — they make the reviewer feel productive while adding no value. A clean architecture with 3 real improvements beats one buried under formatting fixes.
 
 ## Notes
 
-- This skill writes to `architecture.md` (updates) and `design-review.md` (new). It does not touch source code.
+- This skill writes to `design-review.md` and, when needed,
+  `design-review-modification-plan.md`. It does not update `architecture.md`
+  during review.
 - Fall back to same-context review only when reviewer sub-agents are explicitly
   unsupported by the host/runtime, explicitly forbidden by the user, or the
   selected reviewer/model is explicitly unavailable or at capacity. Record
   `degraded-same-context-review` and do not present that result as independent
   multi-agent review.
-- **User-owned decisions always pause the loop.** Do not pick a tradeoff the user should pick.
-- Use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing for user-owned
-  tradeoffs, residual-risk acceptance, escalation/abort choices, and any
-  approval needed after review changes `architecture.md`.
+- **User-owned decisions belong in the plan.** Do not pick a tradeoff the user should pick.
+- Use the Plannotator Modification Plan Gate for user-owned tradeoffs,
+  residual-risk acceptance, and approval needed before architecture edits.
+- Current-conversation bypass skips approval only; it never skips writing the
+  modification plan before edits.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use "design drift", "blast radius", "falsifiable hypothesis" precisely as defined.
 
 ## Related Skills

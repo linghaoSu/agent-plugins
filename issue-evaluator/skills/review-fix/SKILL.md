@@ -1,17 +1,18 @@
 ---
 name: review-fix
-description: Risk-scaled review/fix loop for current code changes with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; deep repeats fix->review until every reviewer angle is clean.
+description: Risk-scaled review of current code changes with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan instead of editing directly.
 argument-hint: '[--review-depth quick|standard|deep] [focus ...]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
-# Review & Fix Loop
+# Review Fix
 
 Review the current changes with auto-selected `review_intensity`, or a forced
 `--review-depth quick|standard|deep`. `quick` uses a same-context checklist,
 `standard` uses a bounded multi-angle loop, and `deep` uses runtime-aware
-reviewer agents across multiple angles, fixes issues found, and repeats until
-every angle is clean before final holistic review.
+reviewer agents across multiple angles. Findings that require edits become a
+Plannotator modification plan; this skill does not directly edit files after
+review.
 
 ## Arguments
 
@@ -36,7 +37,40 @@ mode still runs the selected intensity's angles and rounds sequentially in the
 main context. Selected `quick` same-context review is not degraded.
 Also apply the local 12-rule execution contract from `PRINCIPLES.md`: review
 findings must trace to changed lines, conflicts must be named instead of
-averaged, fixes must stay surgical, and skipped checks must be reported.
+averaged, planned fixes must stay surgical, and skipped checks must be
+reported.
+
+## Plannotator Modification Plan Gate
+
+When review finds kept issues that require edits, do not edit files in this
+workflow. Write a concrete modification plan, then route it through Plannotator
+unless current-conversation approval bypass is active.
+
+Plan path:
+- If a repo-local artifact directory exists for the current issue/fix, write
+  the plan there as `review-fix-modification-plan.md`.
+- Otherwise write `.issue-evaluator/review-fix-modification-plan.md`.
+
+The plan must include:
+- Review finding ids, severity, file/line, and source angle.
+- Planned edits by file.
+- Required tests or verification after applying the plan.
+- User-owned decisions or tradeoffs that block a safe edit.
+- Out-of-scope findings and dropped nits, with rationale.
+
+Use the available approval path in this order:
+1. If current-conversation approval bypass is active, do not run Plannotator.
+   Record `bypassed-current-conversation` as the approval source, keep the
+   plan artifact, and continue only through the planned edit path.
+2. If the `plannotator` CLI is on `PATH`, run
+   `plannotator annotate <plan-path> --render-html --gate`.
+3. Otherwise, use the runtime's Plannotator planning/visual-explainer workflow
+   if available.
+4. If Plannotator is unavailable, record `Plannotator unavailable`, leave the
+   plan artifact in place, and stop without editing.
+
+Bypass skips approval, not planning. Do not edit before the plan exists and is
+recorded.
 
 ## Workflow
 
@@ -46,9 +80,9 @@ flowchart TD
   B --> C[Select Review Intensity]
   C --> D[Review Current Diff]
   D --> E{Clean?}
-  E -- No --> F[Fix In Scope]
-  F --> D
+  E -- No --> F[Generate Plannotator Modification Plan]
   E -- Yes --> G[Report]
+  F --> G
 ```
 
 ### Step 1: Verify Prerequisites
@@ -68,7 +102,7 @@ flowchart TD
 
 Read `<data-dir>/<owner>/<repo>/code-style.md` and extract the key conventions. Summarize the most important rules into a compact checklist (max 15 items) to use as review context. Keep this checklist for use in all review iterations.
 
-### Step 3: Review-Fix Loop
+### Step 3: Review And Plan
 
 Select `review_intensity` before launching reviewers. Auto-select by risk or
 honor `--review-depth quick|standard|deep` as a forced override. Record
@@ -79,13 +113,14 @@ iteration count starting at 1.
 
 #### 3a: Multi-Angle Adversarial Review
 
-For `quick`, run one same-context checklist over the angles below. If fixes are
-made, run one targeted same-context confirmation over changed hunks.
+For `quick`, run one same-context checklist over the angles below. If it finds
+issues that require edits, generate a Plannotator modification plan instead of
+editing.
 
-For `standard`, run one multi-angle reviewer round. If fixes are made,
-re-review only affected angles unless the fix changes public contract,
-security, data flow, or broad scope; cap at two rounds before asking whether to
-escalate to `deep`.
+For `standard`, run one multi-angle reviewer round. If findings require edits,
+generate a Plannotator modification plan. After a user-approved plan is applied
+in a separate pass, re-review only affected angles unless the change affects
+public contract, security, data flow, or broad scope.
 
 For `deep`, use runtime-aware reviewer agents to inspect the diff from separate
 angles. In Claude Code, use independent reviewer agents such as Codex rescue
@@ -138,34 +173,38 @@ Construct the prompt for each angle:
    If you find NO issues, respond with exactly: LGTM
    ```
 
-#### 3b: Evaluate Results
+#### 3b: Evaluate Results And Plan
 
 - If **every required angle** returns **LGTM** → exit the loop, proceed to Step 4.
 - If any angle reports issues:
-  1. Present a brief summary to the user: "Iteration N: found X issues (Y critical, Z warnings, W nits). Fixing..."
-  2. **Filter issues before fixing**: Only fix issues that are within the scope of the current change. Skip any issues that are purely lint/style/formatting problems in code that was not changed by the fix. Note skipped issues in the summary as "out of scope".
-  3. Fix the remaining in-scope issues directly in the code. For each fix:
-     - Apply the change using Edit tool
-     - Ensure the fix aligns with the code style checklist
-     - Do NOT touch unrelated code, even if it has obvious style issues nearby
-  4. After all fixes are applied, loop according to the selected intensity.
-  5. For `deep`, re-run **all required angles**, not only the angle that found
-     a problem. For `standard`, re-run affected angles unless the fix escalates
-     risk. For `quick`, run one targeted confirmation.
+  1. Present a brief summary to the user: "Iteration N: found X issues (Y critical, Z warnings, W nits). Generating modification plan..."
+  2. **Filter issues before planning**: Only plan issues that are within the
+     scope of the current change. Skip any issues that are purely
+     lint/style/formatting problems in code that was not changed by the fix.
+     Note skipped issues in the summary as "out of scope".
+  3. Generate the modification plan using the Plannotator Modification Plan
+     Gate. Ensure each planned fix aligns with the code style checklist and
+     does not touch unrelated code.
+  4. Stop after the plan is generated and its approval status is recorded. A
+     later approved modification pass applies the plan.
+  5. If the plan is approved in the same conversation, including by
+     `bypassed-current-conversation`, apply only the approved plan in the
+     modification pass, then run the appropriate review again. For `deep`,
+     re-run all required angles after the approved changes land.
 
-#### 3c: Safety Limit
+#### 3c: Approval Boundary
 
-At the selected intensity's cap without a clean review, stop and present the
-remaining issues to the user. For `quick` or `standard`, ask whether to
-escalate to `deep`, accept residual risk, or stop here. For `deep`, ask whether
-to continue fixing or stop here.
+Do not escalate, accept residual risk, or continue into edits without the
+modification plan. Put escalation/accept/stop choices in the plan when they are
+user-owned decisions.
 
 ### Step 4: Final Holistic Review
 
-After the loop exits clean, run the final review required by the selected
-intensity. `deep` runs one final comprehensive review round over the **entire
-change as a whole** rather than incremental diffs and still preserves the
-required angles. `standard` runs the final review only when fixes changed public
+After the review exits clean or after the Plannotator modification plan is
+generated, run the final review required by the selected intensity. `deep` runs
+one final comprehensive review round over the **entire change and plan as a
+whole** rather than incremental findings and still preserves the required
+angles. `standard` runs the final review only when findings affect public
 behavior or cross-file structure. `quick` records residual risk instead of
 adding a separate final round.
 
@@ -174,10 +213,11 @@ adding a separate final round.
    git diff HEAD
    git diff --cached
    ```
-2. Launch reviewer agents for `CORRECTNESS_SECURITY`, `STYLE_SCOPE`, and
+2. Read the modification plan when one exists.
+3. Launch reviewer agents for `CORRECTNESS_SECURITY`, `STYLE_SCOPE`, and
    `TRACEABILITY_TESTS` with this prompt:
    ```
-   Final holistic code review (angle <ANGLE>). The changes below have passed incremental review. Now review them as a complete unit from your assigned angle, focusing on:
+   Final holistic code review (angle <ANGLE>). The changes below have completed incremental review. Review the diff and any modification plan as a complete unit from your assigned angle, focusing on:
 
    1. **Consistency**: Do all the changes work together coherently?
    2. **Completeness**: Are there any missing edge cases, error paths, or tests?
@@ -214,37 +254,41 @@ adding a separate final round.
    If you find NO issues, respond with exactly: LGTM
    ```
 
-3. If any final angle finds issues, fix in-scope findings and run **all final
-   angles one more time** to confirm. If any angle still has issues after the
-   second final review, present the remaining issues to the user.
+4. If any final angle finds issues, add in-scope findings to the modification
+   plan. If any angle still has issues after the plan update, present the
+   remaining issues to the user.
 
 ### Step 5: Report
 
 Present a summary to the user:
 
 ```markdown
-## Review & Fix Complete
+## Review Complete
 
 - **Iterations**: <N> incremental reviews
 - **Review intensity**: <quick|standard|deep> (<auto|forced>: <reason>)
 - **Review mode**: <multi-agent | degraded-same-context-review>
 - **Degradation reason**: <none | explicit unsupported runtime | user forbade reviewer sub-agents | reviewer/model unavailable or at capacity>
 - **Angles per round**: correctness/security, style/scope, traceability/tests
-- **Issues found and fixed**: <total count>
+- **Issues found**: <total count>
+- **Plannotator modification plan**: <path | not needed | unavailable>
+- **Plan approval**: <approved | denied | pending | bypassed-current-conversation | not needed | unavailable>
 - **Final holistic review**: Clean / <N remaining issues, by angle>
 
-### Changes Made During Review
-<list of files modified during the review-fix loop, with one-line descriptions of what was changed>
+### Planned Changes
+<list of files planned for modification, with one-line descriptions of the planned edit>
 ```
 
 ## Notes
 
 - Always re-read the diff fresh before each review iteration — don't reuse stale diffs.
 - Review iterations are clean only when every required angle is clean in the current round.
-- When fixing issues, make minimal targeted changes. Don't refactor surrounding code.
-- **Scope discipline**: Only fix issues in code that is part of the current change. Lint/style/formatting issues in unrelated code are out of scope — do not touch them. This keeps diffs clean and avoids unintended regressions.
+- When planning fixes, make minimal targeted changes. Don't refactor surrounding code.
+- **Scope discipline**: Only plan fixes in code that is part of the current change. Lint/style/formatting issues in unrelated code are out of scope — do not touch them. This keeps diffs clean and avoids unintended regressions.
 - If an adversarial-review issue is a false positive or out of scope, skip it and note it in the summary.
 - If the user hasn't run `/evaluate-issue` yet but has a code style doc, the review still works.
+- Current-conversation bypass skips approval only; it never skips writing the
+  modification plan before edits.
 
 ## Related Skills
 

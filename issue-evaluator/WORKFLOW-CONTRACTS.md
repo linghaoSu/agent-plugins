@@ -16,9 +16,9 @@ Auto-select the smallest tier that covers the risk:
 
 | Intensity | Use when | Review shape |
 |---|---|---|
-| `quick` | Docs-only, tests-only, fixture-only, or a small non-behavior diff/PR with no public API/schema, auth, external IO, persistence, destructive action, concurrency, or security-sensitive path. | One same-context checklist over correctness/scope/verification. If it finds issues and fixes are made, run one targeted same-context confirmation over changed hunks. This is selected intensity, not `degraded-same-context-review`. |
-| `standard` | Normal bug fixes, reviewer-comment fixes, or PRs with bounded blast radius, clear intent, and runnable verification. | One multi-angle review round. After fixes, re-review only angles touched by the fix unless a fix changes public contract, security, data flow, or broad scope. Cap at two rounds before asking whether to escalate to `deep`. |
-| `deep` | Security/auth/secrets, data loss, persistence/migrations, external IO, destructive operations, concurrency, public APIs/schemas, large or mixed diffs, many unresolved review comments, unclear issue coverage, failed checks, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle, multi-round loop. Re-run every required angle after fixes, cap at five rounds unless the user explicitly continues, then run a holistic/synthesis pass. |
+| `quick` | Docs-only, tests-only, fixture-only, or a small non-behavior diff/PR with no public API/schema, auth, external IO, persistence, destructive action, concurrency, or security-sensitive path. | One same-context checklist over correctness/scope/verification. If it finds issues in a review workflow that would normally modify files, generate a Plannotator modification plan instead of editing. This is selected intensity, not `degraded-same-context-review`. |
+| `standard` | Normal bug fixes, reviewer-comment fixes, or PRs with bounded blast radius, clear intent, and runnable verification. | One multi-angle review round. Capture material findings in a Plannotator modification plan instead of applying fixes. After a user-approved plan is applied in a later modification pass, re-review only angles touched by the change unless it changes public contract, security, data flow, or broad scope. |
+| `deep` | Security/auth/secrets, data loss, persistence/migrations, external IO, destructive operations, concurrency, public APIs/schemas, large or mixed diffs, many unresolved review comments, unclear issue coverage, failed checks, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle review. Capture material findings in a Plannotator modification plan instead of applying fixes. After a user-approved plan is applied in a later modification pass, re-run every required angle, then run a holistic/synthesis pass. |
 
 Escalate during review if a lower tier discovers higher-risk behavior. Do not
 de-escalate a forced `deep` request.
@@ -39,10 +39,12 @@ Before launching analysis, review, executor, or synthesis agents:
    - correctness / security / regressions
    - repo style / maintainability / scope control
    - requirements, issue, test, or plan traceability
-5. Re-run the required angles for the selected intensity after fixes or
-   touchups. A round is clean only when every required angle returns `LGTM` in
-   that round, or all material findings from that angle have been fixed and
-   re-reviewed.
+5. A round is clean only when every required angle returns `LGTM` in that
+   round. If material findings remain in a review workflow with a modification
+   phase, generate a Plannotator modification plan and stop instead of editing
+   files. After a user-approved plan, including one approved by
+   `bypassed-current-conversation`, is applied in a later modification pass,
+   re-run the required angles for the selected intensity.
 6. In Claude Code, keep the existing role split only when the host supports it.
 7. Outside Claude Code, use the host runtime's native sub-agent mechanism for
    the same roles and do not request Claude-only model names or subagent types.
@@ -106,6 +108,30 @@ Token and size budgets are explicit safety rules, not hints:
 If a budget is exceeded, set `truncated: true`, state exactly what was omitted,
 and provide the continuation query, command, page, or narrower filter in
 `next_action`. Never silently truncate data that affects a verdict.
+
+## Review Modification Plan Gate
+
+When a review workflow has a modification phase and material findings remain,
+write a concrete Plannotator modification plan before any edits. The plan must
+include finding ids, severity, affected files, planned edits, tests or
+verification to run after applying the plan, skipped out-of-scope findings, and
+any user-owned decisions.
+
+Use this approval order:
+
+1. If the user explicitly enabled current-conversation approval bypass, do not
+   run Plannotator. Record `bypassed-current-conversation` as the approval
+   source, keep the plan artifact, and continue only through the planned edit
+   path.
+2. If the `plannotator` CLI is on `PATH`, run
+   `plannotator annotate <plan-artifact> --render-html --gate`.
+3. Otherwise, use the runtime's Plannotator planning/visual-explainer workflow
+   if available.
+4. If Plannotator is unavailable, record `Plannotator unavailable`, leave the
+   plan artifact in place, and stop without editing.
+
+Bypass is an approval bypass, not a plan bypass. Do not edit before the plan is
+written and recorded.
 
 ## Code Style Guide Lifecycle
 
@@ -202,13 +228,14 @@ For `review-fix`-style loops:
 4. Drop pure style findings in unchanged code.
 5. Run every required review angle for the selected intensity. Do not collapse angles into
    one generic review.
-6. Fix criticals and warnings that are in scope; skip or record nits unless
-   they are trivially co-located.
+6. Do not fix findings inside the review workflow. Filter kept criticals and
+   warnings into a Plannotator modification plan; skip or record nits unless
+   they are part of the same necessary change.
 7. Treat `LGTM` as the clean sentinel per angle. The iteration is clean only
    when all required angles are clean.
-8. Use the selected intensity's loop cap and re-review scope. `quick` and
-   `standard` may ask to escalate when their caps are reached; `deep` uses the
-   five-iteration cap unless the user explicitly asks to continue.
-9. Run one final holistic pass over the full diff after the incremental loop
-   for `deep`; for `standard`, run it only when fixes changed public behavior
-   or cross-file structure.
+8. Stop after presenting the plan and approval status. Only a later
+   user-approved modification pass, including one approved by
+   `bypassed-current-conversation`, may apply the planned edits.
+9. After an approved plan is applied, run a fresh review. For `deep`, re-run
+   every required angle; for `standard`, re-run affected angles unless risk
+   escalated; for `quick`, run targeted confirmation.
