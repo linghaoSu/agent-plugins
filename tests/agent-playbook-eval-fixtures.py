@@ -441,6 +441,32 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "issue-evaluator-approved-fix-policy-contract",
+        "issue-evaluator/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup(
+                "five severity taxonomy",
+                (r"Review Finding Severity And Fix Policy[\s\S]*`critical`[\s\S]*`high`[\s\S]*`medium`[\s\S]*`low`[\s\S]*`nit`",),
+            ),
+            InvariantGroup(
+                "approved fix loop",
+                (r"Approved Critical/High Fix Loop[\s\S]*bypassed-current-conversation[\s\S]*Remaining critical/high bugs: none",),
+            ),
+            InvariantGroup(
+                "must fix boundary",
+                (r"Only true bugs[\s\S]*must-fix[\s\S]*Style, preference",),
+            ),
+            InvariantGroup(
+                "known issue deferral",
+                (r"Known Issue Deferral Rule[\s\S]*severity, ROI rationale[\s\S]*primary-path impact[\s\S]*future fix",),
+            ),
+            InvariantGroup(
+                "critical cannot defer",
+                (r"Never defer `critical`[\s\S]*primary-flow regressions[\s\S]*main user path",),
+            ),
+        ),
+    ),
+    ContractCheck(
         "review-pr-intensity-contract",
         "issue-evaluator/skills/review-pr/SKILL.md",
         (
@@ -460,6 +486,22 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("auto or forced", (r"auto-selected", r"forced")),
             InvariantGroup("final report intensity", (r"Review intensity", r"final report")),
             InvariantGroup("quick standard deep", (r"`quick`", r"`standard`", r"`deep`")),
+        ),
+    ),
+    ContractCheck(
+        "review-fix-approved-fix-loop-contract",
+        "issue-evaluator/skills/review-fix/SKILL.md",
+        (
+            InvariantGroup(
+                "five severity prompt",
+                (r"`critical`, `high`, `medium`, `low`,\s+`nit`",),
+            ),
+            InvariantGroup("must fix flag", (r"must_fix: yes\|no",)),
+            InvariantGroup("known issue deferral flag", (r"known_issue_deferral: eligible\|not eligible",)),
+            InvariantGroup("approved plan applies critical high", (r"apply only the approved `critical`/`high`",)),
+            InvariantGroup("rerun until none", (r"Remaining critical/high bugs:\s+none",)),
+            InvariantGroup("known issues deferred", (r"### Known Issues Deferred",)),
+            InvariantGroup("report critical high fields", (r"Critical/high bugs fixed", r"Remaining critical/high bugs")),
         ),
     ),
     ContractCheck(

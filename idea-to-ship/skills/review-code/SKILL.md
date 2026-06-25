@@ -1,29 +1,22 @@
 ---
 name: review-code
-description: Risk-scaled code review of the current diff with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan instead of editing directly.
+description: Risk-scaled code review of the current diff with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan before applying approved critical/high fixes and re-reviewing.
 argument-hint: '[--slug <name>] [--review-depth quick|standard|deep] [extra focus]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
 
 # Review Code — Adversarial Review Loop For Implementation
 
-Run a risk-scaled review of the current code changes (staged + unstaged).
-Select `review_intensity` automatically, unless the user forces
-`--review-depth quick|standard|deep`. `deep` is the blunt adversarial mode with
-multiple independent reviewer agents and multiple angles. Findings that
-require code, test, architecture, or design artifact edits become a
-Plannotator modification plan; this skill does not directly edit files after
-review.
-Anchored to the requirements, architecture, interface design, implementation
-log, and test plan so drift and missing verification are caught.
-Same-context review is a fallback only when reviewer sub-agents are explicitly
-unsupported by the host/runtime, explicitly forbidden by the user, or the
-selected reviewer/model is explicitly unavailable or at capacity; record the
-degradation reason.
+Run a risk-scaled review of staged and unstaged code changes. Select
+`review_intensity` automatically unless `--review-depth quick|standard|deep`
+forces it. Findings that require code, test, architecture, or design artifact
+edits become a Plannotator modification plan before edits; after approval or
+`bypassed-current-conversation`, apply only approved critical/high bug or
+design-drift fixes and re-review until no critical/high bugs remain. Anchor the
+review to requirements, architecture, interface design, implementation log, and
+test plan so drift and missing verification are caught.
 
 ## Arguments
-
-Raw: `$ARGUMENTS`
 
 Parse:
 - Optional `--slug <name>`. Default slug: `current`.
@@ -39,15 +32,10 @@ Launch independent reviewer agents for selected `standard` and `deep`; for
 selected `quick`, run the same-context checklist from the shared contract and
 do not label it degraded.
 
-- **Correctness/security angle:** bugs, edge cases, data loss, concurrency,
-  auth, injection, serialization, shell, and other risky boundaries.
-- **Traceability/testability angle:** requirement/story/acceptance/scenario/test
-  trail, TDD evidence, regression coverage, and stage completeness.
-- **Maintainability/repo-fit angle:** local conventions, abstraction cost,
-  dead code, design drift, and surgical scope.
-- **UI/UX angle:** required when `interface-design.md` exists or the diff
-  touches UI; checks component, visual token, interaction-state, responsive,
-  accessibility, and visual QA expectations.
+- **Correctness/security angle:** bugs, data loss, concurrency, auth, injection, serialization, shell.
+- **Traceability/testability angle:** requirement/story/acceptance/scenario/test trail, TDD evidence, regression coverage.
+- **Maintainability/repo-fit angle:** local conventions, abstraction cost, dead code, design drift, surgical scope.
+- **UI/UX angle:** required when `interface-design.md` exists or the diff touches UI; checks component, visual token, interaction-state, responsive, accessibility, and visual QA expectations.
 
 If reviewer sub-agents are explicitly unsupported by the host/runtime, the user
 explicitly forbids reviewer sub-agents, or the selected reviewer/model is
@@ -57,58 +45,49 @@ adversarial review prompts in the main context.
 
 ## Plannotator Modification Plan Gate
 
-Apply `../../WORKFLOW-CONTRACTS.md` Review Loop Shape and Human Approval
-Routing. When kept findings require code, test, architecture, or design
-artifact edits, write `.idea-to-ship/<slug>/code-review-modification-plan.md`
-before any edits. Include finding id/severity/path/source angle, planned edits
-by file, verification/re-review, user-owned decisions, and skipped findings.
-If current-conversation approval bypass is active, record
-`bypassed-current-conversation` as the approval source; bypass skips approval,
-not planning. If Plannotator is unavailable and no bypass is active, record
-that in `code-review.md` and stop without editing.
+Apply `../../WORKFLOW-CONTRACTS.md` Review Finding Severity And Fix Policy,
+Review Loop Shape, and Human Approval Routing. Write
+`.idea-to-ship/<slug>/code-review-modification-plan.md` before edits with
+finding id/severity/path/source angle, must-fix status, planned edits,
+verification/re-review, user-owned decisions, deferred Known Issues, and
+skipped findings. If current-conversation approval bypass is active, record
+`bypassed-current-conversation`; bypass skips approval, not planning. Treat
+Plannotator approval or bypass as authorization that the planned solution is
+the correct solution to apply. If Plannotator is unavailable and no bypass is
+active, record that in `code-review.md` and stop without editing.
 
 ## Workflow
 
-Track the review loop with a checklist. Update the status after input
-verification, each reviewer iteration, modification-plan generation, final
-holistic review, and `code-review.md` handoff.
+Track status after input verification, each reviewer iteration, plan
+generation/application, final holistic review, and `code-review.md` handoff.
 
 ```mermaid
 flowchart TD
-  A[Review Diff] --> B[Plan Or Report]
+  A[Review Diff] --> B{Plan Approved?}
+  B --> C[Fix Critical/High And Re-Review]
 ```
 
 ### Step 1: Verify Inputs
 
-1. Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`. If missing,
+1. Resolve `.idea-to-ship/<slug>/`. Require `requirements.md`; if missing,
    stop and tell the user to run `/brainstorm --slug <slug>` first. Read
-   `requirements.md`, plus `architecture.md`, `interface-design.md`,
+   `requirements.md` and any present `architecture.md`, `interface-design.md`,
    `implementation-log.md`, `test-plan.md`, `visual-test-report.md`,
-   `visual-test-matrix.md`, `visual-artifact-rca.md`, and
-   `visual-test-selectors.md` if present.
-2. Check that there's a diff to review:
+   `visual-test-matrix.md`, `visual-artifact-rca.md`, and `visual-test-selectors.md`.
+2. Check for a diff:
    ```bash
    git diff --shortstat
    git diff --shortstat --cached
    git status --short
    ```
    If empty, tell the user there's nothing to review and stop.
-3. If `test-plan.md` is absent, remember that fact for the review context.
-4. If `visual-test-report.md` or `visual-test-matrix.md` is present, load all
-   visual-test artifacts that exist. If the diff is a UI-touching diff, require
-   both `visual-test-report.md` and `visual-test-matrix.md`; set
-   `VISUAL_TEST_REPORT_MISSING` or `VISUAL_TEST_MATRIX_MISSING` for whichever
-   artifact is absent.
-5. Build a bounded review context before contacting reviewers. Include exact
-   artifact paths and section anchors, then summarize long artifacts instead of
-   pasting them wholesale:
-   - Requirements, architecture, implementation log, and test plan: include
-     relevant sections first; cap each artifact at 200 lines or 16 KiB.
-   - Visual-test artifacts: include report summary, matrix status counts,
-     failed/flaky/missing/stale cells, baseline decisions, fingerprint fields,
-     and RCA summaries; cap combined visual evidence at 24 KiB.
-   - If any artifact is truncated, set `context_truncated: true` and list
-     omitted paths/sections so reviewers can ask for a focused follow-up.
+3. If `test-plan.md` is absent, retain that review context. If a UI-touching
+   diff lacks `visual-test-report.md` or `visual-test-matrix.md`, set
+   `VISUAL_TEST_REPORT_MISSING` or `VISUAL_TEST_MATRIX_MISSING`.
+4. Build bounded reviewer context with artifact paths/anchors. Cap requirements,
+   architecture, implementation log, and test plan at 200 lines or 16 KiB each;
+   cap combined visual evidence at 24 KiB. Set `context_truncated: true` and
+   list omissions when truncating.
 
 ### Step 2: Collect The Diff
 
@@ -188,12 +167,12 @@ Track iteration count starting at 1. `deep` maxes at 5 iterations; `quick` and
 
 For `quick`, run one same-context checklist over correctness/security,
 traceability/testability, and maintainability/repo-fit. If it finds issues that
-require edits, generate a Plannotator modification plan instead of editing.
+require edits, generate a Plannotator modification plan before editing.
 
 For `standard`, launch the required reviewer agents in parallel when possible
 for one multi-angle round. If findings require edits, generate a Plannotator
-modification plan. After a user-approved plan is applied in a separate pass,
-re-review only affected angles unless the change affects architecture, public
+modification plan. After approval, apply only planned critical/high fixes and
+re-review affected angles unless the change affects architecture, public
 contracts, security, data flow, UI evidence, or broad scope.
 
 For `deep`, launch the required reviewer agents in parallel when possible. Each reviewer
@@ -234,11 +213,20 @@ SCOPE RULES (important):
 - Check the diff against the test plan. If a behavior-changing implementation
   lacks traceability from requirement -> story -> acceptance criterion ->
   scenario -> test, flag it as a verification gap. For fixes or user-visible
-  behavior, missing tests are a warning; for bug fixes with no reproducible
-  regression test, upgrade to critical unless there is a documented reason.
+  behavior, missing tests are medium; for bug fixes with no reproducible
+  regression test, upgrade to high unless there is a documented reason.
 - If `test-plan.md` is not provided and the diff changes observable behavior,
-  flag a warning-level verification gap. For bug fixes without a reproducible
-  regression test, upgrade to critical unless there is a documented reason.
+  flag a medium verification gap. For bug fixes without a reproducible
+  regression test, upgrade to high unless there is a documented reason.
+- Use exactly these severity labels: `critical`, `high`, `medium`, `low`,
+  `nit`. Only concrete bugs, verification blockers, security issues, data
+  loss, primary-flow regressions, or technical design defects can be
+  `critical` or `high`. Style, preference, speculative cleanup, and generalized
+  advice must be `low`/`nit` or dropped.
+- Mark a `critical`/`high` finding as must-fix only when it is a true bug,
+  verification blocker, or design defect. If a `high`/`medium` issue is an
+  extreme edge case or its fix has disproportionate scope/regression risk,
+  explicitly say whether it is eligible for Known Issue deferral and why.
 
 ## Requirements (required context)
 <requirements.md>
@@ -273,44 +261,60 @@ context_truncated: <true|false; include omitted paths/sections when true>
 <bounded relevant untracked file contents with SHA-256/classification/truncation, or binary path + SHA-256>
 
 For each issue, report severity, file:line, concrete problem/impact, and
-concrete fix.
+concrete fix. Also state `must_fix: yes|no` and, when relevant,
+`known_issue_deferral: eligible|not eligible` with the ROI rationale.
 
 If no material issues exist for your assigned angle, reply with exactly: LGTM
 ```
 
 #### 4b — Evaluate & Plan
 
-- **LGTM from every required reviewer angle** → break, proceed to Step 5.
+- **LGTM from every required reviewer angle** and no remaining
+  `critical`/`high` bugs or design defects → break, proceed to Step 5.
 - Otherwise:
-  1. One-line summary: `Iteration N: <angle> X critical, Y warnings, Z nits (W skipped out-of-scope).`
+  1. One-line summary: `Iteration N: <angle> C critical, H high, M medium, L low, N nits (S skipped out-of-scope).`
   2. Filter before planning:
      - Drop issues that are pure style/format in code the diff did not actually change.
-     - Drop nits unless they are part of the same necessary change.
-     - Keep criticals, warnings, and any design-drift issues.
+     - Drop `low`/`nit` issues unless they are part of the same necessary change.
+     - Keep true `critical`/`high` bugs, verification blockers, and
+       design-drift defects as must-fix findings.
+     - Record eligible low-ROI `high`/`medium` findings as Known Issues only
+       when they do not affect the primary path and the rationale includes
+       severity, ROI, primary-path impact, and future trigger.
   3. Generate `.idea-to-ship/<slug>/code-review-modification-plan.md` using
      the Plannotator Modification Plan Gate. Do not touch unrelated code and
      do not edit the reviewed files here.
   4. If a fix requires a user decision (tradeoff, spec ambiguity), put the
      decision and options in the plan. Do not guess.
-  5. Stop after the Plannotator plan is generated and its approval status is
-     recorded. A later approved modification pass applies the plan.
+  5. Stop before edits unless Plannotator approval or
+     `bypassed-current-conversation` approval is recorded.
 
 #### 4c — Approval Boundary
 
 If the plan is approved in the same conversation, including by
-`bypassed-current-conversation`, treat implementation of that plan as a
-separate modification pass, not a continuation of review. Apply only the
-approved plan, then run the appropriate review again. For `deep`, re-run every required reviewer angle after the approved changes land.
+`bypassed-current-conversation`, treat implementation of that plan as the
+approved modification pass. Apply only the approved `critical`/`high` bug,
+verification-blocker, and design-defect fixes. Do not apply medium/low/nit
+cleanup unless required by an approved critical/high fix.
+
+After edits, run the appropriate review again. For `deep`, re-run every required reviewer angle
+after the approved changes land. If fresh review finds new `critical`/`high`
+bugs or design defects, append them to the modification plan and require
+Plannotator approval unless the current-conversation bypass is active. With
+bypass, record that the bypass covers the new plan entries and continue. Repeat until `Remaining critical/high bugs: none` can be recorded.
 
 ### Step 5: Final Holistic Pass
 
-After LGTM or after the Plannotator modification plan is generated, run the
+After LGTM, or after an approved plan has been applied and re-reviewed, run the
 holistic pass required by the selected intensity:
 
 1. Re-read `git diff HEAD`, `git diff --cached`, and the plan when present.
 2. Check requirements, architecture, public interfaces, security boundaries,
    dead code, test traceability, and `../../PRINCIPLES.md`.
-3. If new problems appear, add them to the Plannotator modification plan.
+3. If new `critical`/`high` problems appear, add them to the Plannotator
+   modification plan and return to the Approval Boundary. Record eligible
+   low-ROI `high`/`medium` problems as Known Issues. Do not finish until
+   remaining critical/high bugs are `none`.
 
 ### Step 6: Write `code-review.md`
 
@@ -327,11 +331,18 @@ holistic pass required by the selected intensity:
 **Diff size:** <files changed>, <+added/-removed>
 **Plannotator modification plan:** <path | not needed | unavailable>
 **Plan approval:** <approved | denied | pending | bypassed-current-conversation | not needed | unavailable>
+**Critical/high bugs fixed:** <count and finding ids | none>
+**Remaining critical/high bugs:** <none | list with blocker status>
 
 ## Issues Raised & Resolution
 | # | Severity | File:line | Issue | Planned action / status |
 |---|---|---|---|---|
 | 1 | critical | src/x.go:42 | ... | planned in code-review-modification-plan.md §... |
+
+## Known Issues Deferred
+| # | Severity | File:line | Issue | ROI rationale | Primary-path impact | Future trigger |
+|---|---|---|---|---|---|---|
+| 1 | medium | src/x.go:88 | ... | fix would broaden scope beyond current release | no primary path impact | fix when feature X is expanded |
 
 ## Out-of-Scope Issues Skipped
 <Pre-existing style nits etc., for visibility — not planned.>
@@ -346,7 +357,7 @@ artifact update, accepted documented deviation, or clean.>
 edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 
 ## Residual Open Issues
-<Empty if clean.>
+<Non-critical/high residuals only, or empty if clean.>
 
 ## Final Verdict
 | Angle | Verdict |
@@ -361,39 +372,21 @@ edge/corner case, invalid-input, or failure-mode coverage. Empty if clean.>
 
 1. Tell the user where `code-review.md` landed and where the plan landed, if
    any.
-2. Suggest next step: approve/apply a pending plan; if approval was
-   `bypassed-current-conversation`, apply only the recorded plan and re-run
-   review; if tests are incomplete, run `/test`; otherwise commit/open PR.
+2. Suggest next step: approve a pending plan, fix a blocking approval denial,
+   run `/test` if tests are incomplete, or commit/open PR once remaining
+   critical/high bugs are none.
 3. Do not commit or push.
 
 ## Related Skills
 
-- `$idea-to-ship:visual-test` produces frontend visual evidence consumed during
-  UI review.
-- `$idea-to-ship:test` produces story, scenario, and verification traceability.
-- `$idea-to-ship:implement` writes implementation logs and records design
-  deviations before review.
+- `$idea-to-ship:visual-test`, `$idea-to-ship:test`, and `$idea-to-ship:implement` produce the evidence this review consumes.
 
 ## Anti-Patterns
 
-- **Style nitpicking on logic PRs.** If the diff fixes a race condition, don't produce 15 nits about naming. Focus severity appropriately — a few nits alongside criticals is fine, but nits should never dominate a review that has real issues.
+- **Style nitpicking on logic PRs.** If the diff fixes a race condition, don't produce 15 nits about naming. Focus severity appropriately — a few nits alongside critical/high bugs is fine, but nits should never dominate a review that has real issues.
 - **Phantom bugs.** "This *could* be null" without checking if callers actually pass null. If you can't show a concrete call path that triggers the failure, it's speculation, not a finding. State the call path or drop the finding.
 - **Reviewing the architecture.** If the chosen design is wrong, that's a design review problem. Code review assumes the design is accepted and checks whether the implementation is correct, safe, and clean. Flag design drift, but don't re-litigate architectural decisions.
 - **Generic advice.** "Add error handling" without saying what error, from where, and what the handler should do. Every finding must be actionable and specific enough to implement in one edit.
 - **Trusting implementation without traceability.** If a behavior changed and
   there is no story/acceptance/scenario/test trail, the implementation is not
   verifiably done. Flag the missing link instead of saying "looks fine".
-
-## Notes
-
-- Scope rules matter. Reviewing surrounding unchanged code always produces noise and no value.
-- **Design drift is a first-class finding** (see `../../LANGUAGE.md`). If the implementation took a shortcut the architecture didn't sanction, plan one of: (a) fix the code, (b) update `architecture.md` with a documented reason, or (c) record an accepted deviation in `code-review.md`. Silent drift is forbidden.
-- Fall back to same-context review only when reviewer sub-agents are explicitly
-  unsupported by the host/runtime, explicitly forbidden by the user, or the
-  selected reviewer/model is explicitly unavailable or at capacity. Record
-  `degraded-same-context-review` and do not present that result as independent
-  multi-agent review.
-- Use the Plannotator Modification Plan Gate for user-owned tradeoffs,
-  residual-risk acceptance, escalation/abort choices, and approval for
-  documented design deviations. Current-conversation bypass skips approval only;
-  it never skips writing the plan.

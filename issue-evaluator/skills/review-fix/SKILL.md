@@ -1,6 +1,6 @@
 ---
 name: review-fix
-description: Risk-scaled review of current code changes with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan instead of editing directly.
+description: Risk-scaled review of current code changes with auto-selected or forced review depth. Supports --review-depth quick|standard|deep; when findings require edits, generates a Plannotator modification plan before applying approved critical/high fixes and re-reviewing.
 argument-hint: '[--review-depth quick|standard|deep] [focus ...]'
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
 ---
@@ -11,8 +11,9 @@ Review the current changes with auto-selected `review_intensity`, or a forced
 `--review-depth quick|standard|deep`. `quick` uses a same-context checklist,
 `standard` uses a bounded multi-angle loop, and `deep` uses runtime-aware
 reviewer agents across multiple angles. Findings that require edits become a
-Plannotator modification plan; this skill does not directly edit files after
-review.
+Plannotator modification plan before edits. After Plannotator approval or
+`bypassed-current-conversation`, apply only approved critical/high fixes and
+re-review until no critical/high bugs remain.
 
 ## Arguments
 
@@ -42,9 +43,11 @@ reported.
 
 ## Plannotator Modification Plan Gate
 
-When review finds kept issues that require edits, do not edit files in this
-workflow. Write a concrete modification plan, then route it through Plannotator
-unless current-conversation approval bypass is active.
+When review finds kept issues that require edits, do not edit before the plan
+gate. Write a concrete modification plan, then route it through Plannotator
+unless current-conversation approval bypass is active. Treat Plannotator
+approval or `bypassed-current-conversation` as authorization that the planned
+solution is the correct solution to apply.
 
 Plan path:
 - If a repo-local artifact directory exists for the current issue/fix, write
@@ -53,10 +56,13 @@ Plan path:
 
 The plan must include:
 - Review finding ids, severity, file/line, and source angle.
+- Must-fix status for true `critical`/`high` bugs and verification blockers.
 - Planned edits by file.
 - Required tests or verification after applying the plan.
 - User-owned decisions or tradeoffs that block a safe edit.
-- Out-of-scope findings and dropped nits, with rationale.
+- Deferred Known Issues with severity, ROI rationale, primary-path impact, and
+  future trigger.
+- Out-of-scope findings and dropped `low`/`nit` items, with rationale.
 
 Use the available approval path in this order:
 1. If current-conversation approval bypass is active, do not run Plannotator.
@@ -69,8 +75,8 @@ Use the available approval path in this order:
 4. If Plannotator is unavailable, record `Plannotator unavailable`, leave the
    plan artifact in place, and stop without editing.
 
-Bypass skips approval, not planning. Do not edit before the plan exists and is
-recorded.
+Bypass skips approval, not planning. Do not edit before the plan exists and
+approval is recorded.
 
 ## Workflow
 
@@ -81,8 +87,11 @@ flowchart TD
   C --> D[Review Current Diff]
   D --> E{Clean?}
   E -- No --> F[Generate Plannotator Modification Plan]
+  F --> H{Approved?}
+  H -- Yes --> I[Apply Critical/High Fixes And Re-Review]
+  H -- No --> G
+  I --> D
   E -- Yes --> G[Report]
-  F --> G
 ```
 
 ### Step 1: Verify Prerequisites
@@ -118,8 +127,8 @@ issues that require edits, generate a Plannotator modification plan instead of
 editing.
 
 For `standard`, run one multi-angle reviewer round. If findings require edits,
-generate a Plannotator modification plan. After a user-approved plan is applied
-in a separate pass, re-review only affected angles unless the change affects
+generate a Plannotator modification plan. After approval, apply only planned
+critical/high fixes and re-review affected angles unless the change affects
 public contract, security, data flow, or broad scope.
 
 For `deep`, use runtime-aware reviewer agents to inspect the diff from separate
@@ -164,33 +173,51 @@ Construct the prompt for each angle:
    ## Diff to Review
    <the diff output>
 
+   Use exactly these severity labels: `critical`, `high`, `medium`, `low`,
+   `nit`. Only concrete bugs, verification blockers, security issues, data
+   loss, public-contract breaks, or primary-flow regressions can be `critical`
+   or `high`. Style, preference, speculative cleanup, and generalized advice
+   must be `low`/`nit` or dropped.
+
    For each issue found, report:
-   - Severity (critical / warning / nit)
+   - Severity (`critical` / `high` / `medium` / `low` / `nit`)
    - File and line
    - What's wrong and how to fix it
    - Which style rule it violates (if applicable)
+   - `must_fix: yes|no`
+   - `known_issue_deferral: eligible|not eligible` with ROI rationale, when relevant
 
    If you find NO issues, respond with exactly: LGTM
    ```
 
 #### 3b: Evaluate Results And Plan
 
-- If **every required angle** returns **LGTM** → exit the loop, proceed to Step 4.
+- If **every required angle** returns **LGTM** and no `critical`/`high` bugs
+  remain → exit the loop, proceed to Step 4.
 - If any angle reports issues:
-  1. Present a brief summary to the user: "Iteration N: found X issues (Y critical, Z warnings, W nits). Generating modification plan..."
+  1. Present a brief summary to the user: "Iteration N: found X issues (C critical, H high, M medium, L low, N nits). Generating modification plan..."
   2. **Filter issues before planning**: Only plan issues that are within the
      scope of the current change. Skip any issues that are purely
      lint/style/formatting problems in code that was not changed by the fix.
-     Note skipped issues in the summary as "out of scope".
+     Keep true `critical`/`high` bugs and verification blockers as must-fix.
+     Record eligible low-ROI `high`/`medium` findings as Known Issues only
+     when they do not affect the primary path and the rationale includes
+     severity, ROI, primary-path impact, and future trigger. Note skipped
+     issues in the summary as "out of scope".
   3. Generate the modification plan using the Plannotator Modification Plan
      Gate. Ensure each planned fix aligns with the code style checklist and
      does not touch unrelated code.
-  4. Stop after the plan is generated and its approval status is recorded. A
-     later approved modification pass applies the plan.
+  4. Stop before edits unless Plannotator approval or
+     `bypassed-current-conversation` approval is recorded.
   5. If the plan is approved in the same conversation, including by
-     `bypassed-current-conversation`, apply only the approved plan in the
-     modification pass, then run the appropriate review again. For `deep`,
-     re-run all required angles after the approved changes land.
+     `bypassed-current-conversation`, apply only the approved `critical`/`high`
+     bug and verification-blocker fixes in the modification pass, then run the
+     appropriate review again. For `deep`, re-run all required angles after the
+     approved changes land. If fresh review finds new `critical`/`high` bugs,
+     append them to the plan and require Plannotator approval unless the
+     current-conversation bypass is active. With bypass, record that it covers
+     the new plan entries and continue until `Remaining critical/high bugs:
+     none` can be recorded.
 
 #### 3c: Approval Boundary
 
@@ -200,8 +227,8 @@ user-owned decisions.
 
 ### Step 4: Final Holistic Review
 
-After the review exits clean or after the Plannotator modification plan is
-generated, run the final review required by the selected intensity. `deep` runs
+After the review exits clean, or after an approved plan has been applied and
+re-reviewed, run the final review required by the selected intensity. `deep` runs
 one final comprehensive review round over the **entire change and plan as a
 whole** rather than incremental findings and still preserves the required
 angles. `standard` runs the final review only when findings affect public
@@ -247,16 +274,18 @@ adding a separate final round.
    <the diff output>
 
    For each issue found, report:
-   - Severity (critical / warning / nit)
+   - Severity (`critical` / `high` / `medium` / `low` / `nit`)
    - File and line
    - What's wrong and how to fix it
+   - `must_fix: yes|no`
 
    If you find NO issues, respond with exactly: LGTM
    ```
 
-4. If any final angle finds issues, add in-scope findings to the modification
-   plan. If any angle still has issues after the plan update, present the
-   remaining issues to the user.
+4. If any final angle finds `critical`/`high` issues, add in-scope findings to
+   the modification plan and return to the approval boundary. Record eligible
+   low-ROI `high`/`medium` findings as Known Issues. Do not finish until
+   remaining critical/high bugs are `none`.
 
 ### Step 5: Report
 
@@ -273,10 +302,17 @@ Present a summary to the user:
 - **Issues found**: <total count>
 - **Plannotator modification plan**: <path | not needed | unavailable>
 - **Plan approval**: <approved | denied | pending | bypassed-current-conversation | not needed | unavailable>
+- **Critical/high bugs fixed**: <count and finding ids | none>
+- **Remaining critical/high bugs**: <none | list with blocker status>
 - **Final holistic review**: Clean / <N remaining issues, by angle>
 
 ### Planned Changes
 <list of files planned for modification, with one-line descriptions of the planned edit>
+
+### Known Issues Deferred
+| Severity | Issue | ROI rationale | Primary-path impact | Future trigger |
+|---|---|---|---|---|
+| medium | ... | fix would broaden scope beyond current release | no primary path impact | fix when feature X is expanded |
 ```
 
 ## Notes
@@ -289,6 +325,9 @@ Present a summary to the user:
 - If the user hasn't run `/evaluate-issue` yet but has a code style doc, the review still works.
 - Current-conversation bypass skips approval only; it never skips writing the
   modification plan before edits.
+- Known Issue deferral is only for eligible `high`/`medium` low-ROI issues. Do
+  not defer `critical`, security, data-loss, primary-flow, or mainline `high`
+  bugs.
 
 ## Related Skills
 

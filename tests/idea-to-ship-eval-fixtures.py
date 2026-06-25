@@ -586,7 +586,7 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("missing test plan", (r"test-plan\.md`? is absent", r"test-plan\.md`? if absent")),
             InvariantGroup("observable behavior change", (r"diff changes observable behavior", r"behavior-changing")),
             InvariantGroup("verification gap", (r"verification gap",)),
-            InvariantGroup("warning severity", (r"\bwarning\b",)),
+            InvariantGroup("medium severity", (r"\bmedium\b",)),
         ),
     ),
     ContractCheck(
@@ -611,6 +611,32 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("forced recorded", (r"user-forced", r"Record the selected intensity")),
             InvariantGroup("quick not degraded", (r"selected `quick` intensity", r"not `degraded-same-context-review`")),
             InvariantGroup("deep invariant retained", (r"deep-review invariant", r"multiple agents")),
+        ),
+    ),
+    ContractCheck(
+        "workflow-review-approved-fix-policy-contract",
+        "idea-to-ship/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup(
+                "five severity taxonomy",
+                (r"Review Finding Severity And Fix Policy[\s\S]*`critical`[\s\S]*`high`[\s\S]*`medium`[\s\S]*`low`[\s\S]*`nit`",),
+            ),
+            InvariantGroup(
+                "approved fix loop",
+                (r"Approved Critical/High Fix Loop[\s\S]*bypassed-current-conversation[\s\S]*Remaining critical/high bugs: none",),
+            ),
+            InvariantGroup(
+                "must fix boundary",
+                (r"Only true bugs[\s\S]*must-fix[\s\S]*Style, preference",),
+            ),
+            InvariantGroup(
+                "known issue deferral",
+                (r"Known Issue Deferral Rule[\s\S]*severity, ROI rationale[\s\S]*primary-path impact[\s\S]*future fix",),
+            ),
+            InvariantGroup(
+                "critical cannot defer",
+                (r"Never defer `critical`[\s\S]*primary-flow regressions[\s\S]*main user path",),
+            ),
         ),
     ),
     ContractCheck(
@@ -650,6 +676,21 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "review-design-approved-fix-loop-contract",
+        "idea-to-ship/skills/review-design/SKILL.md",
+        (
+            InvariantGroup(
+                "five severity prompt",
+                (r"`critical` / `high` / `medium` / `low` / `nit`",),
+            ),
+            InvariantGroup("approved plan applies critical high", (r"apply only the approved `critical`/`high`",)),
+            InvariantGroup("rerun until none", (r"Repeat until `Remaining critical/high bugs: none`",)),
+            InvariantGroup("known issues deferred", (r"## Known Issues Deferred",)),
+            InvariantGroup("report critical high fields", (r"Critical/high bugs fixed", r"Remaining critical/high bugs")),
+            InvariantGroup("deferral guard", (r"Do\s+not defer `critical`",)),
+        ),
+    ),
+    ContractCheck(
         "review-code-multi-agent-contract",
         "idea-to-ship/skills/review-code/SKILL.md",
         (
@@ -669,6 +710,22 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("auto and forced", (r"Auto-select", r"forced override")),
             InvariantGroup("artifact records intensity", (r"Review intensity:", r"code-review\.md")),
             InvariantGroup("quick standard deep", (r"For `quick`", r"For `standard`", r"For `deep`")),
+        ),
+    ),
+    ContractCheck(
+        "review-code-approved-fix-loop-contract",
+        "idea-to-ship/skills/review-code/SKILL.md",
+        (
+            InvariantGroup(
+                "five severity prompt",
+                (r"`critical`, `high`, `medium`, `low`,\s+`nit`",),
+            ),
+            InvariantGroup("must fix flag", (r"must_fix: yes\|no",)),
+            InvariantGroup("known issue deferral flag", (r"known_issue_deferral: eligible\|not eligible",)),
+            InvariantGroup("approved plan applies critical high", (r"Apply only the approved `critical`/`high`",)),
+            InvariantGroup("rerun until none", (r"Repeat until `Remaining critical/high bugs: none`",)),
+            InvariantGroup("known issues deferred", (r"## Known Issues Deferred",)),
+            InvariantGroup("report critical high fields", (r"Critical/high bugs fixed", r"Remaining critical/high bugs")),
         ),
     ),
     ContractCheck(

@@ -15,12 +15,61 @@ Auto-select the smallest tier that covers the risk:
 
 | Intensity | Use when | Review shape |
 |---|---|---|
-| `quick` | Docs-only, tests-only, fixture-only, generated artifact updates, or a small non-behavior diff with no public API/schema, UI, auth, external IO, persistence, destructive action, agent loop, or release-critical change. | One same-context checklist over correctness/scope/verification. If it finds issues in a review workflow that would normally modify files, generate a Plannotator modification plan instead of editing. This is selected intensity, not `degraded-same-context-review`. |
-| `standard` | Normal behavior changes with bounded blast radius, clear requirements, and runnable verification. | One multi-angle review round. Capture material findings in a Plannotator modification plan instead of applying fixes. After a user-approved plan is applied in a later modification pass, re-review only angles touched by the change unless it changes architecture, public contract, security, data flow, or broad scope. |
-| `deep` | Security/auth/secrets, data loss, persistence/migrations, external IO, destructive operations, concurrency, agent/harness loops, public APIs/schemas, large or mixed diffs, UI requiring visual evidence, failed release gates, unclear requirements, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle review. Capture material findings in a Plannotator modification plan instead of applying fixes. After a user-approved plan is applied in a later modification pass, re-run every required angle, then run a holistic pass. |
+| `quick` | Docs-only, tests-only, fixture-only, generated artifact updates, or a small non-behavior diff with no public API/schema, UI, auth, external IO, persistence, destructive action, agent loop, or release-critical change. | One same-context checklist over correctness/scope/verification. If it finds issues in a review workflow that would normally modify files, generate a Plannotator modification plan before editing. This is selected intensity, not `degraded-same-context-review`. |
+| `standard` | Normal behavior changes with bounded blast radius, clear requirements, and runnable verification. | One multi-angle review round. Capture material findings in a Plannotator modification plan before fixes. After approval, apply only planned critical/high fixes and re-review only angles touched by the change unless it changes architecture, public contract, security, data flow, or broad scope. |
+| `deep` | Security/auth/secrets, data loss, persistence/migrations, external IO, destructive operations, concurrency, agent/harness loops, public APIs/schemas, large or mixed diffs, UI requiring visual evidence, failed release gates, unclear requirements, or user-forced `--review-depth deep`. | Full multi-agent, multi-angle review. Capture material findings in a Plannotator modification plan before fixes. After approval, apply only planned critical/high fixes, re-run every required angle, then run a holistic pass. |
 
 Escalate during review if a lower tier discovers higher-risk behavior. Do not
 de-escalate a forced `deep` request.
+
+## Review Finding Severity And Fix Policy
+
+Use exactly five severity labels in review workflows:
+
+| Severity | Meaning | Default handling |
+|---|---|---|
+| `critical` | A confirmed blocker: data loss/corruption, security exposure, crash, irreversible side effect, broken primary flow, invalid architecture recommendation, or release gate failure with a concrete path. | Must be in the modification plan and must be fixed after approval. Never defer as low ROI. |
+| `high` | A real bug or design defect likely to affect a normal user path, public contract, persistence, security posture, or required verification, but not immediately catastrophic. | Must be in the modification plan and fixed after approval unless the Known Issue deferral rule below applies. |
+| `medium` | A real but bounded defect, missing edge-case handling, or verification gap that does not block the main path. | Plan only when it is part of the same necessary change or the user asks; otherwise record or defer. |
+| `low` | Minor correctness, clarity, or maintainability risk with limited impact. | Usually record only. |
+| `nit` | Cosmetic style, naming, prose, formatting, or preference feedback. | Do not plan unless bundled into an already-approved necessary edit. |
+
+Only true bugs, verification blockers, or technical design defects can be
+must-fix. Style, preference, generalized best-practice advice, speculative
+cleanup, and broad nice-to-have suggestions do not enter the must-fix set even
+if a reviewer uses strong language. Reclassify or drop them.
+
+### Approved Critical/High Fix Loop
+
+Review workflows with a modification phase still write a concrete Plannotator
+modification plan before edits. Once Plannotator approves the plan, or once a
+current-conversation bypass records `bypassed-current-conversation`, treat that
+approval as the user's authorization that the planned solution is the correct
+solution to apply.
+
+After approval:
+
+1. Apply only the plan's in-scope `critical`/`high` bug, verification-blocker,
+   or design-defect fixes. Do not apply medium/low/nit cleanup unless it is
+   necessary to complete an approved critical/high fix.
+2. Re-run the review angles required by the selected intensity and touched
+   area. For `deep`, re-run every required angle and the holistic pass.
+3. If fresh review finds new in-scope `critical`/`high` bugs or design defects,
+   add them to the modification plan. Require Plannotator approval before
+   applying them, unless the current-conversation bypass is active; with bypass,
+   record that it covers the new plan entries and continue.
+4. Repeat until `Remaining critical/high bugs: none` can be recorded.
+
+### Known Issue Deferral Rule
+
+`high` or `medium` findings may be recorded as Known Issues instead of fixed
+only when they do not affect the primary path, are extreme or rare edge cases,
+or the fix has clearly disproportionate blast radius, regression risk, or
+scope for the current task. Each deferral must record severity, ROI rationale,
+primary-path impact, and the condition that should trigger a future fix.
+
+Never defer `critical` findings, security exposure, data loss/corruption,
+primary-flow regressions, or `high` bugs that affect the main user path.
 
 ## Multi-Agent Review Routing
 
@@ -51,7 +100,8 @@ For design and code review loops:
 6. A review can return clean only after every required reviewer angle for the
    selected intensity has returned `LGTM`. If material findings remain in a
    review workflow with a modification phase, generate a Plannotator
-   modification plan and stop instead of editing files.
+   modification plan before editing. Do not edit before Plannotator approval
+   or `bypassed-current-conversation` approval is recorded.
 
 The deep-review invariant is independent skeptical review from multiple agents,
 multiple angles, and multiple rounds. Same-context review is either selected
@@ -114,15 +164,19 @@ files, candidates, or logs, and put the continuation command or next skill in
 3. Collect the current target (`architecture.md` or diff) fresh each iteration.
 4. Treat `LGTM` as the clean sentinel only per reviewer angle; the round is
    clean only when all required angles are clean.
-5. Do not fix findings inside the review workflow. Filter kept critical and
-   warning findings into a Plannotator modification plan; skip or record nits
-   unless they are part of the same necessary change.
-6. Stop after presenting the plan and approval status. Only a later
-   user-approved modification pass, including one approved by
-   `bypassed-current-conversation`, may apply the planned edits.
+5. Do not fix findings before the plan gate. Filter true `critical`/`high`
+   bugs, verification blockers, and design defects into a Plannotator
+   modification plan; record eligible deferred `high`/`medium` findings as
+   Known Issues; skip or record `low`/`nit` issues unless they are part of the
+   same necessary change.
+6. Stop before edits unless Plannotator approval or
+   `bypassed-current-conversation` approval is recorded. Approval authorizes
+   only the planned critical/high fix path.
 7. After an approved plan is applied, run a fresh review. For `deep`, re-run
    every required reviewer angle; for `standard`, re-run affected angles unless
-   risk escalated; for `quick`, run targeted confirmation.
+   risk escalated; for `quick`, run targeted confirmation. Continue the
+   approved critical/high fix loop until no `critical`/`high` bugs or design
+   defects remain.
 
 ## Human Approval Routing
 
