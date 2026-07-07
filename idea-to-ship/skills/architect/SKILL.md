@@ -42,7 +42,8 @@ flowchart TD
 4. Read `interface-design.md` if present. Treat it as UI/UX and visual-system
    context that the technical design must preserve for user-facing surfaces.
 5. Read `../../WORKFLOW-CONTRACTS.md`, especially **Cross-Skill Routing** and
-   **Human Approval Routing**.
+   **Human Approval Routing**. Apply § Idea Intake Reality Gate before
+   designing.
 6. If `architecture.md` already exists, read it fully. This run is a revision
    unless the user explicitly approves starting over.
 
@@ -284,6 +285,9 @@ These are hard stops. Do not proceed past a gate until its condition is met.
 - If `requirements.md` is thin in Problem, Users, Scope, or Success Criteria,
   stop and send the user back to `/brainstorm --slug <slug>` to refine it.
   Minor design assumptions can still go in `architecture.md` Open Questions.
+- If `requirements.md` is speculative or lacks concrete problem, affected
+  users, success signal, or why-now rationale, stop before `architecture.md`
+  and route to `/brainstorm --slug <slug>` or `/commercialize --slug <slug>`.
 - If the design is forced into awkward shapes because requirements are wrong, say so — recommend the user revise requirements before architecting further.
 - **Read `../../LANGUAGE.md`** for shared vocabulary — use terms like "vertical slice", "deep module", "seam", "blast radius" precisely as defined there.
 

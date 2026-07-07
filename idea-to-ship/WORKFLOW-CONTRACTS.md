@@ -71,6 +71,25 @@ primary-path impact, and the condition that should trigger a future fix.
 Never defer `critical` findings, security exposure, data loss/corruption,
 primary-flow regressions, or `high` bugs that affect the main user path.
 
+## Idea Intake Reality Gate
+
+Before a fuzzy idea becomes build-ready requirements, architecture, roadmap, or
+implementation work, prove it is more than feature imagination:
+
+1. A build-ready item must name a concrete problem, affected users or buyers, a
+   success signal, explicit non-goals, and why now.
+2. If problem, user, or success evidence is missing, keep the result as open
+   questions or `pre-requirements`; do not write final-looking requirements,
+   architecture, or `Now` roadmap lanes.
+3. `architect` must stop and route back to `brainstorm` or `commercialize`
+   when `requirements.md` is thin, speculative, or lacks verifiable success
+   criteria.
+4. Commercial evidence classed `Weak`, `Unknown`, or `Speculative` cannot
+   enter final priority work or implementation handoff without explicit user
+   approval recorded through Human Approval Routing.
+5. Prefer the smallest stage that validates the riskiest assumption before
+   designing broad systems.
+
 ## Multi-Agent Review Routing
 
 For design and code review loops:

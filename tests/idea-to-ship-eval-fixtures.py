@@ -131,6 +131,36 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "idea-intake-reality-gate-contract",
+        "idea-to-ship/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("gate heading", (r"Idea Intake Reality Gate",)),
+            InvariantGroup("build ready facts", (r"concrete problem", r"affected users", r"success signal", r"why now")),
+            InvariantGroup("no final looking artifacts", (r"do not write final-looking requirements", r"architecture", r"`Now` roadmap lanes")),
+            InvariantGroup("thin requirements route back", (r"`architect` must stop", r"`requirements\.md` is thin")),
+            InvariantGroup("weak evidence approval", (r"`Weak`, `Unknown`, or `Speculative`", r"explicit user\s+approval")),
+        ),
+    ),
+    ContractCheck(
+        "brainstorm-idea-intake-gate-contract",
+        "idea-to-ship/skills/brainstorm/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Idea\s+Intake\s+Reality\s+Gate",)),
+            InvariantGroup("build ready stop", (r"before build-ready requirements",)),
+            InvariantGroup("missing facts open questions", (r"concrete problem", r"affected users", r"success signal", r"Open Questions")),
+            InvariantGroup("not ready for architect", (r"do not present the requirements as ready for\s+`/architect`")),
+        ),
+    ),
+    ContractCheck(
+        "architect-idea-intake-gate-contract",
+        "idea-to-ship/skills/architect/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Idea\s+Intake\s+Reality\s+Gate",)),
+            InvariantGroup("thin speculative stop", (r"speculative", r"stop before `architecture\.md`")),
+            InvariantGroup("route back", (r"/brainstorm --slug <slug>", r"/commercialize --slug <slug>")),
+        ),
+    ),
+    ContractCheck(
         "commercialize-artifact-contract",
         "idea-to-ship/skills/commercialize/SKILL.md",
         (
@@ -140,6 +170,15 @@ CHECKS: tuple[ContractCheck, ...] = (
             InvariantGroup("commercial analysis", (r"ICP", r"Monetization Model", r"Feature-To-Business Impact")),
             InvariantGroup("multi angle review", (r"Multi-Angle Commercial Review", r"Review Rounds")),
             InvariantGroup("roadmap handoff", (r"Handoff To Roadmap", r"/roadmap --slug <slug>")),
+        ),
+    ),
+    ContractCheck(
+        "commercialize-idea-intake-gate-contract",
+        "idea-to-ship/skills/commercialize/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Idea\s+Intake\s+Reality\s+Gate",)),
+            InvariantGroup("weak evidence no priority", (r"`Weak`, `Unknown`, or `Speculative`", r"do not hand\s+off final priority work")),
+            InvariantGroup("approval required", (r"explicit user\s+approval through Human Approval Routing",)),
         ),
     ),
     ContractCheck(

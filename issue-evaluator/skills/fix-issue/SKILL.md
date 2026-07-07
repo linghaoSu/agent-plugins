@@ -33,7 +33,8 @@ Before launching diagnosis or style-analysis agents, read
 `../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
 **Multi-Agent Review Routing** contract where this workflow invokes diagnosis
 review or `/review-fix`, the **Code Style Guide Lifecycle** contract, and the
-shared **Output, Token, And Error Contract**.
+shared **Output, Token, And Error Contract**. Apply § Issue Contribution Gate
+before setting up the worktree or editing.
 
 Token budget: for issue bodies, comments, diffs, and repo-wide searches, cap
 what each reviewer receives. Default budget: 25 changed files, 400 diff lines
@@ -42,6 +43,21 @@ exists, set `truncated: true`, name the omitted ranges or files, and give the
 continuation command/query in `next_action`.
 
 ## Workflow
+
+Track progress through input classification, context gathering, isolated
+worktree setup, confirmation, implementation, verification, commit, and
+summary.
+
+```mermaid
+flowchart TD
+  A[Classify Input] --> B[Gather Context]
+  B --> C[Set Up Worktree]
+  C --> D[Confirm Issue]
+  D --> E[Implement Fix]
+  E --> F[Verify]
+  F --> G[Commit]
+  G --> H[Summary]
+```
 
 ### Step 0: Classify Input Mode
 
@@ -79,6 +95,7 @@ Run the following checks in parallel:
 
 **C — Fetch issue details (if no evaluation exists):**
 - Use `gh issue view` to fetch the full issue:
+  Replace `<number>` and optional `<owner/repo>` with the parsed issue target.
   ```bash
   gh issue view <number> [--repo <owner/repo>] --json title,body,labels,comments,state
   ```
@@ -89,6 +106,7 @@ Create an isolated worktree so the fix doesn't interfere with the user's current
 
 1. Determine the branch name: `fix/issue-<number>` (e.g. `fix/issue-123`)
 2. Determine the base branch:
+   Set `BASE_BRANCH` from the command output before using it later.
    ```bash
    BASE_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
    ```
@@ -126,7 +144,10 @@ If no prior evaluation report is found in conversation context, run the full eva
    - **Agent B — Commit History Check** (Claude: Sonnet; non-Claude: native analysis sub-agent): Check if already fixed
 2. If the issue is already fixed, report this and stop.
 3. If the issue cannot be confirmed, report this and stop.
-4. Synthesize the diagnosis into a concise fix plan.
+4. If the issue is vague, actively claimed, duplicated by an open or closed PR,
+   maintainer-deprioritized, or too broad for one narrow change, report the
+   blocker and stop.
+5. Synthesize the diagnosis into a concise fix plan.
 
 If a prior evaluation exists, use its root cause and fix plan directly.
 
@@ -223,6 +244,7 @@ After implementing:
 ### Step 6: Commit Changes
 
 Before committing, produce a diff summary from inside the worktree:
+Replace `<files-touched-by-this-fix>` with the scoped changed paths.
 
 ```bash
 git status --short
@@ -231,6 +253,8 @@ git diff -- <files-touched-by-this-fix>
 ```
 
 Stage only files intentionally changed for this fix:
+Replace the angle-bracket placeholders with the scoped files, concise subject,
+and issue number.
 
 ```bash
 git add <files-touched-by-this-fix>
@@ -272,6 +296,12 @@ matching the context gathered.
 ```
 
 **Do NOT remove the worktree** — the user may want to review, push, or continue working on it.
+
+## Related Skills
+
+- `$issue-evaluator:evaluate-issue` confirms root cause before fixing.
+- `$issue-evaluator:review-fix` reviews the resulting local changes.
+- `$agent-playbook:implementation-tournament` compares competing fixes when requested.
 
 ## Anti-Patterns
 

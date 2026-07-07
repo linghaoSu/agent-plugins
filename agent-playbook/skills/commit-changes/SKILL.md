@@ -14,6 +14,19 @@ user configured in Git.
 
 ## Workflow
 
+Track progress through git state, repo policy, authorship, scope, checks,
+commit, and optional draft PR creation.
+
+```mermaid
+flowchart TD
+  A[Inspect Git State] --> B[Read Repo Policy]
+  B --> C[Confirm Authorship]
+  C --> D[Stage Scoped Diff]
+  D --> E[Run Checks]
+  E --> F[Commit]
+  F --> G[Optional Draft PR]
+```
+
 ### Step 1: Inspect Git State
 
 Start from the repo root:
@@ -71,6 +84,8 @@ conflict in the final response.
 ### Step 3: Confirm Human-Only Authorship
 
 Check the configured author and committer before committing:
+The `GIT_*` names below are literal Git environment variables, not
+placeholders to replace.
 
 ```bash
 git config user.name
@@ -176,12 +191,14 @@ Anthropic
 ### Step 7: Commit and Verify
 
 Commit with standard Git author/committer identity:
+Replace `<subject>` with the final commit subject.
 
 ```bash
 git commit -m "<subject>"
 ```
 
 For a body, use additional `-m` arguments rather than opening an editor:
+Replace `<body>` with the final commit body.
 
 ```bash
 git commit -m "<subject>" -m "<body>"
@@ -192,6 +209,8 @@ failed or slow hook/check tradeoff. Never amend, force-push, or rewrite
 history unless explicitly requested.
 
 After committing, verify the resulting commit:
+The `<%ae>` and `<%ce>` fragments below are literal Git pretty-format text,
+not placeholders to replace.
 
 ```bash
 git log -1 --format='%H%n%an <%ae>%n%cn <%ce>%n%B'
@@ -206,6 +225,11 @@ explicitly asks.
 
 Only create a PR when the user explicitly asks for it. PR creation and branch
 pushes are externally visible operations.
+
+Before any push or PR creation, read `../../WORKFLOW-CONTRACTS.md` § External
+Contribution Quality Gate and apply it. Stop if the change is speculative,
+bundles unrelated fixes, lacks explicit human approval of the complete diff, or
+duplicates an open or closed PR.
 
 Check repository and branch state:
 
@@ -233,16 +257,31 @@ git push -u origin HEAD
 ```
 
 Discover and read the PR template:
+The `PULL_REQUEST_TEMPLATE` text below is a literal filename pattern, not a
+placeholder to replace.
 
 ```bash
 rg --files .github docs 2>/dev/null | rg '(^|/)(pull_request_template\.md|PULL_REQUEST_TEMPLATE\.md|PULL_REQUEST_TEMPLATE/.*\.md|pull_request_template/.*\.md)$'
 ```
 
+Search for duplicate open and closed PRs before creating a new one:
+Replace `<issue-number-or-title-keywords>` with issue numbers or title terms.
+
+```bash
+gh pr list --state all --search "<issue-number-or-title-keywords>" --limit 20 --json number,title,state,url
+```
+
+If issue numbers are known, include each one in the search. If no issue number
+exists, search title keywords and the touched scope. Stop and report candidate
+duplicates instead of opening a PR when any result appears to address the same
+problem.
+
 Prepare a temporary body file from the selected template. Fill every required
 section with concrete details from the commit, diff, test results, issue links,
 and known limitations. Preserve checklists and leave unchecked items unchecked
 when they are not satisfied. Do not delete required headings to make the PR look
-complete. Do not mention AI assistance or tool authorship.
+complete. Mention AI assistance or tool authorship only when the target repo's
+PR template or contributor docs require it.
 
 Infer title style from project docs and recent PRs when available:
 
@@ -251,6 +290,8 @@ gh pr list --state all --limit 10 --json title --jq '.[].title'
 ```
 
 Create the draft PR with `gh` and a body file:
+Replace the angle-bracket placeholders with the chosen base, current branch,
+title, and prepared body file.
 
 ```bash
 gh pr create --draft --base <base-branch> --head <current-branch> --title "<title>" --body-file <body-file>
@@ -279,3 +320,8 @@ Report:
 - PR template path used, or note that no template exists.
 - Any files intentionally left unstaged or uncommitted.
 - Confirmation that no AI co-author or generated-by trailer was added.
+
+## Related Skills
+
+- `$agent-playbook:vibe-coding-health-check` checks release readiness before committing.
+- `$agent-playbook:context-audit` audits repo contribution and agent-context rules.

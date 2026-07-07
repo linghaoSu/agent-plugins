@@ -29,6 +29,8 @@ window, 50 comments per issue, and 15 issues in the final table. If more data
 is available, prioritize higher reaction count, maintainer-endorsed labels,
 recent activity, and missing active PR ownership. Set `truncated: true`, state
 what was omitted, and provide the continuation query in `next_action`.
+Also apply `../../WORKFLOW-CONTRACTS.md` § Issue Contribution Gate: scan
+results are investigation candidates, not permission to fix or open a PR.
 
 ## Arguments
 
@@ -42,6 +44,18 @@ Supported formats:
 - `Nm` — N months
 
 ## Workflow
+
+Track progress through repository detection, search-window expansion, issue
+classification, ranking, and final report.
+
+```mermaid
+flowchart TD
+  A[Determine Repo] --> B[Parse Window]
+  B --> C[Search Issues]
+  C --> D[Classify PR State]
+  D --> E[Score Candidates]
+  E --> F[Report Results]
+```
 
 ### Step 1: Determine Repository Info
 
@@ -67,12 +81,14 @@ Set `max_window_days` to 365 (one year).
 Repeat the following until high-value issues are found OR `current_window_days > max_window_days`:
 
 1. **Calculate the date threshold:**
+   Replace `current_window_days` with the parsed integer window.
    ```bash
    date -v-${current_window_days}d +%Y-%m-%d   # macOS
    # or: date -d "${current_window_days} days ago" +%Y-%m-%d   # Linux
    ```
 
 2. **Fetch open issues created since that date:**
+   Set `date_threshold` from the previous command before running this query.
    ```bash
    gh issue list --state open --limit 100 --json number,title,labels,createdAt,updatedAt,comments,reactionGroups,author,milestone,assignees --search "created:>=${date_threshold}"
    ```
@@ -87,11 +103,13 @@ Repeat the following until high-value issues are found OR `current_window_days >
    The goal is to surface issues that **no one is effectively working on**. For each issue from step (2), check PR association and record its status for scoring.
 
    **3a. Timeline cross-reference check:**
+   Replace `{owner}`, `{repo}`, and `<number>` with the current issue target.
    ```bash
    gh api "repos/{owner}/{repo}/issues/<number>/timeline" --jq '[.[] | select(.event == "cross-referenced" and .source.issue.pull_request != null) | .source.issue | {number, state: .state, pull_request}]'
    ```
 
    **3b. Keyword PR search fallback** — for issues with no timeline cross-references:
+   Replace `<issue-number>` with the issue being checked.
    ```bash
    gh pr list --state all --search "in:title in:body <issue-number>" --limit 5 --json number,state,mergedAt
    ```
@@ -116,6 +134,7 @@ Repeat the following until high-value issues are found OR `current_window_days >
    **4a. Identify maintainers and their permission levels:**
 
    First, determine who the repo maintainers are. Fetch collaborators with their roles:
+   Replace `{owner}` and `{repo}` with the current repository.
    ```bash
    gh api "repos/{owner}/{repo}/collaborators?per_page=100" --jq '.[] | {login: .login, role: .role_name}'
    ```
@@ -127,6 +146,7 @@ Repeat the following until high-value issues are found OR `current_window_days >
    5. **NONE** — external / first-time commenter
 
    **4b. Fetch issue body and comments:**
+   Replace `<number>` and `<owner/repo>` with the current issue target.
    ```bash
    gh issue view <number> --repo <owner/repo> --json body,comments
    ```
@@ -271,6 +291,10 @@ For each top issue (up to 5), provide a 1-2 sentence summary explaining the issu
 5. ...
 ```
 
+Do not label any issue "PR-ready". Call out duplicate PRs, recent claims,
+maintainer pushback, stale closed attempts, vague reports, and broad scope as
+research or stop signals for `evaluate-issue` / `fix-issue`.
+
 ### Step 5: If No Issues Found After Full Expansion
 
 If the search reached the one-year maximum and still found no high-value issues:
@@ -298,3 +322,8 @@ This may indicate:
 - Be mindful of API rate limits — batch requests where possible and avoid fetching reactions for every single issue unless needed for scoring
 - For repos with 100+ open issues, prioritize the `gh api` approach with pagination if the first page doesn't cover the window
 - The scoring heuristic is intentionally simple — it's a triage tool, not a definitive ranking
+
+## Related Skills
+
+- `$issue-evaluator:evaluate-issue` validates one selected issue.
+- `$issue-evaluator:fix-issue` applies a confirmed narrow fix.

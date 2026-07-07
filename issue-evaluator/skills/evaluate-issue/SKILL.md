@@ -22,7 +22,8 @@ This is one of:
 
 Before launching any review or diagnosis agent, read `../../PRINCIPLES.md` and
 `../../WORKFLOW-CONTRACTS.md`. Apply the shared **Multi-Agent Review Routing**
-contract to the adversarial diagnosis review and synthesis phases. The roles for this workflow are `ROUND_1_CODE_ANALYSIS`,
+contract and § Issue Contribution Gate to the adversarial diagnosis review and
+synthesis phases. The roles for this workflow are `ROUND_1_CODE_ANALYSIS`,
 `ROUND_1_HISTORY_CHECK`, `ROUND_1_INDEPENDENT_CHECK`,
 `ROUND_2_ADVERSARIAL_REVIEW:<ANGLE>`, and `ROUND_3_SYNTHESIS`.
 
@@ -38,6 +39,18 @@ multi-agent review.
 ## Workflow
 
 Execute the following steps in order. Use parallel agents where indicated.
+Track status through input classification, issue fetch, code-style context,
+diagnosis rounds, synthesis, and final report.
+
+```mermaid
+flowchart TD
+  A[Classify Input] --> B[Fetch Or Synthesize Issue]
+  B --> C[Load Code Style]
+  C --> D[Round 1 Diagnosis]
+  D --> E[Round 2 Review]
+  E --> F[Round 3 Synthesis]
+  F --> G[Final Report]
+```
 
 ### Prompt & Template Artifacts
 
@@ -60,21 +73,25 @@ Decide which mode `$ARGUMENTS` falls into:
 
   1. **Clarity check.** Read the description and ask: is it specific enough to diagnose? It is specific enough if it identifies (a) the observed wrong behavior AND (b) at least one of: trigger / affected area / error signal. It is NOT specific enough if it is one vague phrase (e.g. "登录有问题", "fix the bug", "something is off with the API").
   2. **If ambiguous**, use `AskUserQuestion` to gather up to 3 missing facts in a single call. Prefer questions with concrete options when possible (e.g. "Which area?", "When does it happen?"). Always include a free-text "Other" path for specifics. Do NOT invent facts; if the user's answers are still vague, ask once more, then proceed with what you have and clearly flag the remaining unknowns in the final report.
-  3. **Synthesize a pseudo-issue** from the description (+ any clarifications):
+  3. **Fix-ready bar.** If the description still lacks concrete observed
+     behavior plus a trigger, error signal, or affected area, return
+     `needs_user` with the missing evidence instead of producing a fix plan.
+  4. **Synthesize a pseudo-issue** from the description (+ any clarifications):
      ```
      PSEUDO_ISSUE_TITLE = <one-line summary of the problem, derived from the description>
      PSEUDO_ISSUE_BODY  = <description + clarifications, lightly cleaned up>
      PSEUDO_ISSUE_NUMBER = "desc"   # used wherever the pipeline expects an issue number
      ```
      Use these values anywhere the downstream steps reference `<issue-title>`, `<issue-body>`, `<issue-number>`, or issue comments. There are no real comments in this mode — treat the comment field as empty.
-  4. Skip Step 1 entirely. All other steps (code style analysis, three-round diagnosis, report) run unchanged against the pseudo-issue.
-  5. In the final report (Step 4), add a header line: `**Mode**: description-based evaluation (no GitHub issue)` so the user sees this wasn't a real issue fetch.
+  5. Skip Step 1 entirely. All other steps (code style analysis, three-round diagnosis, report) run unchanged against the pseudo-issue.
+  6. In the final report (Step 4), add a header line: `**Mode**: description-based evaluation (no GitHub issue)` so the user sees this wasn't a real issue fetch.
 
 ### Step 1: Fetch Issue Details
 
 Use `gh issue view` to fetch the full issue details including title, body, labels, and comments.
 
 - If a full URL is provided, extract the owner/repo and issue number, then run:
+  Replace `<number>` and `<owner/repo>` with the parsed issue target.
   ```bash
   gh issue view <number> --repo <owner/repo> --json title,body,labels,comments,state,createdAt,updatedAt
   ```
@@ -111,6 +128,8 @@ Launch the following agents and tools **all in parallel**:
 
 **Agent 1B — Commit History Check (`ROUND_1_HISTORY_CHECK`; Claude: Sonnet, non-Claude: native analysis sub-agent):**
 - Search git log for commits that may have already fixed this issue:
+  Replace the angle-bracket placeholders with the parsed issue number and key
+  search terms.
   ```bash
   git log --all --oneline --grep="<issue-number>"
   git log --all --oneline --grep="<key-terms-from-issue>"
@@ -185,6 +204,11 @@ After presenting the report, tell the user:
 - If the issue is confirmed and not fixed: "I can implement the fix now, or you can review the plan first. After the fix is applied, run `/review-fix` to get an adversarial review against the repo's code style."
 - If the issue is already fixed: "This issue appears to be fixed in commit <sha>. No further action needed."
 - If the issue cannot be confirmed: "I could not confirm this issue in the current codebase. The issue may be environment-specific, already fixed, or require additional context."
+
+## Related Skills
+
+- `$issue-evaluator:fix-issue` applies a confirmed narrow fix.
+- `$issue-evaluator:review-fix` reviews local changes after a fix.
 
 ## Anti-Patterns
 

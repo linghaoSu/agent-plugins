@@ -11,7 +11,7 @@ artifact stage, not a code stage.
 
 Before replacing existing human-edited artifacts or accepting weak commercial
 evidence into priority work, read `../../WORKFLOW-CONTRACTS.md` and apply
-**Human Approval Routing**.
+**Human Approval Routing** and § Idea Intake Reality Gate.
 
 It can run before or after `/brainstorm`:
 - If `requirements.md` exists, treat it as the product contract.
@@ -85,6 +85,9 @@ flowchart TD
 
 If product, goal, horizon, ICP, or evidence basis is unclear, ask one concise
 batch of 3-5 questions. Do not write a final-looking brief with hidden guesses.
+If the evidence basis remains `Weak`, `Unknown`, or `Speculative`, do not hand
+off final priority work or implementation readiness without explicit user
+approval through Human Approval Routing.
 
 ### Step 1.5: Artifact Safety
 

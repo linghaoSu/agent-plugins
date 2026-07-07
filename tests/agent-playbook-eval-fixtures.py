@@ -119,6 +119,29 @@ CHECKS: tuple[ContractCheck, ...] = (
         ),
     ),
     ContractCheck(
+        "agent-playbook-external-contribution-quality-gate-contract",
+        "agent-playbook/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("gate heading", (r"External Contribution Quality Gate",)),
+            InvariantGroup("pr template required", (r"PR template", r"contributor instructions")),
+            InvariantGroup("duplicate pr search", (r"open and closed PRs", r"duplicates")),
+            InvariantGroup("real specific problem", (r"one real, specific problem",)),
+            InvariantGroup("human diff approval", (r"complete diff", r"human approval")),
+            InvariantGroup("repo disclosure policy", (r"authorship/disclosure policy", r"only when the target repo requires it")),
+        ),
+    ),
+    ContractCheck(
+        "commit-changes-external-contribution-gate-contract",
+        "agent-playbook/skills/commit-changes/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"External\s+Contribution\s+Quality\s+Gate",)),
+            InvariantGroup("push before gate blocked", (r"Before any push or PR creation",)),
+            InvariantGroup("duplicate search command", (r"gh pr list --state all --search",)),
+            InvariantGroup("stop duplicates", (r"Stop and report candidate\s+duplicates",)),
+            InvariantGroup("target policy disclosure", (r"only when the target repo's\s+PR template or contributor docs require it",)),
+        ),
+    ),
+    ContractCheck(
         "tool-review-shared-checklist-reference-contract",
         "agent-playbook/skills/tool-review/SKILL.md",
         (
@@ -464,6 +487,46 @@ CHECKS: tuple[ContractCheck, ...] = (
                 "critical cannot defer",
                 (r"Never defer `critical`[\s\S]*primary-flow regressions[\s\S]*main user path",),
             ),
+        ),
+    ),
+    ContractCheck(
+        "issue-evaluator-contribution-gate-contract",
+        "issue-evaluator/WORKFLOW-CONTRACTS.md",
+        (
+            InvariantGroup("gate heading", (r"Issue Contribution Gate",)),
+            InvariantGroup("scan not pr ready", (r"Scan results rank candidates", r"do not imply PR\s+readiness")),
+            InvariantGroup("fix ready evidence", (r"concrete observed behavior", r"code-path evidence")),
+            InvariantGroup("stop blockers", (r"vague", r"already fixed", r"actively\s+claimed", r"duplicated", r"too broad")),
+            InvariantGroup("description needs user", (r"Description-mode", r"`needs_user`")),
+        ),
+    ),
+    ContractCheck(
+        "issue-evaluator-contribution-gate-entrypoints",
+        "issue-evaluator/skills/scan-issues/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Issue\s+Contribution\s+Gate",)),
+            InvariantGroup("investigation candidates", (r"investigation candidates", r"not permission to fix or open a PR")),
+            InvariantGroup("no pr ready", (r"Do not label any issue \"PR-ready\"",)),
+            InvariantGroup("research stop signals", (r"duplicate PRs", r"recent claims", r"vague reports")),
+        ),
+    ),
+    ContractCheck(
+        "evaluate-issue-contribution-gate-contract",
+        "issue-evaluator/skills/evaluate-issue/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Issue\s+Contribution\s+Gate",)),
+            InvariantGroup("fix ready bar", (r"Fix-ready bar",)),
+            InvariantGroup("needs user no speculative plan", (r"`needs_user`", r"instead of producing a fix plan")),
+        ),
+    ),
+    ContractCheck(
+        "fix-issue-contribution-gate-contract",
+        "issue-evaluator/skills/fix-issue/SKILL.md",
+        (
+            InvariantGroup("shared gate cited", (r"Issue\s+Contribution\s+Gate",)),
+            InvariantGroup("before worktree", (r"before setting up the worktree or editing",)),
+            InvariantGroup("claimed duplicate blockers", (r"actively claimed", r"duplicated by an open or closed PR")),
+            InvariantGroup("broad stop", (r"too broad for one narrow change", r"stop")),
         ),
     ),
     ContractCheck(

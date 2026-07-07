@@ -267,6 +267,24 @@ change labels, resolve threads, merge, close, push, commit, or otherwise alter
 GitHub state unless the skill explicitly owns that mutation and the user asked
 for it in the current request.
 
+## Issue Contribution Gate
+
+Issue workflows must separate "worth investigating" from "ready to fix":
+
+1. Scan results rank candidates for human investigation; they do not imply PR
+   readiness or permission to edit.
+2. A fix-ready issue needs a concrete observed behavior, trigger or repro path,
+   expected behavior, and code-path evidence that the bug is present in the
+   current checkout.
+3. Stop before a fix plan when the issue is vague, already fixed, actively
+   claimed, duplicated by an open or closed PR, maintainer-deprioritized, or
+   too broad for one narrow change.
+4. Recent public claims to work on an issue and duplicate PRs are blockers for
+   `fix-issue` handoff unless the user explicitly accepts that risk.
+5. Description-mode evaluations that cannot meet the fix-ready bar must return
+   `needs_user` with the missing evidence, not a speculative implementation
+   plan.
+
 ## Multi-Round Adversarial Review Loop
 
 For `review-fix`-style loops:

@@ -18,6 +18,8 @@ work, but it does not replace brainstormed requirements for a slug.
 
 Before replacing existing human-edited artifacts, read
 `../../WORKFLOW-CONTRACTS.md` and apply **Human Approval Routing**.
+Also apply `../../WORKFLOW-CONTRACTS.md` § Idea Intake Reality Gate before
+writing build-ready requirements.
 
 ## Arguments
 
@@ -190,6 +192,10 @@ Examples of weak criteria (rewrite these):
 ## Phase Gates
 
 - **⛔ GATE before Step 3 (Write requirements.md):** Every section in the template must be fillable without guessing. If Problem, Users, or Success Criteria still have gaps, ask another batch. Do not write a requirements doc with "TBD" in critical sections.
+- **⛔ GATE before build-ready requirements:** If the idea still lacks a
+  concrete problem, affected users, success signal, or why-now rationale, write
+  those gaps as Open Questions and do not present the requirements as ready for
+  `/architect`.
 - **⛔ GATE before replacing existing requirements:** Existing human edits and
   stable requirement IDs must be preserved, merged by heading, drafted around
   with `requirements.draft.md`, or have explicit approval through Human

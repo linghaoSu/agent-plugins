@@ -51,6 +51,26 @@ For `.agent-playbook/<slug>/` artifacts:
 4. A fix log must link the source health-check artifact and record each finding
    as `applied`, `routed`, `deferred`, or `blocked`.
 
+## External Contribution Quality Gate
+
+Before any skill creates an externally visible PR, protect the user's
+reputation and the target maintainers' time:
+
+1. Read the target repo's PR template and contributor instructions before
+   preparing the PR body.
+2. Search open and closed PRs for duplicates using issue numbers, title
+   keywords, and touched scope. Stop if a duplicate exists, and report the
+   links plus what would need to differ.
+3. Confirm the change solves one real, specific problem. Stop on speculative
+   cleanup, broad "best practice" changes, or bundled unrelated fixes.
+4. Show or summarize the complete diff and require explicit human approval
+   before pushing a branch or creating the PR.
+5. Fill every required PR template section with concrete diff, check, issue,
+   and limitation evidence. Do not delete headings or use placeholders.
+6. Follow the target repo's authorship/disclosure policy. Disclose AI/tool
+   involvement only when the target repo requires it; never add AI attribution
+   to commits unless the human explicitly asks and the repo policy allows it.
+
 ## Frontmatter Descriptions
 
 Frontmatter descriptions are routing hints, not manuals. Keep them short:
