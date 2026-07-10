@@ -136,9 +136,6 @@ def usage_only_skill_text(related_lines: str) -> str:
 AUTHORING_FINDING_IDS = {
     "broken-related-skill",
     "missing-actionable-usage",
-    "missing-related-skills",
-    "missing-task-tracking",
-    "missing-workflow-diagram",
     "unexplained-command-placeholder",
     "unsafe-command-example",
 }
@@ -2002,13 +1999,13 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
     with TemporaryDirectory(prefix="skill-hygiene-moderate-bloat-") as tmp:
         root = Path(tmp)
         init_repo(root)
-        write_skill(root, "plugin/skills/moderate/SKILL.md", skill_text_with_total_lines(401))
+        write_skill(root, "plugin/skills/moderate/SKILL.md", skill_text_with_total_lines(151))
         write_metadata(root, "plugin/skills/moderate/SKILL.md")
         write_skill(
             root,
             "plugin/skills/excepted/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "moderate-skill-bloat: intentionally self-contained because the skill has a compact local checklist.\n"
@@ -2020,7 +2017,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/empty-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "moderate-skill-bloat:\n"
@@ -2032,7 +2029,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/fenced-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "```markdown\n"
                     "## Hygiene Exception\n"
@@ -2046,7 +2043,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/tilde-fenced-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "~~~markdown\n"
                     "## Hygiene Exception\n"
@@ -2060,7 +2057,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/indented-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "    ## Hygiene Exception\n"
                     "    moderate-skill-bloat: indented examples must not suppress real findings.\n"
@@ -2072,7 +2069,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/inline-hidden-reason/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "moderate-skill-bloat: <!-- hidden reason must not suppress -->\n"
@@ -2084,7 +2081,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/fence-comment-valid/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "```text\n"
                     "<!-- this fenced comment marker must not hide the visible exception below\n"
@@ -2099,7 +2096,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/html-comment-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "<!--\n"
                     "## Hygiene Exception\n"
@@ -2113,7 +2110,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/nested-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "### Hygiene Exception\n"
                     "moderate-skill-bloat: nested headings must not suppress real findings.\n"
@@ -2125,7 +2122,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/fenced-inside-section/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "```text\n"
@@ -2139,7 +2136,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/tilde-fenced-inside-section/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "~~~text\n"
@@ -2153,7 +2150,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/indented-inside-section/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "    moderate-skill-bloat: indented examples inside a real section must not suppress.\n"
@@ -2165,7 +2162,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/unrelated-exception/SKILL.md",
             skill_text_with_total_lines(
-                401,
+                151,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "repetition-scan-limited: this unrelated exception must not suppress moderate bloat.\n"
@@ -2177,7 +2174,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
             root,
             "plugin/skills/oversized-with-exception/SKILL.md",
             skill_text_with_total_lines(
-                751,
+                251,
                 body_prefix=(
                     "## Hygiene Exception\n"
                     "moderate-skill-bloat: intentionally self-contained, but oversized must still fire.\n"
@@ -2202,7 +2199,7 @@ def scenario_moderate_skill_bloat_positive_and_exceptions(checker: Path) -> None
         if len(moderate_lines) != 12:
             raise AssertionError(f"expected twelve unsuppressed moderate findings, got {moderate_lines}")
         for line in moderate_lines:
-            for token in ("401", "400", "extract", "prompts/templates", "shared contracts"):
+            for token in ("151", "150", "extract", "prompts/templates", "shared contracts"):
                 if token not in line:
                     raise AssertionError(f"moderate bloat message missing {token}: {line}")
         if "plugin/skills/excepted/SKILL.md" in result.stdout:
@@ -2286,8 +2283,6 @@ def scenario_authoring_edge_findings(checker: Path) -> None:
             result,
             {
                 "broken-related-skill",
-                "missing-task-tracking",
-                "missing-workflow-diagram",
                 "unsafe-command-example",
                 "unexplained-command-placeholder",
             },
@@ -2354,7 +2349,7 @@ def scenario_authoring_related_skill_variants(checker: Path) -> None:
         write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- $plugin:demo\n"))
         write_metadata(root, "plugin/skills/demo/SKILL.md")
         result = run_checker(root, checker, "working")
-        assert_findings(result, {"missing-related-skills"}, "self reference alone fails")
+        assert_pass(result, "self reference alone is allowed")
 
     with TemporaryDirectory(prefix="skill-hygiene-related-non-self-") as tmp:
         root = Path(tmp)
@@ -2403,7 +2398,7 @@ def scenario_authoring_related_skill_variants(checker: Path) -> None:
         write_skill(root, "plugin/skills/demo/SKILL.md", usage_only_skill_text("- $plugin:missing\n"))
         write_metadata(root, "plugin/skills/demo/SKILL.md")
         result = run_checker(root, checker, "working")
-        assert_findings(result, {"broken-related-skill", "missing-related-skills"}, "broken related skill fails")
+        assert_findings(result, {"broken-related-skill"}, "broken related skill fails")
 
 
 def scenario_authoring_related_skills_staged_inventory(checker: Path) -> None:
@@ -2434,7 +2429,7 @@ def scenario_authoring_related_skills_staged_inventory(checker: Path) -> None:
         result = run_checker(root, checker, "staged")
         assert_findings(
             result,
-            {"broken-related-skill", "missing-related-skills"},
+            {"broken-related-skill"},
             "staged related ref ignores staged-deleted target",
         )
 
@@ -2457,7 +2452,7 @@ def scenario_authoring_related_skills_staged_inventory(checker: Path) -> None:
         result = run_checker(root, checker, "staged")
         assert_findings(
             result,
-            {"broken-related-skill", "missing-related-skills"},
+            {"broken-related-skill"},
             "staged related ref ignores worktree-only target",
         )
 

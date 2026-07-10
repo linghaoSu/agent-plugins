@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "issue-evaluator",
-      "description": "Evaluate GitHub issues against the current repo: diagnose, check fix status, analyze code style, provide reproduction and fix plans, implement fixes with optional implementation tournament, review pull requests, scan for high-value issues, and run runtime-aware adversarial review after fixing.",
+      "description": "Diagnose and fix GitHub issues, review pull requests and local fixes, address selected review comments, and scan for unclaimed issues.",
       "source": "./issue-evaluator"
     },
     {
@@ -16,12 +16,12 @@
     },
     {
       "name": "harness-engineering",
-      "description": "Design, audit, harden, and run the scaffolding around autonomous agents — the harness that constrains inputs, externalizes state, verifies every step, and recovers from failure. Commands: /harness-design, /harness-audit, /sprint-contract, /resilience-plan, /goal-mode.",
+      "description": "Design, audit, recover, contract, and run autonomous-agent scaffolding through /harness and /goal-mode.",
       "source": "./harness-engineering"
     },
     {
       "name": "idea-to-ship",
-      "description": "End-to-end flow from a vague idea to shipped code: requirement mining, commercialization scenarios, UI/UX design contracts, architecture design, evidence-backed roadmap planning, adversarial design review, TDD-gated implementation, traceability-aware code review, and story-driven test strategy. Each stage lands a markdown artifact under .idea-to-ship/ so stages compose and can resume.",
+      "description": "Composable stages for requirements, decision grilling, architecture, roadmaps, UI contracts, testing, implementation, review, and visual QA.",
       "source": "./idea-to-ship"
     },
     {
@@ -31,7 +31,7 @@
     },
     {
       "name": "agent-playbook",
-      "description": "Operator-facing distillation of the best-practice literature (Cursor, Claude Code, Codex, Anthropic engineering, Peter Steinberger). Commands: /workflow-router, /bootstrap-project-memory, /context-audit, /vibe-coding-health-check, /vibe-coding-fix, /implementation-tournament, /tool-review, /commit-changes.",
+      "description": "Focused workflows for repo memory, context and tool audits, implementation tournaments, scoped commits, and optional draft pull requests.",
       "source": "./agent-playbook"
     },
     {
@@ -46,7 +46,7 @@
     },
     {
       "name": "antifragile",
-      "description": "Antifragility audits. /antifragile-agent checks plugin/hook/skill robustness; /antifragile-system checks the target project for resilience gaps (dependency fallbacks, error handling, single points of failure, data safety, observability).",
+      "description": "One read-only /antifragile-audit with explicit agent-infrastructure and target-system resilience scopes.",
       "source": "./antifragile"
     }
   ]

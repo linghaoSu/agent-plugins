@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Literal, Optional
 
 
-MAX_DESCRIPTION_CHARS = 320
-MAX_SKILL_LINES = 750
-MODERATE_SKILL_LINES = 400
+MAX_DESCRIPTION_CHARS = 240
+MAX_SKILL_LINES = 250
+MODERATE_SKILL_LINES = 150
 FULL_CONTRACT_MARKERS = (
     "## Output, Token, And Error Contract",
     "status: success | needs_user | terminal | degraded",
@@ -124,14 +124,6 @@ STRUCTURE_YAML_KEYS = {
 }
 SKILL_AUTHORING_BASELINE = Path("scripts/skill-authoring-baseline.txt")
 USAGE_SECTION_TITLES = {"workflow", "when to use", "usage", "steps", "arguments", "examples"}
-WORKFLOW_LANGUAGE_RE = re.compile(r"\b(route to|handoff|phase gate|stage)\b", re.IGNORECASE)
-TASK_TRACKING_RE = re.compile(
-    r"\b(todo|checklist|task list|update_plan|stage status|track(?:ing)? (?:progress|status)|"
-    r"update (?:the )?status|record (?:the )?status)\b",
-    re.IGNORECASE,
-)
-MERMAID_FLOW_RE = re.compile(r"\b(flowchart|graph|sequenceDiagram|stateDiagram)\b")
-MERMAID_EDGE_RE = re.compile(r"(-->|->>|-->\||--\|[^|\n]+\|)")
 QUALIFIED_SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_/-])(\$?)([A-Za-z0-9_-]+):([A-Za-z0-9_-]+)\b")
 PATH_SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_./-])([A-Za-z0-9_-]+)/skills/([A-Za-z0-9_-]+)/SKILL\.md\b")
 COMMAND_FENCE_LANGUAGES = {"bash", "sh", "zsh", "shell", "console", "terminal"}
@@ -148,7 +140,6 @@ COMMAND_SAFETY_RE = re.compile(
     re.IGNORECASE,
 )
 PLACEHOLDER_EXPLANATION_RE = re.compile(r"\b(replace|set|export|placeholder)\b", re.IGNORECASE)
-SINGLE_SKILL_FIXTURE_RELATED_NOTE = "No other local related skills in this fixture repo."
 
 
 @dataclass(frozen=True)
@@ -591,49 +582,6 @@ def extract_skill_references(text: str) -> list[str]:
             refs.append(target_id)
             seen.add(target_id)
     return refs
-
-
-def is_workflow_skill(text: str) -> bool:
-    visible = strip_fenced_blocks(text)
-    titles = visible_heading_titles(text)
-    if "workflow" in titles:
-        return True
-    if re.search(r"\bStep\s+1\b", visible, re.IGNORECASE):
-        return True
-    step_headings = [title for title in titles if title.startswith("step")]
-    return len(step_headings) >= 3 or bool(WORKFLOW_LANGUAGE_RE.search(visible))
-
-
-def has_workflow_diagram(text: str) -> bool:
-    lines = text.splitlines()
-    active_fence: str | None = None
-    active_is_mermaid = False
-    content: list[str] = []
-    in_comment = False
-    for line in lines:
-        visible_line, in_comment = strip_html_comment_spans(line, in_comment)
-        if in_comment and not visible_line.strip():
-            continue
-        marker = fence_marker(line)
-        if active_fence:
-            if marker and is_closing_fence(visible_line, active_fence):
-                block = "\n".join(content)
-                if active_is_mermaid and MERMAID_FLOW_RE.search(block) and MERMAID_EDGE_RE.search(block):
-                    return True
-                active_fence = None
-                active_is_mermaid = False
-                content = []
-                continue
-            content.append(visible_line)
-            continue
-        if is_indented_code_line(visible_line):
-            continue
-        parts = fence_parts(visible_line)
-        if parts:
-            active_fence = parts[0]
-            info = parts[1].strip().split()
-            active_is_mermaid = bool(info and info[0].lower() == "mermaid")
-    return False
 
 
 @dataclass(frozen=True)
@@ -1704,7 +1652,6 @@ def check_authoring_standards(root: Path, skill_files: list[Path], mode: str) ->
         relative = path.relative_to(root).as_posix()
         titles = visible_heading_titles(text)
         visible_text = strip_fenced_blocks(text)
-        current_skill_id = skill_id_for_path(root, path)
 
         if not any(title in USAGE_SECTION_TITLES for title in titles) and not has_hygiene_exception(text, "missing-actionable-usage"):
             findings.append(
@@ -1715,46 +1662,11 @@ def check_authoring_standards(root: Path, skill_files: list[Path], mode: str) ->
                 )
             )
 
-        workflow_like = is_workflow_skill(text)
-        if (
-            workflow_like
-            and not TASK_TRACKING_RE.search(visible_text)
-            and not has_hygiene_exception(text, "missing-task-tracking")
-        ):
-            findings.append(
-                Finding(
-                    "missing-task-tracking",
-                    relative,
-                    "workflow-like skill lacks visible task tracking/status guidance",
-                )
-            )
-
-        if (
-            workflow_like
-            and not has_workflow_diagram(text)
-            and not has_hygiene_exception(text, "missing-workflow-diagram")
-        ):
-            findings.append(
-                Finding(
-                    "missing-workflow-diagram",
-                    relative,
-                    "workflow-like skill lacks a Mermaid workflow diagram with an edge",
-                )
-            )
-
         related_section = extract_markdown_section(text, "Related Skills")
         if related_section:
             related_visible = strip_fenced_blocks(related_section)
             refs = extract_skill_references(related_visible)
             broken_refs = [ref for ref in refs if ref not in known_ids]
-            valid_non_self_refs = [ref for ref in refs if ref in known_ids and ref != current_skill_id]
-            valid_self_refs = [ref for ref in refs if ref in known_ids and ref == current_skill_id]
-            fixture_self_only = (
-                bool(valid_self_refs)
-                and SINGLE_SKILL_FIXTURE_RELATED_NOTE in related_visible
-                and len(known_ids) == 1
-            )
-
             for ref in broken_refs:
                 if not has_hygiene_exception(text, "broken-related-skill"):
                     findings.append(
@@ -1765,26 +1677,9 @@ def check_authoring_standards(root: Path, skill_files: list[Path], mode: str) ->
                         )
                     )
 
-            if (
-                not valid_non_self_refs
-                and not fixture_self_only
-                and not has_hygiene_exception(text, "missing-related-skills")
-            ):
-                findings.append(
-                    Finding(
-                        "missing-related-skills",
-                        relative,
-                        "Related Skills section has no valid non-self local reference",
-                    )
-                )
-        elif not has_hygiene_exception(text, "missing-related-skills"):
-            findings.append(
-                Finding(
-                    "missing-related-skills",
-                    relative,
-                    "skill lacks a visible Related Skills section",
-                )
-            )
+            # Related Skills is optional. Validate references when authors use
+            # the section without forcing every focused skill to advertise a
+            # second workflow.
 
         for block in command_blocks(text):
             has_unsafe = bool(UNSAFE_COMMAND_RE.search(block.text) or HEREDOC_RE.search(block.text))

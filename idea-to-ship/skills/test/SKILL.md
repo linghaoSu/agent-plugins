@@ -1,259 +1,54 @@
 ---
 name: test
-description: Build the full story-driven test plan for an idea-to-ship slug, then implement and run tests across unit/integration/e2e. Use for end-to-end verification from stories and acceptance criteria; not a stage-local red-first gate.
-argument-hint: '[--slug <name>] [focus e.g. "edge cases" "concurrency"]'
-allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
+description: Plan and implement tests in gate, full, or backfill mode. Use --mode gate before behavior-changing implementation, full for story coverage, or backfill for existing behavior.
 ---
 
-# Test — Story-Driven Strategy & Implementation
+# Test
 
-Turn the requirements and implementation into user stories, acceptance
-criteria, scenario sequences, and a concrete test matrix. Then implement the
-tests and get them passing. This is the last stop before shipping.
-
-Before replacing existing human-edited test artifacts, read
-`../../WORKFLOW-CONTRACTS.md` and apply **Human Approval Routing**.
+Test observable behavior through public seams. Read requirements, architecture,
+interface design, existing tests, and `../../WORKFLOW-CONTRACTS.md`.
 
 ## Arguments
 
-Raw: `$ARGUMENTS`
+- `--slug <name>`: artifact root; default `current`.
+- `--mode gate|full|backfill`: required.
+- Optional stage/focus text.
 
-Parse:
-- Optional leading `--slug <name>`. Default slug: `current`.
-- Remaining text → extra focus areas (e.g. "error paths", "boundary conditions").
+## Shared rules
 
-## Workflow
+- Expected values come from requirements, worked examples, or independent
+  sources—not the implementation under test.
+- Prefer one vertical tracer-bullet slice at a time. Avoid private-method tests,
+  internal collaborator assertions, tautologies, and bulk horizontal tests.
+- Use the narrowest public seam that reproduces real behavior. Record missing
+  tooling rather than pretending a lower-level test covers it.
+- Preserve human edits and stable test IDs in `test-plan.md` and `tdd-log.md`.
 
-Track progress with a visible checklist and update it after context load,
-ownership handling, story derivation, scenario matrix, test case split, plan
-write, implementation, run/fix, coverage check, and hand-off.
+## Modes
 
-```mermaid
-flowchart TD
-  A[Load Context] --> B[Test Plan Ownership]
-  B --> C[Derive Stories]
-  C --> D[Build Scenario Matrix]
-  D --> E[Derive Test Cases]
-  E --> F[Write Test Plan]
-  F --> G[Implement Tests]
-  G --> H[Run And Fix]
-  H --> I[Hand-off]
-```
+### Gate
 
-### Step 1: Load Context
+Select the smallest stage behavior. Write one test first, run it, and require
+failure for the intended missing behavior—not syntax, fixture, or environment
+failure. Write the slice and red evidence to `test-plan.md` and `tdd-log.md`.
+Never edit production code. A passing new test means backfill or a wrong seam,
+not a valid red gate.
 
-1. Resolve `.idea-to-ship/<slug>/`.
-2. Require `requirements.md`. If missing, stop and tell the user to run
-   `/brainstorm --slug <slug>` first. Read `requirements.md`, plus whichever
-   of these exist: `architecture.md`, `interface-design.md`,
-   `implementation-log.md`, `code-review.md`, `test-plan.md`.
-   Read `../../WORKFLOW-CONTRACTS.md` if artifact replacement or another
-   user-owned decision may be needed.
-3. Identify the changed files:
-   ```bash
-   git diff --name-only HEAD
-   git diff --cached --name-only
-   ```
-   Plus any new files not yet committed. This is the **code under test**.
-4. Detect the repo's testing setup:
-   - Test framework (pytest / jest / vitest / go test / cargo test / rspec / etc).
-   - Conventions: test file location, naming, helpers/fixtures.
-   - How tests are run (check `package.json`, `Makefile`, `pyproject.toml`, `justfile`, CI config).
-   - Coverage tooling, if any.
-   Use Grep/Glob to find existing test files near the changed files and mirror their style.
+### Full
 
-### Step 1.5: Test Plan Ownership
+Derive stories and acceptance criteria, build a unit/integration/e2e scenario
+matrix including failures and accessibility/visual needs, implement tests,
+run/fix them, and write `test-plan.md` plus the existing results summary. Do
+not chase percentage coverage without behavior evidence.
 
-`test-plan.md` is the canonical verification artifact for this slug. `/test`
-owns the full plan, but humans and `/implement --tdd` may have added sections.
+### Backfill
 
-On rerun:
+Capture current intended behavior from authoritative sources, add regression
+tests at stable seams, and label them backfill. Do not claim red-green TDD.
 
-1. If `test-plan.md` exists, preserve existing story, acceptance criterion,
-   scenario, and test IDs unless the source behavior changed.
-2. Update rows by stable ID instead of rewriting the whole file.
-3. Preserve human notes, manual exclusions, and prior `## Results` blocks.
-4. If the existing file cannot be safely merged because it lacks the expected
-   headings or contains unstructured human content, write `test-plan.draft.md`
-   or use `../../WORKFLOW-CONTRACTS.md` § Human Approval Routing before
-   replacing `test-plan.md`.
-5. If `/implement --tdd` added a `## Stage TDD Slices` section, fold those
-   slices into the full story/scenario/test matrix or explicitly keep them as
-   stage-local coverage with a traceability note.
+## Completion
 
-### Step 2: Derive User Stories & Acceptance Criteria
+Report mode, seams, test IDs, commands and observed results, uncovered behavior,
+tooling gaps, and next action. Never claim unrun tests pass.
 
-Before listing tests, turn `requirements.md` into behavior that a user or
-system actor cares about. Use `architecture.md`, `implementation-log.md`,
-`code-review.md`, existing `test-plan.md`, changed-file diff, and `git log`
-only as supporting evidence to refine scenarios, identify regression hooks, or
-spot drift. They are not substitutes for brainstormed requirements.
-
-If `requirements.md` is too vague to derive stories or acceptance criteria,
-stop and send the user back to `/brainstorm --slug <slug>` to refine it. Do not
-reverse-engineer product intent from a diff and call that the plan.
-
-For each story, capture:
-
-- **Actor**: user, admin, system job, API client, downstream service, etc.
-- **Goal**: the outcome the actor needs.
-- **Preconditions**: state required before the story starts.
-- **Trigger**: user action, API call, event, cron, retry, migration, etc.
-- **Main sequence**: ordered steps from trigger to observable outcome.
-- **Expected outcome**: output, side effect, persisted state, emitted event, or
-  error signal.
-- **Source**: requirement ID, architecture section, implementation-log note,
-  code-review finding, or reverse-engineered diff.
-
-Then derive acceptance criteria. Each acceptance criterion must be verifiable:
-`<behavior> -> verify: <test/command/assertion>`.
-
-If all available sources are still too vague to derive a story or acceptance
-criterion, stop and ask. Do not invent user behavior that no source implies.
-
-### Step 3: Build Scenario Matrix
-
-For every core story sequence, derive scenario rows:
-
-- **Happy path**: the canonical successful sequence.
-- **Alternate path**: valid but less common flow (optional only if no
-  alternate exists).
-- **Corner / boundary cases**: empty, min/max, unicode, null/undefined, zero,
-  negative, very large, duplicate, already-exists, not-found, idempotent retry.
-- **Invalid / abnormal input**: malformed input, missing fields, invalid enum,
-  unauthorized actor, forbidden state transition, wrong content type.
-- **Failure modes**: dependency unavailable, timeout, filesystem/DB/API error,
-  partial failure, concurrent update, rollback or cleanup behavior.
-- **Regression hooks**: adjacent-bug or design-drift notes from
-  `implementation-log.md` / `code-review.md`.
-
-Do not create exhaustive combinatorial matrices. Pick cases that prove the
-behavior contract and named failure modes. If a story has no meaningful
-negative path, say why in `Out Of Scope`.
-
-### Step 4: Derive Test Cases
-
-Go through the scenario matrix and public interfaces from `architecture.md`.
-For each behavior, identify:
-
-- **Happy path**: the canonical expected flow.
-- **Edge cases**: boundaries, empty inputs, max inputs, unicode, null/undefined, zero, negative, very large.
-- **Error paths**: what failure modes are named in `architecture.md § Failure Modes`? Each needs a test that proves the handling works.
-- **Integration seams**: the boundaries where this code talks to other systems — DB, HTTP, filesystem, time, randomness. These need either real integration tests or carefully-scoped mocks.
-- **Regression hooks**: any adjacent-bug or design-drift notes from `implementation-log.md` / `code-review.md` that map to a test.
-- **UI contracts**: if `interface-design.md` exists, include relevant
-  accessibility, responsive, interaction-state, and visual QA checks in the
-  appropriate unit / integration / e2e layer.
-
-**Do not test what you don't own.** Framework behavior, library internals, and trivial getters are noise. Test the behavior your change added.
-
-### Step 5: Decide The Split
-
-Classify each test case into unit / integration / e2e:
-
-- **Unit**: pure, no I/O, fast. Aim for most of the count here.
-- **Integration**: hits a real subsystem — DB, HTTP server, file system. Use real things when practical; mock only external third parties.
-- **E2E**: full flow from user-visible entry point. Few, high-value.
-
-Respect the repo's existing mix. If the repo has no integration tests at all, don't unilaterally add a new category — stay within the existing layer unless the user asks otherwise.
-
-### Step 6: Write Or Update `test-plan.md`
-
-Use `../../templates/test-plan.md`. It must include user stories, acceptance
-criteria, scenario matrix, unit / integration / e2e test matrix, traceability,
-out-of-scope notes, fixtures/test data, risk notes, and Stage TDD Slices when
-needed.
-
-### Step 7: Implement
-
-Write the tests, case by case. Rules:
-
-- **Match the repo's style** (file location, naming, assertion idioms, fixture patterns).
-- **One behavior per test.** A failing test should point to one specific broken thing.
-- **Name tests after behavior, not functions.** `returns_empty_list_when_cache_cold` beats `test_get_items`.
-- **No shared mutable state between tests.**
-- **Don't mock what you could easily use for real.** Mocking internal collaborators hides integration bugs.
-- **Don't write tests that only assert implementation details** (e.g., that a specific private helper was called). Test observable behavior.
-- **No flaky time/random/network.** Inject or stub at the seam.
-
-### Step 8: Run & Fix
-
-Run the test suite — the full suite, not just the new tests (regressions matter):
-Replace `<run command from repo>` with the concrete command discovered from the
-repo's test setup in Step 1.
-
-```bash
-<run command from repo>
-```
-
-If tests fail:
-- If the new test is wrong → fix the test.
-- If the production code is wrong → fix the production code. (This is a real finding; log it.)
-- If an **existing** test broke because of this change → that's a regression; either fix the code or, if the test was wrong, update it *and* note in the hand-off why.
-
-Repeat until green. Cap the attempt count at ~5 iterations; if still failing, stop and surface what's wrong to the user.
-
-### Step 9: Coverage Sanity Check
-
-If the repo has coverage tooling, run it for the changed files only (not the whole repo). Report:
-- Lines covered on the changed files.
-- Any changed line with zero coverage — flag it explicitly; either add a test or document why it's untestable.
-
-Do not chase a coverage percentage — chase meaningful behavior coverage. A 100% line-covered test suite that asserts nothing is worse than 70% that asserts the right things.
-
-### Step 10: Hand-off
-
-1. Append a summary block to `test-plan.md`:
-
-   Use `../../templates/test-results-summary.md`.
-
-2. Tell the user:
-   - Test count, pass/fail status.
-   - Any bugs in the production code that the tests exposed (important).
-   - Any untestable paths deliberately left uncovered.
-
-3. Suggest: "Review the diff, then commit when ready."
-
-## Anti-Patterns
-
-- **Testing implementation details.** Asserting that a specific private helper was called, or that an internal data structure has a particular shape. Test observable behavior: inputs → outputs, side effects, error signals. If refactoring the internals breaks the test but not the behavior, the test was wrong.
-- **Mock everything.** Mocking internal collaborators hides integration bugs. Mock at system boundaries (external APIs, third-party services) — not at the boundary between your own modules. If you're mocking 5 things in one test, the test is too isolated to catch real bugs.
-- **One giant test per feature.** A test that checks 8 behaviors will tell you "something broke" but not what. One behavior per test. A failing test should point to one specific broken thing.
-- **Chasing coverage numbers.** 100% line coverage with weak assertions is worse than 70% with strong assertions. Coverage tells you what code ran, not what was verified. The right question is: "does each test assert the behavior it claims to test?"
-- **Testing framework behavior.** Don't test that React renders a component, that Express routes requests, or that SQLAlchemy saves objects. Test what *your code* does differently from the framework's defaults.
-- **Skipping the story layer.** Jumping from requirements straight to test
-  names hides missing actors, triggers, and invalid sequences. If you can't
-  state the user/system story, the test is probably testing implementation
-  trivia.
-- **Happy-path-only coverage.** Every core story needs at least one happy path
-  and one non-happy-path scenario (edge, invalid input, failure mode, or
-  documented reason why none applies).
-
-## Phase Gates
-
-- **⛔ GATE after Step 1.5 (Plan Ownership):** Existing `test-plan.md` content must be preserved, merged by stable ID, drafted around, or approved through Human Approval Routing before writing.
-- **⛔ GATE after Step 2 (Stories):** Every functional requirement must map to at least one user/system story or be explicitly marked untestable/out of scope.
-- **⛔ GATE after Step 3 (Scenarios):** Every acceptance criterion must map to at least one scenario. Every core story must have a happy path plus at least one edge, invalid-input, alternate, or failure-mode scenario, unless a documented reason says no such path exists.
-- **⛔ GATE after Step 4 (Test Cases):** You must have at least one test case per acceptance criterion. If a criterion has no corresponding test case, either the criterion is untestable (flag it) or you missed something (go back).
-- **⛔ GATE after Step 4 (UI Contracts):** If `interface-design.md` exists,
-  every relevant accessibility, responsive, interaction-state, and visual QA
-  contract must map to a scenario/test or be explicitly listed in
-  `Out Of Scope` with a reason.
-- **⛔ GATE after Step 7 (Implement):** All new tests must run and pass before proceeding to Step 8. Do not write 20 tests and then debug them all at once — write a few, run, fix, repeat.
-
-## Notes
-
-- Do **not** commit or push.
-- If no `architecture.md` exists, derive interface and regression hints from
-  the diff + `git log` of the changed files, but derive scope from
-  `requirements.md`. Do not mark a diff-derived plan as complete requirements.
-- Flaky tests are bugs. If a test is intermittent, fix the root cause or don't write it.
-- If adding tests reveals a production bug, that's a win, not a problem — fix the bug, note it clearly in the results block.
-- **Read `../../LANGUAGE.md`** — use "seam" when discussing test boundaries, "vertical slice" when scoping test coverage.
-
-## Related Skills
-
-- `$idea-to-ship:tdd` writes stage-local red-first gates before implementation.
-- `$idea-to-ship:implement` produces the diff and implementation log tested here.
-- `$idea-to-ship:visual-test` owns frontend visual QA evidence.
-- `$idea-to-ship:review-code` consumes test traceability after implementation.
+Gate mode hands off to `$idea-to-ship:implement`; full mode feeds `$idea-to-ship:review`.

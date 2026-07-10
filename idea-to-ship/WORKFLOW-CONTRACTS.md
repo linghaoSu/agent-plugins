@@ -94,6 +94,21 @@ implementation work, prove it is more than feature imagination:
 
 For design and code review loops:
 
+```yaml
+role: coordinator | executor | reviewer | arbiter
+capability: routine | reasoning | critical
+independent_context: true | false
+parallelizable: true | false
+```
+
+Never prescribe a model, vendor, coding agent, or host-specific agent type.
+Prefer deterministic checks. A `routine` executor needs bounded scope and
+runnable acceptance; `reasoning` owns exploration and independent review;
+`critical` is reserved for high-risk decisions, conflicts, and arbitration.
+Executors do not accept their own work. Permit one revision, then repartition
+or raise capability. If the host cannot honor a route, use its best available
+mechanism and record `degraded`.
+
 1. Read `PRINCIPLES.md` before launching a reviewer.
 2. Select review intensity using the contract above. Use runtime-native
    reviewer agents for `standard` and `deep`; use same-context review only for
@@ -104,14 +119,11 @@ For design and code review loops:
    Add a UI/UX/accessibility angle when `interface-design.md` is present or the
    diff touches UI.
 4. Treat invocation of a design or code review workflow as standing
-   authorization to launch reviewer sub-agents. Use sub-agents when the host
-   supports them unless the user explicitly forbids delegation. In Claude Code,
-   keep the Codex adversarial reviewer (`subagent_type: "codex:codex-rescue"`)
-   when available. Outside Claude Code, do not request Claude-only subagent
-   types; use the host runtime's native reviewer agents for the same roles.
+   authorization to launch independent reviewer roles when the host supports
+   them and the user has not forbidden delegation.
 5. Fall back to same-context review only when reviewer sub-agents are
    explicitly unsupported by the host/runtime, the user explicitly forbids
-   reviewer sub-agents, or a selected reviewer/model is explicitly unavailable
+   reviewer roles, or a selected execution route is explicitly unavailable
    or at capacity. Record `degraded-same-context-review` and the exact reason
    in the review artifact. Do not present the result as independent multi-agent
    review. Degraded mode still preserves the same angles and rounds; it only
@@ -290,9 +302,9 @@ stage. Do not turn `/architect` or `/implement` into a generic orchestrator.
 
 | Signal in requirements / design | Route | Expected output |
 |---|---|---|
-| Agent, pipeline, autonomous loop, evaluator, state machine, retry, tool middleware, or structured model output | `harness-engineering:harness-design` or `harness-engineering:sprint-contract` | Harness constraints, state schema, evaluator contract, or a reason the feature is too small for a harness |
-| Multi-context / long-horizon work, checkpointing, resumability, memory consolidation, or handoff risk | `harness-engineering:resilience-plan` or `harness-engineering:goal-mode` | Reset/checkpoint/resume requirements to cite in the design |
-| External dependencies, network calls, persistence, irreversible side effects, data safety, observability, or degraded mode | `antifragile:antifragile-system` | Failure-mode and recovery requirements to fold into architecture |
+| Agent, pipeline, autonomous loop, evaluator, state machine, retry, tool middleware, or structured model output | `harness-engineering:harness --mode design|contract` | Harness constraints, state schema, evaluator contract, or a reason the feature is too small for a harness |
+| Multi-context / long-horizon work, checkpointing, resumability, memory consolidation, or handoff risk | `harness-engineering:harness --mode resilience` or `harness-engineering:goal-mode` | Reset/checkpoint/resume requirements to cite in the design |
+| External dependencies, network calls, persistence, irreversible side effects, data safety, observability, or degraded mode | `antifragile:antifragile-audit --scope system` | Failure-mode and recovery requirements to fold into architecture |
 | Secrets, credentials, tokens, webhooks, signing keys, auth config, or generated examples that might include secrets | `secret-scanner:scan-secrets` guidance, not a scan unless files already changed | Secret storage/redaction/no-hardcoded-secret constraints in architecture |
 
 ### Implementation-stage routes
@@ -300,7 +312,7 @@ stage. Do not turn `/architect` or `/implement` into a generic orchestrator.
 | Signal in current stage / diff | Route | Expected output |
 |---|---|---|
 | Stage writes auth, credentials, `.env`, config, CI, deployment files, webhook/signing code, examples, fixtures, or generated files | `secret-scanner:scan-secrets --mode working` | Clean scan or triaged findings before marking the stage complete |
-| Stage implements agent/pipeline/harness behavior, state persistence, retry, evaluator, or tool middleware | `harness-engineering:harness-audit` | State/schema/retry/evaluation gaps recorded before review |
-| Stage touches external APIs, data consistency, destructive operations, retries, fallback paths, observability, or recovery | `antifragile:antifragile-system` | Resilience findings recorded as fixes, follow-ups, or accepted risk |
+| Stage implements agent/pipeline/harness behavior, state persistence, retry, evaluator, or tool middleware | `harness-engineering:harness --mode audit` | State/schema/retry/evaluation gaps recorded before review |
+| Stage touches external APIs, data consistency, destructive operations, retries, fallback paths, observability, or recovery | `antifragile:antifragile-audit --scope system` | Resilience findings recorded as fixes, follow-ups, or accepted risk |
 | Stage changes React/UI code | `react-doctor` when available, plus the relevant UI verification from `interface-design.md` | React-specific risks and visual/interaction evidence |
 | Stage changes long-running goal/pipeline state | `harness-engineering:goal-mode` only when the implementation itself needs persistent execution state | Goal/checkpoint artifact path or explicit non-applicability |

@@ -42,49 +42,14 @@ without hiding skipped checks.
 12. **Fail loud.** Never claim completion, passing tests, or skipped work
     without naming what actually happened.
 
-## Runtime-aware agent routing
+## Capability routing
 
-Do not assume the host runtime is Claude Code.
-
-- **Review delegation is pre-authorized:** invoking `/review-design`,
-  `/review-code`, or another review workflow is standing authorization to
-  launch reviewer sub-agents. Do not ask for fresh multi-agent authorization
-  and do not use its absence as a reason to review in the main context.
-- **Non-review delegation gate:** if a non-review skill defines an explorer or
-  collection role, use a runtime-native sub-agent only when the host runtime
-  permits sub-agents and the current user/host policy authorizes delegation.
-  Otherwise, run separate sequential passes in the main context and record the
-  fallback reason in the artifact.
-- **Claude Code runtime:** keep the existing model split when available and
-  authorized. Use Codex (`codex:codex-rescue`) for adversarial review.
-- **Non-Claude runtime:** do not request Claude model names or Claude-only
-  `subagent_type` values. Use the host's native sub-agent mechanism instead
-  and preserve the same roles: primary analysis, independent second opinion,
-  adversarial review, executor, and final synthesis. Label outputs by role
-  rather than model name.
-- Review workflows first select `review_intensity` from
-  `WORKFLOW-CONTRACTS.md`: auto by risk, or forced with
-  `--review-depth quick|standard|deep`. `deep` preserves multi-agent,
-  multi-angle, multi-round review; `standard` preserves distinct angles with a
-  smaller loop; selected `quick` uses a same-context checklist and is not a
-  degraded fallback.
-- Fall back to same-context review only when review sub-agents are explicitly
-  unsupported by the host/runtime, the user explicitly forbids reviewer
-  sub-agents, or the selected reviewer/model is explicitly unavailable or at
-  capacity. Record `degraded-same-context-review` and the exact reason, and do
-  not present the result as independent multi-agent review. Degraded mode still
-  preserves the same angles and rounds; it only loses independent agents.
-- If non-review explorer / collection sub-agents are unavailable, host policy
-  requires explicit delegation approval that is absent, or the user forbids
-  delegation, do not spawn a sub-agent. Run separate sequential passes in the
-  main context with fresh prompts, record the fallback in the final artifact,
-  and keep the same phase gates.
-- Treat explicit model-selection and capacity errors from a review/explorer
-  sub-agent request, including "Selected model is at capacity", as sub-agent
-  unavailability. Do not retry the same selected model in a loop. For review,
-  use the recorded same-context degradation above; for non-review exploration,
-  fall back to the main context, record the capacity fallback reason, and
-  continue the workflow.
+Use the role and capability schema in `WORKFLOW-CONTRACTS.md`. Review
+invocation authorizes independent reviewer roles unless the user forbids them.
+Non-review delegation still follows host and user policy. Select
+`quick|standard|deep` by risk, preserve required angles, and record `degraded`
+when independent execution is unavailable. Never name or require a particular
+model, vendor, coding agent, or host-specific agent type.
 
 ## 1. Think before coding
 

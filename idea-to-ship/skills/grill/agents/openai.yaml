@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill"
+  short_description: "Stress-test plans one decision at a time"
+  default_prompt: "Use $idea-to-ship:grill to challenge this plan until its decisions are complete."

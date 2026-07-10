@@ -1,4 +1,0 @@
-interface:
-  display_name: "TDD"
-  short_description: "Stage red-first or backfill tests."
-  default_prompt: "Use $idea-to-ship:tdd to create stage-local red-first tests before implementation, or explicit backfill tests for existing code."

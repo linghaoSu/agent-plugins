@@ -1,332 +1,49 @@
 ---
 name: fix-issue
-description: Fix a GitHub issue or concrete bug description in an isolated worktree, following repo style and scoped staging only.
-argument-hint: <issue-url-or-number | description>
-allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
+description: Implement a confirmed GitHub issue or concrete bug fix in an isolated worktree with a red-capable regression gate, scoped edits, verification, and a local commit.
 ---
 
-# Fix GitHub Issue
+# Fix Issue
 
-Implement a fix for a GitHub issue, guided by the evaluation report and the repo's code style guide.
-
-**Before coding, read `../../PRINCIPLES.md` at the plugin root.** Its local
-12-rule execution contract governs every edit in this skill: assumptions before
-code, smallest scoped fix, read callers before writing, intent-bearing tests,
-and explicit reporting for skipped or failed checks.
-
-## Arguments
-
-The user provided: `$ARGUMENTS`
-
-Optional control flags may precede the issue input:
-- `--compete` or `--tournament` -> before normal implementation, run
-  `$agent-playbook:implementation-tournament` and adopt only the selected patch.
-
-After removing optional control flags, the remaining input is one of:
-- A GitHub issue URL (e.g. `https://github.com/owner/repo/issues/123`)
-- An issue number (e.g. `123` or `#123`) — assumes the current repo
-- **A free-form natural-language description** of the fix to make (e.g. "把 login page 里的 token 刷新逻辑修好，偶尔 401"). In this mode there is no real GitHub issue.
-
-## Runtime-Aware Agent Routing
-
-Before launching diagnosis or style-analysis agents, read
-`../../PRINCIPLES.md` and `../../WORKFLOW-CONTRACTS.md`. Apply the shared
-**Multi-Agent Review Routing** contract where this workflow invokes diagnosis
-review or `/review-fix`, the **Code Style Guide Lifecycle** contract, and the
-shared **Output, Token, And Error Contract**. Apply § Issue Contribution Gate
-before setting up the worktree or editing.
-
-Token budget: for issue bodies, comments, diffs, and repo-wide searches, cap
-what each reviewer receives. Default budget: 25 changed files, 400 diff lines
-per file, 50 issue comments, and 20 search hits per query. If more context
-exists, set `truncated: true`, name the omitted ranges or files, and give the
-continuation command/query in `next_action`.
+Fix one confirmed problem. Read `../../PRINCIPLES.md` and
+`../../WORKFLOW-CONTRACTS.md`; preserve unrelated changes and contribution
+etiquette.
 
 ## Workflow
 
-Track progress through input classification, context gathering, isolated
-worktree setup, confirmation, implementation, verification, commit, and
-summary.
+1. Resolve issue URL/number or concrete description. Reuse a fresh evaluation
+   from conversation/artifact; otherwise run the `evaluate-issue` workflow.
+   Stop when unconfirmed, already fixed, duplicated, actively claimed, or too
+   vague for a fix-ready plan.
+2. Inspect status and create an isolated worktree from the correct base. If
+   isolation fails or the branch/worktree already contains ambiguous changes,
+   stop rather than editing the caller’s tree.
+3. Load repo instructions and internal code-style lifecycle. State assumptions,
+   exact allowed files, non-goals, causal root, and runnable done condition.
+4. Require a tight red-capable reproduction for the exact symptom. Minimize it,
+   then turn it into a regression test at the real public seam. If no correct
+   seam exists, document the architectural gap and do not substitute a shallow
+   test that cannot catch the bug.
+5. If competing implementations were explicitly requested, route to
+   `agent-playbook:implementation-tournament`; otherwise apply the smallest
+   direct fix. A `routine` executor may implement only the bounded approved
+   plan and cannot accept its own result.
+6. Run the regression red, implement, run it green, then re-run the original
+   unminimized reproduction. Run relevant type/lint/build and broader checks
+   proportional to risk. Remove tagged instrumentation and throwaway harnesses.
+7. Inspect the full diff for scope and secrets. Commit only fix/test files with
+   a concise message stating the verified cause. Do not push or create a PR.
 
-```mermaid
-flowchart TD
-  A[Classify Input] --> B[Gather Context]
-  B --> C[Set Up Worktree]
-  C --> D[Confirm Issue]
-  D --> E[Implement Fix]
-  E --> F[Verify]
-  F --> G[Commit]
-  G --> H[Summary]
-```
+## Stop conditions
 
-### Step 0: Classify Input Mode
+Stop on base drift, wrong-branch risk, missing reproduction, uncertain product
+behavior, destructive/external action, failed required checks, or edits outside
+the approved scope.
 
-Decide the mode:
+## Output
 
-- **ID mode** — URL like `github.com/.../issues/\d+` or a bare/`#`-prefixed integer. Proceed as written; `<issue-number>` is the parsed value.
-- **Description mode** — anything else. Apply this sub-flow before Step 1:
+Report worktree/branch, commit SHA, causal chain, files changed, red/green and
+original-repro evidence, other checks, skipped checks, residual risk, and the
+next review command.
 
-  1. **Clarity check.** The description is specific enough only if it identifies (a) what is wrong / what needs to change AND (b) at least one of: a file/area/feature, a trigger, an observed error. If it is one vague phrase ("fix the bug", "修一下登录"), it is NOT specific enough.
-  2. **If ambiguous**, use `AskUserQuestion` with up to 3 targeted questions (offer concrete options + free-text "Other"). Ask at most twice; then proceed and flag remaining unknowns in the summary.
-  3. **Synthesize pseudo-issue values**:
-     ```
-     PSEUDO_ISSUE_TITLE  = <one-line summary from description>
-     PSEUDO_ISSUE_BODY   = <description + clarifications>
-     PSEUDO_ISSUE_NUMBER = "desc"           # substitute anywhere the pipeline uses <issue-number>
-     PSEUDO_ISSUE_SLUG   = <3-5 word kebab-case slug from the title, e.g. "login-token-refresh">
-     ```
-  4. **Branch / worktree naming** (Step 1.5): use `fix/desc-<slug>-<short-ts>` instead of `fix/issue-<number>`, where `<short-ts>` is `date +%Y%m%d%H%M`. Worktree path becomes `fix-desc-<slug>-<short-ts>`. This avoids collisions between unrelated description-mode fixes.
-  5. **Step 1C (fetch issue)** and any `gh issue view` call: skip. There is no issue.
-  6. **Commit message** (Step 6): use `fix: <concise description>` without a trailing `(#<n>)`.
-  7. In the final summary, add: `**Mode**: description-based fix (no GitHub issue)`.
-
-### Step 1: Gather Context
-
-Run the following checks in parallel:
-
-**A — Check for existing evaluation:**
-- Look for a prior `/evaluate-issue` report in the current conversation context
-- If found, extract: root cause, affected files, and suggested fix plan
-
-**B — Check code style guide:**
-- Determine the code style file path using `../../WORKFLOW-CONTRACTS.md`
-  § Code Style Guide Lifecycle / Storage Path.
-- If it exists, read it and keep key conventions in mind for the fix
-
-**C — Fetch issue details (if no evaluation exists):**
-- Use `gh issue view` to fetch the full issue:
-  Replace `<number>` and optional `<owner/repo>` with the parsed issue target.
-  ```bash
-  gh issue view <number> [--repo <owner/repo>] --json title,body,labels,comments,state
-  ```
-
-### Step 1.5: Set Up Isolated Worktree
-
-Create an isolated worktree so the fix doesn't interfere with the user's current working directory or other in-progress work.
-
-1. Determine the branch name: `fix/issue-<number>` (e.g. `fix/issue-123`)
-2. Determine the base branch:
-   Set `BASE_BRANCH` from the command output before using it later.
-   ```bash
-   BASE_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
-   ```
-3. Check if a worktree for this branch already exists:
-   ```bash
-   EXISTING_WORKTREE=$(git worktree list --porcelain | grep -B2 "branch refs/heads/fix/issue-<number>" | grep "^worktree " | sed 's/^worktree //')
-   ```
-4. **If an existing worktree is found**: reuse it, set `WORKTREE_REUSED=true`, log: "Reusing existing worktree at `$EXISTING_WORKTREE`"
-5. **If no existing worktree is found**, create one:
-   ```bash
-   REPO_ROOT=$(git rev-parse --show-toplevel)
-   REPO_NAME=$(basename "$REPO_ROOT")
-   FIX_WORKTREE="$REPO_ROOT/../.claude-worktrees/$REPO_NAME/fix-issue-<number>"
-   mkdir -p "$(dirname "$FIX_WORKTREE")"
-   git worktree add -b "fix/issue-<number>" "$FIX_WORKTREE" "$BASE_BRANCH"
-   ```
-   Set `WORKTREE_REUSED=false`.
-6. `cd` into the worktree directory. **All subsequent steps (implementation, tests, etc.) run inside this worktree.**
-
-**If worktree setup fails** (e.g. branch already exists without a worktree), try:
-```bash
-git worktree add "$FIX_WORKTREE" "fix/issue-<number>"
-```
-If that also fails, **stop** with `status: terminal`. Do not fall back to the
-current directory. A failed isolated-worktree setup means the skill cannot keep
-its safety boundary; report the branch, intended worktree path, command output,
-and a concrete next action for the user.
-
-### Step 2: Evaluate (if not already evaluated)
-
-If no prior evaluation report is found in conversation context, run the full evaluation workflow:
-
-1. Launch parallel agents to diagnose the issue (same as `/evaluate-issue` Step 3):
-   - **Agent A — Code Analysis** (Claude: Sonnet; non-Claude: native analysis sub-agent): Search codebase, confirm issue, identify root cause
-   - **Agent B — Commit History Check** (Claude: Sonnet; non-Claude: native analysis sub-agent): Check if already fixed
-2. If the issue is already fixed, report this and stop.
-3. If the issue cannot be confirmed, report this and stop.
-4. If the issue is vague, actively claimed, duplicated by an open or closed PR,
-   maintainer-deprioritized, or too broad for one narrow change, report the
-   blocker and stop.
-5. Synthesize the diagnosis into a concise fix plan.
-
-If a prior evaluation exists, use its root cause and fix plan directly.
-
-### Step 3: Generate Code Style Guide (if missing)
-
-If the code style file does not exist, apply `../../WORKFLOW-CONTRACTS.md`
-§ Code Style Guide Lifecycle / Full Regeneration before coding. The generated
-guide must include the metadata header and `## Reviewer Preferences` section.
-
-### Step 3.5: Surface Assumptions & Define "Done" Before Coding
-
-Per *Think Before Coding* and *Goal-Driven Execution* in `PRINCIPLES.md`:
-
-1. **List the assumptions** this fix is making beyond what the issue states
-   (e.g. "assuming the 401 comes from the refresh path, not the initial
-   token fetch"). If any are load-bearing, verify from the code before
-   coding, not after.
-2. **If the issue is ambiguous** (multiple plausible fixes, unclear repro,
-   conflicting reports in comments), stop and ask — even in ID mode. Do not
-   guess; a guessed fix wastes a PR.
-3. **If the issue premise looks wrong** (e.g. code already handles the
-   claimed case, reported behavior isn't reproducible, the "bug" is actual
-   intended behavior), **push back**: post the finding and stop. Do not
-   proceed to implement a fix for a non-bug.
-4. **State the "done" check** in one line, verifiable: a test name that will
-   pass, a command that will produce the expected output, or the specific
-   reproduction from the issue no longer reproducing. Write this into the
-   commit message later so the reviewer can verify without re-deriving.
-5. **Surface conflicts** between issue text, comments, current code, prior
-   evaluation, and repo conventions. Pick the more recent, tested, or local
-   authority and name the alternative you are rejecting.
-6. **Read before writing**: inspect affected files, exports, immediate callers,
-   shared utilities, and nearby tests before Step 4. If the code shape makes
-   the planned fix unsafe, stop and revise the plan instead of substituting
-   silently.
-
-### Step 3.6: Optional Implementation Tournament
-
-If `--compete`, `--tournament`, or an explicit user request for competing
-implementations is present, route to `$agent-playbook:implementation-tournament`
-before Step 4.
-
-Pass the tournament skill:
-- Caller: `fix-issue`
-- Issue title/body/comments or synthesized description-mode pseudo issue
-- Diagnosis, root cause, fix plan, assumptions, and one-line done check
-- Code style guide path and relevant conventions
-- Active fix worktree path and base branch
-- Verification commands or reproduction steps
-- Artifact path:
-  `.agent-playbook/<PSEUDO_ISSUE_SLUG-or-issue-number>/implementation-tournament.md`
-
-The tournament must create isolated candidate worktrees from the same base,
-verify every candidate with the same done check, independently review the
-patches, and apply only the selected patch back to the active fix worktree. If
-it returns `No Winner`, stop and report the rejected candidates instead of
-writing a fallback fix in the same turn.
-
-### Step 4: Implement the Fix
-
-Based on the diagnosis, fix plan, and the "done" check from Step 3.5,
-implement the fix:
-
-1. Read all affected files fully before making changes
-2. Follow the code style conventions from `.issue-evaluator/code-style.md`
-3. Make minimal, focused changes — fix the issue without unrelated refactoring
-4. If tests exist for the affected code, update them as needed
-5. If the fix warrants a new test, add one following the project's testing
-   patterns. Prefer **test-first**: write a failing test that captures the
-   issue, then make it pass. This turns "fix the bug" into a verifiable goal.
-
-**Guidelines (aligned with `PRINCIPLES.md`):**
-- Prefer editing existing files over creating new ones
-- Match the naming conventions, import style, and error handling patterns of surrounding code
-- Do not add unnecessary comments, type annotations, or docstrings beyond what the codebase convention requires
-- Keep the change set as small as possible while fully addressing the issue
-- **Surgical changes**: every changed line must trace to the issue. No
-  drive-by refactors of adjacent code, no "while I'm here" improvements. If
-  you notice unrelated dead code, mention it in Step 7's summary — do not
-  delete it.
-
-### Step 5: Verify the Fix
-
-After implementing:
-
-1. Run the project's test suite (or relevant subset) if identifiable:
-   ```bash
-   # Try common test commands based on the project type
-   # e.g. npm test, pytest, cargo test, go test ./...
-   ```
-2. If tests fail, diagnose and fix the failures
-3. If no test suite is found, note this in the output
-
-### Step 6: Commit Changes
-
-Before committing, produce a diff summary from inside the worktree:
-Replace `<files-touched-by-this-fix>` with the scoped changed paths.
-
-```bash
-git status --short
-git diff --stat
-git diff -- <files-touched-by-this-fix>
-```
-
-Stage only files intentionally changed for this fix:
-Replace the angle-bracket placeholders with the scoped files, concise subject,
-and issue number.
-
-```bash
-git add <files-touched-by-this-fix>
-git commit -m "fix: <concise description of fix> (#<issue-number>)"
-```
-
-Do not stage the whole tree. If unrelated edits are present in the fix
-worktree, leave them unstaged and call them out in the summary; if they prevent
-a clean scoped commit, stop with `status: needs_user`.
-
-### Step 7: Summary
-
-Present a concise summary:
-
-```markdown
-## Fix Applied: <issue-title>
-
-**Contract:** include the fields from `../../WORKFLOW-CONTRACTS.md` with
-mode `id` or `description`, `inputs_resolved` set to the issue and worktree,
-`outputs_written` listing only files changed by this fix, and `truncated`
-matching the context gathered.
-
-### Worktree
-- Branch: `fix/issue-<number>`
-- Path: `<worktree-path>`
-
-### Changes Made
-- `path/to/file1.ext` — <what was changed and why>
-- `path/to/file2.ext` — <what was changed and why>
-
-### Tests
-- <test run result, or "no test suite found">
-
-### Next Steps
-- Run `/review-fix` to get a runtime-aware multi-agent, multi-angle, multi-round adversarial review against the repo's code style
-- Review the changes: `cd <worktree-path> && git diff $BASE_BRANCH`
-- Push and create PR: `cd <worktree-path> && git push -u origin fix/issue-<number>`
-- To clean up later: `git worktree remove <worktree-path>`
-```
-
-**Do NOT remove the worktree** — the user may want to review, push, or continue working on it.
-
-## Related Skills
-
-- `$issue-evaluator:evaluate-issue` confirms root cause before fixing.
-- `$issue-evaluator:review-fix` reviews the resulting local changes.
-- `$agent-playbook:implementation-tournament` compares competing fixes when requested.
-
-## Anti-Patterns
-
-- **Fixing the symptom, not the cause.** Adding a null check where the real bug is that the value should never be null. Trace the root cause. If the evaluation says "add a guard," ask whether the guard hides a deeper issue.
-- **Scope creep during fix.** "While I'm here, I'll also clean up this adjacent function." No. Every changed line must trace to the issue. Note unrelated improvements in the summary — do not fix them.
-- **Guessing at ambiguous issues.** If the issue has multiple plausible interpretations, don't pick one silently. The "done" check from Step 3.5 exists to force clarity. If you can't state a verifiable "done" condition, you don't understand the issue well enough.
-- **Fix without verification.** A fix with no test and no reproduction check is a hope, not a fix. Step 3.5 requires a "done" check — if none exists, the fix is not ready to commit.
-- **Tournament by default.** Multiple fixes are expensive. Use
-  `$agent-playbook:implementation-tournament` only when the user or flags
-  explicitly request competing implementations.
-
-## Phase Gates
-
-- **⛔ GATE after Step 3.5 (Surface Assumptions):** You must have a written "done" check — a test name, command, or specific behavior that proves the fix works. If you can't state one, stop and clarify with the user.
-- **⛔ GATE after Step 3.6 (Tournament):** If tournament mode is enabled,
-  `$agent-playbook:implementation-tournament` must return an adopted patch,
-  merged patch, or `No Winner`. Do not continue with an unreviewed fallback
-  after `No Winner`.
-- **⛔ GATE after Step 5 (Verify):** Tests must pass. If no test suite exists, you must have verified the fix manually (reproduction no longer reproduces) and noted this explicitly.
-
-## Notes
-
-- Always read files before editing them
-- The fix should be complete and correct — not a placeholder or partial implementation
-- If the issue is ambiguous or has multiple possible interpretations, pick the most likely one and note the assumption
-- If the fix requires changes that seem risky or are beyond the scope of the issue, flag this to the user before proceeding
-- Use `gh` CLI for GitHub interactions
-- All file edits and test runs must happen inside the worktree, not the user's original working directory
+Use `$issue-evaluator:review-fix` for independent post-fix review.

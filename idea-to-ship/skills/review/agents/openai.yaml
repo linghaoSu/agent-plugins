@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review"
+  short_description: "Review design or code by risk"
+  default_prompt: "Use $idea-to-ship:review to review this design or code change."

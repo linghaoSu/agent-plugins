@@ -77,6 +77,21 @@ primary-flow regressions, or `high` bugs that affect the main user path.
 
 Before launching analysis, review, executor, or synthesis agents:
 
+```yaml
+role: coordinator | executor | reviewer | arbiter
+capability: routine | reasoning | critical
+independent_context: true | false
+parallelizable: true | false
+```
+
+Never prescribe a model, vendor, coding agent, or host-specific agent type.
+Prefer deterministic checks. A `routine` executor requires bounded scope and
+runnable acceptance; `reasoning` owns exploration and independent review;
+`critical` is reserved for high-risk decisions, conflicts, and arbitration.
+Executors do not accept their own work. Permit one revision, then repartition
+or raise capability. If the host cannot honor a route, use its best available
+mechanism and record `degraded`.
+
 1. Read `PRINCIPLES.md` and apply its runtime-aware routing guidance.
 2. Treat invocation of a review workflow as standing authorization to launch
    reviewer and synthesis sub-agents. Do not ask for new multi-agent
@@ -95,12 +110,11 @@ Before launching analysis, review, executor, or synthesis agents:
    before Plannotator approval or `bypassed-current-conversation` approval is
    recorded. After an approved plan is applied, re-run the required angles for
    the selected intensity and continue until no `critical`/`high` bugs remain.
-6. In Claude Code, keep the existing role split only when the host supports it.
-7. Outside Claude Code, use the host runtime's native sub-agent mechanism for
-   the same roles and do not request Claude-only model names or subagent types.
+6. Preserve role independence whenever the host supports it.
+7. Treat implementation details of the execution mechanism as host-owned.
 8. Fall back to same-context review only when reviewer sub-agents are explicitly
    unsupported by the host/runtime, the user explicitly forbids reviewer
-   sub-agents, or the selected reviewer/model is explicitly unavailable or at
+   roles, or the selected execution route is explicitly unavailable or at
    capacity. Record `degraded-same-context-review` and the exact reason. Do not
    present the result as independent multi-agent review. Degraded mode still
    preserves the same angles and rounds; it only loses independent agents.
@@ -253,7 +267,7 @@ Synthesize the outputs into one guide:
   launching style reviewers.
 - Stale guides may be regenerated in the background when the current workflow
   can proceed safely with the old guide.
-- `update-code-style` always runs full regeneration, asking before overwrite
+- Explicit style-cache refresh always runs full regeneration, asking before overwrite
   unless `--force` is provided.
 
 ## GitHub Read-Only Safety

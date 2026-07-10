@@ -273,7 +273,7 @@ write_moderate_bloat_skill() {
     printf '%s\n' '# Moderate Bloat'
     printf '\n'
     i=1
-    while [ "$i" -le 394 ]; do
+    while [ "$i" -le 144 ]; do
       printf 'Filler line %s\n' "$i"
       i=$((i + 1))
     done
@@ -549,9 +549,6 @@ full_check() {
   authoring_all_json="$(run_gate_json "$authoring_all_repo" "all" "true" 1 "release-gate-all-strict-authoring-json")"
   assert_json_check "$authoring_all_json" "skill-hygiene" "advisory" "fail" 1
   assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-actionable-usage" "json-all-strict-authoring-usage-evidence"
-  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-task-tracking" "json-all-strict-authoring-task-evidence"
-  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-workflow-diagram" "json-all-strict-authoring-diagram-evidence"
-  assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "missing-related-skills" "json-all-strict-authoring-related-evidence"
   assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "broken-related-skill" "json-all-strict-authoring-broken-related-evidence"
   assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "unsafe-command-example" "json-all-strict-authoring-command-evidence"
   assert_json_evidence_contains "$authoring_all_json" "skill-hygiene" "unexplained-command-placeholder" "json-all-strict-authoring-placeholder-evidence"

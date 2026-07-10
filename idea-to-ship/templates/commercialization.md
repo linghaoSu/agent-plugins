@@ -18,7 +18,7 @@
 ### Markets / Segments Explicitly Out Of Scope
 <preserve human edits>
 
-<!-- idea-to-ship:commercialize generated:start -->
+<!-- idea-to-ship:commercial generated:start -->
 
 ## Source Plan
 <included/excluded sources, evidence freshness, repo HEAD if relevant>
@@ -87,5 +87,5 @@
 ## Handoff To Roadmap
 <exact suggested /roadmap command and priority notes>
 
-<!-- idea-to-ship:commercialize generated:end -->
+<!-- idea-to-ship:commercial generated:end -->
 ```

@@ -56,7 +56,7 @@ Advisory checks report risk without changing the release gate exit code unless
 
 | Check | Mode | What It Validates | Failure Status |
 |---|---|---|---|
-| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag noisy skill routing: overlong frontmatter descriptions, moderate or oversized `SKILL.md` files, repeated inline prompts/templates, repeated inline output contracts, long runtime-routing sections that do not cite a shared `WORKFLOW-CONTRACTS.md`, duplicated code-style lifecycle blocks, newly-added skills without `agents/openai.yaml`, and authoring-standard gaps such as `missing-actionable-usage`, `missing-task-tracking`, `missing-workflow-diagram`, `missing-related-skills`, `broken-related-skill`, `unsafe-command-example`, and `unexplained-command-placeholder`. | `WARN` |
+| `skill-hygiene` | `staged`, `working`, `all` | Runs `python3 scripts/skill-hygiene-check.py --mode <mode> .` to flag overlong descriptions, SKILL.md bloat, repeated prompts/templates/contracts, unshared runtime routing, duplicated code-style lifecycle blocks, missing metadata, missing actionable usage, broken optional skill references, unsafe command examples, and unexplained placeholders. | `WARN` |
 | `skill-hygiene-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-check-fixtures.sh` so checker snapshot and existing-check regression fixtures stay intact. | `WARN` (`FAIL` with `--strict`) |
 | `skill-hygiene-release-gate-fixtures` | `all`, or `staged`/`working` when the diff touches skill-hygiene checker, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-hygiene-release-gate-fixtures.sh --self-check` so the release-gate fixture harness remains wired without recursively invoking the full release gate. | `WARN` (`FAIL` with `--strict`) |
 | `skill-topology-fixtures` | `all`, or `staged`/`working` when the diff touches skill-topology scanner, fixture, release-gate, or release-gate docs scope | Runs `bash tests/skill-topology-scan-fixtures.sh` so the read-only topology scanner keeps reporting broken references, orphan skills, hub skills, skill-tree output, and README coverage gaps deterministically. | `WARN` (`FAIL` with `--strict`) |
@@ -152,11 +152,11 @@ The full `bash tests/skill-hygiene-release-gate-fixtures.sh` command may invoke
 the real release gate and is intended for explicit implementation and final
 regression verification.
 
-The checker also warns on `moderate-skill-bloat` when a skill grows beyond 400
+The checker also warns on `moderate-skill-bloat` when a skill grows beyond 150
 lines but remains below the hard oversized-skill limit. A visible
 `## Hygiene Exception` section with a non-empty `moderate-skill-bloat:` reason
 can suppress only that moderate warning; `oversized-skill` still fires above
-750 lines.
+250 lines.
 
 The checker warns on `repeated-inline-prompt` when prompt-like blocks are
 duplicated exactly in the same skill, copied exactly into a changed target
@@ -179,10 +179,8 @@ non-empty `repetition-scan-limited:` reason and `reviewed-with:` or
 
 The checker also applies stronger skill authoring checks to new or changed
 skills. It warns when a skill lacks actionable usage/workflow guidance
-(`missing-actionable-usage`), when workflow-like skills lack task/status
-tracking (`missing-task-tracking`) or a basic Mermaid workflow diagram
-(`missing-workflow-diagram`), when `## Related Skills` is missing or contains
-unknown local references (`missing-related-skills`, `broken-related-skill`),
+(`missing-actionable-usage`), when an optional related-skill
+reference is unknown (`broken-related-skill`),
 and when command examples contain risky chained/destructive/heredoc forms or
 unexplained placeholders (`unsafe-command-example`,
 `unexplained-command-placeholder`).
@@ -230,7 +228,7 @@ bash tests/idea-to-ship-eval-fixtures.sh
 This command is also run as the `idea-to-ship-fixtures` advisory check in
 `scripts/release-gate.sh --mode all`, and in `staged`/`working` mode when the
 diff touches `idea-to-ship/` or its fixture files. It validates that the
-`/roadmap`, `/test`, `/visual-test`, and `/review-code` skill instructions
+`/roadmap`, `/test`, `/visual-test`, and `/review --target code` instructions
 still contain the required safety, visual-evidence, and traceability contracts,
 and that current roadmap/test-plan artifacts satisfy the generated-marker,
 draft-fallback, lane-schema, and traceability fixture checks. With `--strict`,
@@ -252,14 +250,10 @@ diff touches agent-playbook fixture scope: `agent-playbook/`, `antifragile/`,
 `issue-evaluator/`, `skill-stats/`, `worktree-cleaner/`,
 `.idea-to-ship/ITS-ROADMAP-020/`, root/plugin README files,
 `.claude-plugin/marketplace.json`, plugin manifests, skill files, skill
-`agents/openai.yaml`, or the fixture files. It validates that
-`/vibe-coding-health-check` keeps its scorecard dimensions, safe routing, stop
-rules, untracked-file handling, and artifact ownership contract; that
-cross-plugin safety gates remain documented; that worktree cleanup, issue-fix
-worktree setup, and PR-comment edit gates keep their behavior scenarios; that
-broad-orchestrator routes cannot silently gain git/GitHub/plugin/deploy/self
-replication authority; and that skill `agents/openai.yaml` metadata follows the
-repo's expected interface shape. In staged mode, the blocking
+`agents/openai.yaml`, or the fixture files. It validates the host-neutral role
+and capability schema, unified harness and antifragile modes, commit and
+tournament safety, deleted-skill absence, and the idea-to-ship consolidation
+contracts. In staged mode, the blocking
 `agent-playbook-fixture-scope-drift` check fails when a staged scan-surface file
 differs from its worktree copy. With `--strict`, fixture regressions block the
 gate.

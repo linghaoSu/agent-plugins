@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness"
+  short_description: "Design or audit an agent harness"
+  default_prompt: "Use $harness-engineering:harness to design or audit this harness."

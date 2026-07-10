@@ -1,365 +1,44 @@
 ---
 name: roadmap
-description: Build or refresh an evidence-backed Now/Next/Later roadmap for a slug or portfolio, with sourced candidate briefs and overwrite safety.
-argument-hint: '[--slug <name> | --portfolio] [--goal <text>] [--horizon <text>] [--include-git] [--include-todos] [--include-github] [--final] [notes]'
-allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
+description: Build or refresh an evidence-backed Now/Next/Later roadmap. Use --commercial to add buyer, value, packaging, validation, and revenue evidence; preserves existing roadmap artifacts.
 ---
 
-# Roadmap — Evidence-Backed Planning
+# Roadmap
 
-Turn existing project artifacts into a roadmap without laundering weak repo
-signals into fake certainty. The output is either:
-
-- `.idea-to-ship/roadmap.md` for the portfolio/project roadmap (default)
-- `.idea-to-ship/<slug>/roadmap.md` for a feature-level roadmap (`--slug`)
-
-This skill is a guarded workflow, not a repo-mining report generator.
-
-**Before writing, read `../../PRINCIPLES.md`, `../../LANGUAGE.md`, and
-`../../WORKFLOW-CONTRACTS.md`.**
-Architecture owns design and staged implementation. Implementation logs own
-completion/deviations. Roadmap owns cross-work sequencing, tradeoffs, release
-gates, and human decisions.
-
-Roadmap does not replace `/brainstorm`. Portfolio mode may list candidates from
-repo evidence, but a candidate is not ready for `/architect`, `/implement`,
-`/test`, or `/review-code` until its slug has `.idea-to-ship/<slug>/requirements.md`
-from `/brainstorm --slug <slug>`.
+Prioritize evidence, not feature enthusiasm. Write only inside the resolved
+roadmap artifact and preserve human notes.
 
 ## Arguments
 
-Raw: `$ARGUMENTS`
-
-Parse:
-- `--slug <name>` → feature roadmap for `.idea-to-ship/<slug>/`.
-- `--portfolio` → project roadmap at `.idea-to-ship/roadmap.md` (default).
-- `--goal <text>` → strategic objective.
-- `--horizon <text>` → date, release, or effort horizon (e.g. `next 4 weeks`,
-  `v0.4`, `one engineer for 5 days`).
-- `--include-git` → include bounded git history/status signals.
-- `--include-todos` → include bounded TODO/FIXME signals.
-- `--include-github` → include bounded GitHub issue/PR/milestone signals.
-- `--final` → after producing a sourced Candidate Brief, write final roadmap
-  only if gates are satisfied and candidate priorities are explicitly approved
-  by the user or specified in the current request. Without this, stop after the
-  brief when user decisions are needed.
-- Remaining text → notes, constraints, priorities, or exclusions.
-
-Default sources: idea-to-ship artifacts and local repo manifests/docs. Git,
-TODO/FIXME, and GitHub mining are opt-in and quarantined as signals unless
-confirmed by higher-authority evidence.
-
-## Critical Safety Rule
-
-If `--include-github` is used, GitHub access is read-only:
-- Do NOT run `gh pr review`, `gh pr comment`, `gh issue edit`, `gh pr edit`,
-  `gh api` with `POST` / `PUT` / `PATCH` / `DELETE`, or any command that
-  writes comments, labels, milestones, assignees, reviews, branches, or repo
-  state.
-- Only use `gh` to read issue, PR, milestone, review, and CI metadata.
-- All roadmap output is local markdown; never post it to GitHub.
-
-## Source Authority
-
-Use this precedence when evidence conflicts:
-
-1. Explicit user goal / instruction in the current request
-2. Accepted `requirements.md`
-3. Accepted `commercialization.md` for ICP, monetization, packaging,
-   commercial gates, and feature-to-business-impact prioritization
-4. Reviewed `architecture.md` / `design-review.md`
-5. `implementation-log.md`
-6. `test-plan.md`, test results, `code-review.md`
-7. Repo docs and manifests
-8. GitHub milestones explicitly tied to the goal (only with `--include-github`)
-9. Active GitHub PRs explicitly tied to the goal (only with `--include-github`)
-10. Labeled/current GitHub issues explicitly tied to the goal (only with
-   `--include-github`)
-11. Recent git history (only with `--include-git`)
-12. TODO/FIXME (only with `--include-todos`)
-13. Stale, unlabeled, or generic GitHub issues (only with `--include-github`)
-
-Recent git history confirms freshness, completion, and drift. It does not
-override explicit goal-tied planning signals unless those signals are stale or
-contradicted by higher-authority artifacts.
-
-Every candidate must cite concrete anchors: `path:line`, artifact heading,
-commit SHA, issue/PR URL, or a user-provided statement. Items without anchors
-go to `Unverified Signals`, not `Now` or `Next`.
-
-## Confidence Rules
-
-- **High:** explicit user request, accepted requirements, accepted
-  commercialization brief, reviewed architecture, active implementation
-  artifact, or milestone/issue explicitly linked to the goal.
-- **Medium:** repo docs, manifests, recent commits, active PRs, current labeled
-  issues, or TODOs tied to active files with direct citations.
-- **Low:** inferred gaps, generic TODO/FIXME, stale issue, pattern matching,
-  or unconfirmed dependency hypothesis.
-- **Unknown:** needs a user answer.
-
-`Low`, `Unknown`, and purely inferred items cannot enter `Now` unless the user
-explicitly approves them through Human Approval Routing when available.
-
-## Item Schema
-
-Use stable item IDs so reruns can update instead of rewriting:
-`ITS-ROADMAP-001` for portfolio items, or `ITS-<slug>-001` for slug items.
-
-Use `../../templates/roadmap-item-schema.md` for the candidate item table,
-controlled values, and verbatim lane item template. The lane item template is
-the source of truth. Do not substitute looser fields such as `Gate` or
-`Evidence`; every promoted lane item must include `Why Now / Why Next`,
-`Owner`, `Decision Owner`, `Release Gate`, `Evidence Required`,
-`Dependencies`, and `Risk`.
+- `--slug <name>` or portfolio target.
+- `--commercial`: include commercial scenario analysis and write/update
+  `commercialization.md` before roadmap synthesis.
+- Remaining text: source/focus notes.
 
 ## Workflow
 
-Track progress with a visible checklist and update it after intake, write-target
-safety, source planning, evidence collection, candidate brief, validation
-gates, roadmap write, acceptance checks, and hand-off.
+1. Apply `../../WORKFLOW-CONTRACTS.md` intake, authority, token, and artifact
+   ownership rules. Inventory requirements, architecture, reviews, current
+   roadmap, issues, user evidence, and explicitly requested primary sources.
+2. Declare included/excluded sources and conflicts. Use bounded independent
+   collection only when breadth benefits; require citations and confidence.
+3. With `--commercial`, define scenario, buyer/user, trigger, alternative,
+   monetizable pain, value metric, paid boundary, cheapest validation,
+   disqualifier, operating cost, and revenue lever. Challenge every keep/change
+   recommendation before converting it to a candidate.
+4. Create one candidate brief per item: problem/evidence, affected user,
+   outcome, scope/non-goals, dependencies, confidence, validation, effort/risk,
+   and acceptance signal. Merge duplicates by problem, not title.
+5. Place only evidence-backed, dependency-valid work into Now/Next/Later.
+   `Now` requires a clear owner, acceptance signal, and no unresolved critical
+   dependency. Keep speculative work in validation/deferred sections.
+6. Write `commercialization.md` when requested, then preserve the existing
+   roadmap schema and generated markers. On refresh, update owned sections
+   without overwriting human content.
 
-```mermaid
-flowchart TD
-  A[Intake Gate] --> B[Write Target Safety]
-  B --> C[Source Plan]
-  C --> D[Collect Evidence]
-  D --> E[Candidate Brief]
-  E --> F{Final Gates Pass?}
-  F -- No --> I[Hand-off Blocked]
-  F -- Yes --> G[Write Roadmap]
-  G --> H[Acceptance Checks]
-  H --> I[Hand-off]
-```
+## Completion
 
-### Step 1: Intake Gate
+Validate every roadmap item has a source anchor, confidence, horizon rationale,
+and next validation/action. Report truncation and unresolved conflicts.
 
-Resolve mode and output path:
-- Portfolio mode → `.idea-to-ship/roadmap.md`
-- Slug mode → `.idea-to-ship/<slug>/roadmap.md`
-
-In slug mode, require `.idea-to-ship/<slug>/requirements.md`. If missing, stop
-and tell the user to run `/brainstorm --slug <slug>` first. In portfolio mode,
-you may plan from existing evidence, but any non-Done item that lacks accepted
-requirements must have `/brainstorm --slug <slug>` as its next action before
-design or implementation.
-
-Before broad source collection, establish:
-- Goal / strategic objective
-- Horizon (date-based, release-based, or effort-based)
-- Audience / target user or maintainer
-- Capacity assumption (if relevant)
-- Source scope (local artifacts only, plus any opt-in sources)
-- Exclusions / non-goals
-
-If goal or horizon is missing, ask one concise batch of 3-5 questions before
-collecting broad sources. Do not write a final roadmap without explicit goal
-and horizon.
-
-### Step 1.5: Write Target Safety
-
-Resolve write target before writing any brief or roadmap:
-
-1. Read the existing roadmap file if it exists.
-2. If generated markers exist, preserve all human content outside:
-   `<!-- idea-to-ship:roadmap generated:start -->` and
-   `<!-- idea-to-ship:roadmap generated:end -->`.
-3. If the file has no generated markers and contains human content, do not
-   overwrite it. Write `roadmap.draft.md` or use Human Approval Routing before
-   replacing.
-4. Record the full resolved `WRITE_TARGET` path (for example,
-   `.idea-to-ship/roadmap.md`, `.idea-to-ship/roadmap.draft.md`,
-   `.idea-to-ship/<slug>/roadmap.md`, or
-   `.idea-to-ship/<slug>/roadmap.draft.md`) and use it for both Candidate Brief
-   and final roadmap output.
-
-### Step 2: Source Plan
-
-List included and excluded sources before reading deeply.
-
-Default source budgets:
-- Slug artifacts: all files in `.idea-to-ship/<slug>/` (or all slug dirs in
-  portfolio mode), including `commercialization.md` when present
-- Repo docs/manifests: README, plugin manifests, package manifests, and docs
-  directly relevant to the goal
-- Git (`--include-git`): last 30 commits max
-- TODO/FIXME (`--include-todos`): 20 matches max
-- GitHub (`--include-github`): 20 total milestones/issues/PRs max; ignore
-  stale/closed items unless explicitly requested
-
-Use runtime-native subagents for bounded collection tasks only when the source
-scope is broad enough to benefit from parallel collection and the host/user
-policy authorizes delegation:
-- artifact scan
-- docs/manifests scan
-- git/TODO scan
-- GitHub scan
-
-Each subagent must return fixed-schema findings with citations and confidence.
-If delegation is unavailable or unauthorized, collect sources sequentially in
-the main context with the same schema. Final prioritization stays in the main
-coordinator.
-
-### Step 3: Collect Evidence
-
-Collect source notes with anchors:
-
-- `.idea-to-ship/*/requirements.md`: functional requirements, success criteria,
-  open questions.
-- `.idea-to-ship/*/commercialization.md`: ICP, buyer/user split, monetization
-  model, pricing/packaging hypotheses, commercial gates, feature-to-business
-  impact, validation metrics, and open commercial decisions.
-- `.idea-to-ship/*/architecture.md`: recommendation, staged implementation,
-  hard dependencies.
-- `.idea-to-ship/*/design-review.md`: unresolved design risks.
-- `.idea-to-ship/*/implementation-log.md`: completed/in-progress stages,
-  deviations, adjacent issues.
-- `.idea-to-ship/*/test-plan.md` and `code-review.md`: verification gaps and
-  unresolved issues.
-- Repo manifests/docs: project claims, plugin inventory, release surface.
-- Optional sources as requested.
-
-If artifacts disagree (e.g. requirement says one thing, architecture says
-another, implementation diverged), add a `Conflicts` entry and stop before
-writing `Now / Next / Later` unless the user resolves it.
-
-### Step 4: Candidate Brief
-
-Always produce a Candidate Brief before a final roadmap. This is the
-anti-hallucination checkpoint.
-
-Write the brief to `WRITE_TARGET`, preserving human-owned content as decided in
-Step 1.5.
-
-Required sections:
-
-Use `../../templates/roadmap-candidate-brief.md`. It must include Source Plan,
-Candidate Work, Unverified Signals, Conflicts, Open Decisions, and Rejected /
-Not Roadmap-Relevant sections.
-
-After writing the brief, stop unless the user has explicitly approved candidate
-priorities or the current request provides unambiguous priority instructions.
-Passing `--final` alone is not approval. If approval is missing, apply
-`../../WORKFLOW-CONTRACTS.md` § Human Approval Routing to the Candidate Brief
-so the user can approve/edit priorities through Plannotator when available.
-
-### Step 5: Validation Gates
-
-Before writing final roadmap lanes, enforce:
-
-- Goal and horizon are explicit.
-- Existing roadmap overwrite behavior is resolved.
-- Candidate priorities were explicitly approved by the user, approved through
-  Human Approval Routing, or specified in the current request.
-- Each lane item has a prioritization rationale using strategic fit, impact,
-  urgency, effort, risk reduction, dependency readiness, and verification
-  availability where relevant.
-- Every lane item has concrete source anchors.
-- No `Low` or `Unknown` item enters `Now` without explicit user approval,
-  routed through Human Approval Routing when available.
-- No purely inferred dependency enters `Critical Path`; put it under
-  `Dependency Hypotheses`.
-- No `Now` item depends on a `Later` item unless explicitly waived or split
-  into a spike.
-- `Now` has at most 3 items. `Next` has at most 5. Overflow goes to Candidate
-  Backlog unchanged.
-- Every `Now` item has an owner or is flagged as a blocking open decision.
-- Every milestone has release gates.
-- Every non-Done lane item that is headed toward design, implementation, test,
-  or code review either cites an accepted `requirements.md` or has an explicit
-  release-gate/next-action entry to run `/brainstorm --slug <slug>` first.
-
-If any gate fails, write/update the brief and stop. Do not fabricate a final
-roadmap.
-
-### Step 6: Write The Roadmap
-
-Preserve human edits:
-- Read existing roadmap first.
-- If human content exists outside generated blocks, preserve it.
-- If the file has no generated markers and contains human edits, write
-  `roadmap.draft.md` or use Human Approval Routing before replacing.
-- Use generated markers for agent-owned content:
-  `<!-- idea-to-ship:roadmap generated:start -->` and
-  `<!-- idea-to-ship:roadmap generated:end -->`.
-
-Use `../../templates/roadmap-final.md` for the full roadmap artifact. It must
-preserve Human-Owned Sections, wrap generated content in the roadmap generated
-markers, and use the lane item template from
-`../../templates/roadmap-item-schema.md` for Now, Next, Later, and milestone
-work items.
-
-### Step 7: Refresh Behavior
-
-On rerun:
-- Read previous roadmap and preserve human-owned sections.
-- Compare previous items by stable ID.
-- Mark items as `new`, `unchanged`, `changed`, `done`, `obsolete`, or
-  `needs_revalidation`.
-- Record stale triggers:
-  - repo HEAD changed
-  - artifact source changed
-  - milestone date missed
-  - dependency changed
-  - GitHub sync changed (if used)
-
-### Step 7.5: Roadmap Acceptance Checks
-
-Before hand-off, check the generated brief or roadmap against these scenarios:
-
-- **First run:** no existing roadmap writes the Candidate Brief to the resolved
-  `WRITE_TARGET`.
-- **Rerun with human content:** human-owned content is preserved, merged by
-  generated markers, or a `.draft.md` target is used.
-- **`--final` without priority approval:** final Now/Next/Later lanes are not
-  written; the brief asks for priority approval instead.
-- **`--include-github`:** only read-only GitHub commands were used, and GitHub
-  signals keep their evidence class.
-- **Conflicting evidence:** conflicts are recorded and final lanes are blocked
-  until resolved.
-- **Weak signals:** low-confidence, unknown, or inferred items stay out of
-  `Now` unless explicitly approved.
-
-If any check fails, fix the artifact or stop with the failed check. Do not
-claim a final roadmap is ready.
-
-### Step 8: Hand-off
-
-Tell the user:
-- Where the roadmap or brief was written.
-- Whether final lanes were written or blocked by gates.
-- The top 3 decisions needed.
-- The next recommended command, usually `/architect`, `/implement`, `/test`,
-  or another `/roadmap --final` after priorities are approved.
-
-## Anti-Patterns
-
-- **Repo mining as strategy.** A TODO is a signal, not a commitment.
-- **Roadmap as requirements.** A roadmap item can prioritize work, but it is
-  not a substitute for `/brainstorm` and `requirements.md`.
-- **Fake critical path.** If the dependency is inferred, it is a hypothesis.
-- **Overwriting human planning.** Preserve human sections or draft instead.
-- **Unbounded source sweeps.** Respect source budgets and opt-in flags.
-- **Roadmap as backlog dump.** Cap `Now` and `Next`; group the rest.
-- **Passive open decisions.** Every decision needs owner, options, deadline,
-  and impact if delayed.
-
-## Phase Gates
-
-- **⛔ GATE after Step 1:** Goal and horizon must be explicit before final
-  roadmap lanes are written.
-- **⛔ GATE after Step 4:** Candidate Brief must exist with citations before
-  final roadmap writing. Missing priority approval must be routed through
-  Human Approval Routing.
-- **⛔ GATE after Step 5:** Validation failures stop final roadmap generation.
-- **⛔ GATE after Step 7.5:** Acceptance-check failures stop hand-off until the
-  artifact is fixed or the failed check is surfaced.
-- **⛔ GATE before overwrite:** Existing human edits must be preserved, drafted
-  around, or approved through Human Approval Routing.
-
-## Related Skills
-
-- `$idea-to-ship:brainstorm` writes accepted requirements for roadmap items headed to build stages.
-- `$idea-to-ship:commercialize` provides commercial prioritization evidence.
-- `$idea-to-ship:architect` and `$idea-to-ship:implement` consume roadmap sequencing after requirements exist.
-- `$idea-to-ship:test` and `$idea-to-ship:review-code` provide verification and review evidence for roadmap status.
+Use `$idea-to-ship:brainstorm` before architecting a selected candidate.

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Vibe Coding Fix"
-  short_description: "Apply bounded health-check fixes."
-  default_prompt: "Use $vibe-coding-fix to classify and apply safe local fixes from the latest vibe-coding health check."

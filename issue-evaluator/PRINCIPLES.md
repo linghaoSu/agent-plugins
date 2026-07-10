@@ -42,39 +42,13 @@ pretending skipped checks ran.
 12. **Fail loud.** Never claim completion, passing tests, or skipped work
     without naming what actually happened.
 
-## Multi-agent review routing
+## Capability routing
 
-Do not assume the host runtime is Claude Code.
-
-- **Claude Code runtime:** keep the existing model split when available:
-  Opus for load-bearing analysis/synthesis, Sonnet for broad analysis or
-  mechanical execution, Haiku for an independent lightweight check, and Codex
-  (`codex:codex-rescue`) for adversarial review.
-- **Non-Claude runtime:** do not request Claude model names or Claude-only
-  `subagent_type` values. Use the host's native sub-agent mechanism instead
-  and preserve the same review roles: primary analysis, independent second
-  opinion, adversarial review, executor, and final synthesis. Label outputs by
-  role rather than model name.
-- **Review delegation is pre-authorized:** invoking a review workflow is
-  standing authorization to launch multiple reviewer and synthesis sub-agents.
-  Do not ask for fresh multi-agent authorization and do not use its absence as
-  a reason to review in the main context.
-- **Review intensity is selected first:** every review workflow must select
-  `review_intensity` from `WORKFLOW-CONTRACTS.md`: auto by risk, or forced
-  with `--review-depth quick|standard|deep`. `deep` preserves multi-agent,
-  multi-angle, multi-round review; `standard` preserves distinct angles with a
-  smaller loop; selected `quick` uses a same-context checklist and is not a
-  degraded fallback.
-- Fall back to same-context review only when reviewer sub-agents are
-  explicitly unsupported by the host/runtime, the user explicitly forbids
-  reviewer sub-agents, or the selected reviewer/model is explicitly unavailable
-  or at capacity. Record `degraded-same-context-review` and the exact reason,
-  and do not present the result as independent multi-agent review. Degraded
-  mode still preserves the same angles and rounds; it only loses independent
-  agents.
-- Non-review analysis or executor phases may use a degraded main-context
-  fallback only when the skill explicitly defines one, and must record the loss
-  of independent validation.
+Use the role and capability schema in `WORKFLOW-CONTRACTS.md`. Review
+invocation authorizes independent reviewer roles unless the user forbids them.
+Select `quick|standard|deep` by risk and preserve required angles. Record
+`degraded` when independent execution is unavailable. Never name or require a
+particular model, vendor, coding agent, or host-specific agent type.
 
 ## 1. Think before coding
 

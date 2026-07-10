@@ -1,0 +1,4 @@
+interface:
+  display_name: "Antifragile Audit"
+  short_description: "Audit agent or system resilience"
+  default_prompt: "Use $antifragile:antifragile-audit to audit resilience."
